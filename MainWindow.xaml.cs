@@ -761,6 +761,54 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     {
         SettingsPanel.Visibility = Visibility.Collapsed;
     }
+
+    private void MoviesListView_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        // Update the visual state of all items
+        foreach (var item in MoviesListView.Items)
+        {
+            var container = MoviesListView.ItemContainerGenerator.ContainerFromItem(item) as ListViewItem;
+            if (container != null)
+            {
+                container.IsSelected = item == MoviesListView.SelectedItem;
+            }
+        }
+    }
+
+    private void UrlButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (MoviesListView.SelectedItem is Movie selectedMovie)
+        {
+            // Create a modern-looking message box
+            var result = MessageBox.Show(
+                $"Movie URL:\n{selectedMovie.Url}\n\nWould you like to open this URL in your default browser?",
+                "Movie URL",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Question
+            );
+
+            if (result == MessageBoxResult.Yes)
+            {
+                try
+                {
+                    System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                    {
+                        FileName = selectedMovie.Url,
+                        UseShellExecute = true
+                    });
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(
+                        $"Error opening URL: {ex.Message}",
+                        "Error",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Error
+                    );
+                }
+            }
+        }
+    }
 }
 
 public class Movie : INotifyPropertyChanged
@@ -823,11 +871,31 @@ public class BooleanToVisibilityConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
     {
-        return (bool)value ? Visibility.Collapsed : Visibility.Visible;
+        bool boolValue = (bool)value;
+        bool inverse = parameter?.ToString() == "Inverse";
+        
+        if (inverse)
+        {
+            return boolValue ? Visibility.Visible : Visibility.Collapsed;
+        }
+        else
+        {
+            return boolValue ? Visibility.Collapsed : Visibility.Visible;
+        }
     }
 
     public object ConvertBack(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
     {
-        return (Visibility)value == Visibility.Collapsed;
+        bool inverse = parameter?.ToString() == "Inverse";
+        Visibility visibility = (Visibility)value;
+        
+        if (inverse)
+        {
+            return visibility == Visibility.Visible;
+        }
+        else
+        {
+            return visibility == Visibility.Collapsed;
+        }
     }
 }

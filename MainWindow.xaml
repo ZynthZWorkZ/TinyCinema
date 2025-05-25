@@ -400,13 +400,16 @@
                          MouseMove="MoviesListView_MouseMove"
                          MouseLeftButtonUp="MoviesListView_MouseLeftButtonUp"
                          KeyDown="MoviesListView_KeyDown"
-                         PreviewMouseWheel="ScrollViewer_PreviewMouseWheel">
+                         PreviewMouseWheel="ScrollViewer_PreviewMouseWheel"
+                         SelectionMode="Single"
+                         SelectionChanged="MoviesListView_SelectionChanged">
                 <ListView.ItemTemplate>
                     <DataTemplate>
                             <Grid Margin="0,8">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="120"/>
                                     <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
                                 
                                 <!-- Movie Poster -->
@@ -473,6 +476,19 @@
                                               Foreground="#B3FFFFFF" 
                                               Margin="0,4,0,0"/>
                                 </StackPanel>
+
+                                <!-- URL Icon -->
+                                <Button Grid.Column="2"
+                                        Style="{StaticResource WindowButtonStyle}"
+                                        Click="UrlButton_Click"
+                                        Margin="8,0,0,0"
+                                        Padding="8"
+                                        Visibility="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListViewItem}, Converter={StaticResource BooleanToVisibilityConverter}, ConverterParameter=Inverse}">
+                                    <fa:FontAwesome Icon="Link" 
+                                                   Foreground="White"
+                                                   Width="16" 
+                                                   Height="16"/>
+                                </Button>
                             </Grid>
                     </DataTemplate>
                 </ListView.ItemTemplate>
@@ -484,6 +500,9 @@
                             <Setter Property="BorderThickness" Value="0"/>
                             <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
                             <Style.Triggers>
+                                <Trigger Property="IsSelected" Value="True">
+                                    <Setter Property="Background" Value="#1A1A1A"/>
+                                </Trigger>
                                 <Trigger Property="IsMouseOver" Value="True">
                                     <Setter Property="Background" Value="#1AFFFFFF"/>
                                 </Trigger>
