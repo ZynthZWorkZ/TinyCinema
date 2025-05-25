@@ -410,6 +410,7 @@
                                     <ColumnDefinition Width="120"/>
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
                                 
                                 <!-- Movie Poster -->
@@ -485,6 +486,19 @@
                                         Padding="8"
                                         Visibility="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListViewItem}, Converter={StaticResource BooleanToVisibilityConverter}, ConverterParameter=Inverse}">
                                     <fa:FontAwesome Icon="Link" 
+                                                   Foreground="White"
+                                                   Width="16" 
+                                                   Height="16"/>
+                                </Button>
+
+                                <!-- Info Icon -->
+                                <Button Grid.Column="3"
+                                        Style="{StaticResource WindowButtonStyle}"
+                                        Margin="8,0,8,0"
+                                        Padding="8"
+                                        Click="InfoButton_Click"
+                                        Visibility="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListViewItem}, Converter={StaticResource BooleanToVisibilityConverter}, ConverterParameter=Inverse}">
+                                    <fa:FontAwesome Icon="InfoCircle" 
                                                    Foreground="White"
                                                    Width="16" 
                                                    Height="16"/>

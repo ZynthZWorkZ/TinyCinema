@@ -18,6 +18,10 @@ using System.ComponentModel;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows.Interop;
+using OpenQA.Selenium.Chrome;
+using OpenQA.Selenium.Support.UI;
+using OpenQA.Selenium;
+using Serilog;
 
 namespace TinyCinema;
 
@@ -807,6 +811,332 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                     );
                 }
             }
+        }
+    }
+
+    private async void InfoButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (MoviesListView.SelectedItem is Movie selectedMovie)
+        {
+            try
+            {
+                // Show loading state
+                var loadingWindow = new Window
+                {
+                    Title = "Loading Movie Info",
+                    Width = 300,
+                    Height = 100,
+                    WindowStartupLocation = WindowStartupLocation.CenterScreen,
+                    WindowStyle = WindowStyle.None,
+                    ResizeMode = ResizeMode.NoResize,
+                    Background = new SolidColorBrush(Color.FromRgb(15, 15, 15)),
+                    Foreground = Brushes.White,
+                    AllowsTransparency = true
+                };
+
+                var loadingBorder = new Border
+                {
+                    Background = new SolidColorBrush(Color.FromRgb(15, 15, 15)),
+                    BorderBrush = new SolidColorBrush(Color.FromRgb(42, 42, 42)),
+                    BorderThickness = new Thickness(1),
+                    CornerRadius = new CornerRadius(8)
+                };
+
+                var loadingGrid = new Grid();
+                loadingGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+                loadingGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+                loadingGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+
+                // Title bar
+                var loadingTitleBar = new Grid
+                {
+                    Background = new SolidColorBrush(Color.FromRgb(26, 26, 26)),
+                    Height = 32
+                };
+                loadingTitleBar.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+                loadingTitleBar.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+                var loadingTitle = new TextBlock
+                {
+                    Text = "Loading Movie Info",
+                    Foreground = Brushes.White,
+                    Margin = new Thickness(12, 0, 0, 0),
+                    VerticalAlignment = VerticalAlignment.Center
+                };
+                Grid.SetColumn(loadingTitle, 0);
+
+                var loadingCloseButton = new Button
+                {
+                    Style = (Style)FindResource("CloseButtonStyle"),
+                    Width = 46,
+                    Height = 32
+                };
+                loadingCloseButton.Content = new FontAwesome.WPF.FontAwesome
+                {
+                    Icon = FontAwesome.WPF.FontAwesomeIcon.Close,
+                    Foreground = Brushes.White,
+                    Width = 12,
+                    Height = 12
+                };
+                loadingCloseButton.Click += (s, args) => loadingWindow.Close();
+                Grid.SetColumn(loadingCloseButton, 1);
+
+                loadingTitleBar.Children.Add(loadingTitle);
+                loadingTitleBar.Children.Add(loadingCloseButton);
+                Grid.SetRow(loadingTitleBar, 0);
+
+                var spinner = new FontAwesome.WPF.FontAwesome
+                {
+                    Icon = FontAwesome.WPF.FontAwesomeIcon.Spinner,
+                    Width = 32,
+                    Height = 32,
+                    Foreground = Brushes.White
+                };
+                Grid.SetRow(spinner, 1);
+
+                // Add rotation animation to spinner
+                var rotateTransform = new RotateTransform();
+                spinner.RenderTransform = rotateTransform;
+                var animation = new DoubleAnimation
+                {
+                    From = 0,
+                    To = 360,
+                    Duration = TimeSpan.FromSeconds(1),
+                    RepeatBehavior = RepeatBehavior.Forever
+                };
+                rotateTransform.BeginAnimation(RotateTransform.AngleProperty, animation);
+
+                var loadingText = new TextBlock
+                {
+                    Text = "Loading movie information...",
+                    Foreground = Brushes.White,
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    VerticalAlignment = VerticalAlignment.Center
+                };
+                Grid.SetRow(loadingText, 2);
+
+                loadingGrid.Children.Add(loadingTitleBar);
+                loadingGrid.Children.Add(spinner);
+                loadingGrid.Children.Add(loadingText);
+                loadingBorder.Child = loadingGrid;
+                loadingWindow.Content = loadingBorder;
+
+                // Add drag functionality
+                loadingTitleBar.MouseLeftButtonDown += (s, args) =>
+                {
+                    loadingWindow.DragMove();
+                };
+
+                // Start loading window
+                loadingWindow.Show();
+
+                // Get movie details in background
+                var (description, genre) = await Task.Run(() => GetMovieDetails(selectedMovie.Url));
+
+                // Close loading window
+                loadingWindow.Close();
+
+                // Show movie details
+                var detailsWindow = new Window
+                {
+                    Title = $"{selectedMovie.Title} ({selectedMovie.Year}) - Details",
+                    Width = 500,
+                    Height = 400,
+                    WindowStartupLocation = WindowStartupLocation.CenterScreen,
+                    WindowStyle = WindowStyle.None,
+                    ResizeMode = ResizeMode.CanResize,
+                    Background = new SolidColorBrush(Color.FromRgb(15, 15, 15)),
+                    Foreground = Brushes.White,
+                    AllowsTransparency = true
+                };
+
+                var detailsBorder = new Border
+                {
+                    Background = new SolidColorBrush(Color.FromRgb(15, 15, 15)),
+                    BorderBrush = new SolidColorBrush(Color.FromRgb(42, 42, 42)),
+                    BorderThickness = new Thickness(1),
+                    CornerRadius = new CornerRadius(8)
+                };
+
+                var detailsGrid = new Grid();
+                detailsGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+                detailsGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+                detailsGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+                detailsGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+                detailsGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+
+                // Title bar
+                var detailsTitleBar = new Grid
+                {
+                    Background = new SolidColorBrush(Color.FromRgb(26, 26, 26)),
+                    Height = 32
+                };
+                detailsTitleBar.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+                detailsTitleBar.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+                var detailsTitle = new TextBlock
+                {
+                    Text = $"{selectedMovie.Title} ({selectedMovie.Year}) - Details",
+                    Foreground = Brushes.White,
+                    Margin = new Thickness(12, 0, 0, 0),
+                    VerticalAlignment = VerticalAlignment.Center
+                };
+                Grid.SetColumn(detailsTitle, 0);
+
+                var detailsCloseButton = new Button
+                {
+                    Style = (Style)FindResource("CloseButtonStyle"),
+                    Width = 46,
+                    Height = 32
+                };
+                detailsCloseButton.Content = new FontAwesome.WPF.FontAwesome
+                {
+                    Icon = FontAwesome.WPF.FontAwesomeIcon.Close,
+                    Foreground = Brushes.White,
+                    Width = 12,
+                    Height = 12
+                };
+                detailsCloseButton.Click += (s, args) => detailsWindow.Close();
+                Grid.SetColumn(detailsCloseButton, 1);
+
+                detailsTitleBar.Children.Add(detailsTitle);
+                detailsTitleBar.Children.Add(detailsCloseButton);
+                Grid.SetRow(detailsTitleBar, 0);
+
+                // Content
+                var contentGrid = new Grid { Margin = new Thickness(20) };
+                contentGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+                contentGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+                contentGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+                contentGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+
+                // Title
+                var titleText = new TextBlock
+                {
+                    Text = $"{selectedMovie.Title} ({selectedMovie.Year})",
+                    FontSize = 20,
+                    FontWeight = FontWeights.Bold,
+                    Foreground = Brushes.White,
+                    TextWrapping = TextWrapping.Wrap,
+                    Margin = new Thickness(0, 0, 0, 20)
+                };
+                Grid.SetRow(titleText, 0);
+
+                // Genre
+                var genreText = new TextBlock
+                {
+                    Text = $"Genre: {genre}",
+                    FontSize = 14,
+                    Foreground = Brushes.White,
+                    TextWrapping = TextWrapping.Wrap,
+                    Margin = new Thickness(0, 0, 0, 10)
+                };
+                Grid.SetRow(genreText, 1);
+
+                // Description
+                var descriptionText = new TextBlock
+                {
+                    Text = $"Description:\n{description}",
+                    FontSize = 14,
+                    Foreground = Brushes.White,
+                    TextWrapping = TextWrapping.Wrap,
+                    Margin = new Thickness(0, 0, 0, 20)
+                };
+                Grid.SetRow(descriptionText, 2);
+
+                contentGrid.Children.Add(titleText);
+                contentGrid.Children.Add(genreText);
+                contentGrid.Children.Add(descriptionText);
+
+                Grid.SetRow(contentGrid, 1);
+
+                detailsGrid.Children.Add(detailsTitleBar);
+                detailsGrid.Children.Add(contentGrid);
+
+                detailsBorder.Child = detailsGrid;
+                detailsWindow.Content = detailsBorder;
+
+                // Add drag functionality
+                detailsTitleBar.MouseLeftButtonDown += (s, e) =>
+                {
+                    detailsWindow.DragMove();
+                };
+
+                detailsWindow.ShowDialog();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    $"Error loading movie details: {ex.Message}",
+                    "Error",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error
+                );
+            }
+        }
+    }
+
+    private static (string description, string genre) GetMovieDetails(string url)
+    {
+        try
+        {
+            var options = new ChromeOptions();
+            options.AddArgument("--headless=new"); // Use new headless mode
+            options.AddArgument("--disable-gpu");
+            options.AddArgument("--no-sandbox");
+            options.AddArgument("--disable-dev-shm-usage");
+            options.AddArgument("--window-size=1920,1080");
+            options.AddArgument("--hide-scrollbars");
+            options.AddArgument("--disable-extensions");
+            options.AddArgument("--disable-notifications");
+            options.AddArgument("--disable-infobars");
+            options.AddArgument("--disable-logging");
+            options.AddArgument("--log-level=3"); // Only show fatal errors
+            options.AddArgument("--silent");
+            options.AddExcludedArgument("enable-automation"); // Remove automation flag
+            options.AddAdditionalOption("useAutomationExtension", false);
+
+            var service = ChromeDriverService.CreateDefaultService();
+            service.HideCommandPromptWindow = true; // Hide the console window
+
+            using (var driver = new ChromeDriver(service, options))
+            {
+                driver.Navigate().GoToUrl(url);
+
+                // Wait for page to load
+                var wait = new WebDriverWait(driver, TimeSpan.FromSeconds(10));
+
+                // Get description
+                string description = "";
+                try
+                {
+                    var descElement = wait.Until(d => d.FindElement(By.CssSelector("div.description")));
+                    description = descElement.Text.Trim();
+                }
+                catch
+                {
+                    Log.Information("Could not find movie description");
+                }
+
+                // Get genre
+                string genre = "";
+                try
+                {
+                    var genreElement = wait.Until(d => d.FindElement(By.CssSelector(".col-xl-7.col-lg-7.col-md-8.col-sm-12")));
+                    genre = genreElement.Text.Trim();
+                }
+                catch
+                {
+                    Log.Information("Could not find movie genre");
+                }
+
+                return (description, genre);
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Error getting movie details");
+            return ("", "");
         }
     }
 }
