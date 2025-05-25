@@ -679,7 +679,8 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                         selectedMovie.Title,
                         selectedMovie.Year,
                         description,
-                        genre
+                        genre,
+                        selectedMovie.ImageUrl
                     );
                     detailsWindow.Owner = this;
                     detailsWindow.ShowDialog();
