@@ -504,34 +504,9 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     {
         if (MoviesListView.SelectedItem is Movie selectedMovie)
         {
-            // Create a modern-looking message box
-            var result = MessageBox.Show(
-                $"Movie URL:\n{selectedMovie.Url}\n\nWould you like to open this URL in your default browser?",
-                "Movie URL",
-                MessageBoxButton.YesNo,
-                MessageBoxImage.Question
-            );
-
-            if (result == MessageBoxResult.Yes)
-            {
-                try
-                {
-                    System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
-                    {
-                        FileName = selectedMovie.Url,
-                        UseShellExecute = true
-                    });
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show(
-                        $"Error opening URL: {ex.Message}",
-                        "Error",
-                        MessageBoxButton.OK,
-                        MessageBoxImage.Error
-                    );
-                }
-            }
+            var urlWindow = new UrlWindow(selectedMovie.Url);
+            urlWindow.Owner = this;
+            urlWindow.ShowDialog();
         }
     }
 
