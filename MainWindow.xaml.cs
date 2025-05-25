@@ -22,6 +22,7 @@ using OpenQA.Selenium.Chrome;
 using OpenQA.Selenium.Support.UI;
 using OpenQA.Selenium;
 using Serilog;
+using System.Threading;
 
 namespace TinyCinema;
 
@@ -540,6 +541,9 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         {
             try
             {
+                // Create cancellation token source
+                using var cts = new CancellationTokenSource();
+
                 // Show loading state
                 var loadingWindow = new Window
                 {
@@ -552,6 +556,12 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                     Background = new SolidColorBrush(Color.FromRgb(15, 15, 15)),
                     Foreground = Brushes.White,
                     AllowsTransparency = true
+                };
+
+                // Add event handler for window closing
+                loadingWindow.Closing += (s, args) =>
+                {
+                    cts.Cancel(); // Cancel the operation when window is closed
                 };
 
                 var loadingBorder = new Border
@@ -650,139 +660,35 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                 // Start loading window
                 loadingWindow.Show();
 
-                // Get movie details in background
-                var (description, genre) = await Task.Run(() => GetMovieDetails(selectedMovie.Url));
-
-                // Close loading window
-                loadingWindow.Close();
-
-                // Show movie details
-                var detailsWindow = new Window
+                try
                 {
-                    Title = $"{selectedMovie.Title} ({selectedMovie.Year}) - Details",
-                    Width = 500,
-                    Height = 400,
-                    WindowStartupLocation = WindowStartupLocation.CenterScreen,
-                    WindowStyle = WindowStyle.None,
-                    ResizeMode = ResizeMode.CanResize,
-                    Background = new SolidColorBrush(Color.FromRgb(15, 15, 15)),
-                    Foreground = Brushes.White,
-                    AllowsTransparency = true
-                };
+                    // Get movie details in background with cancellation support
+                    var (description, genre) = await Task.Run(() => GetMovieDetails(selectedMovie.Url, cts.Token));
 
-                var detailsBorder = new Border
+                    // Check if operation was cancelled
+                    if (cts.Token.IsCancellationRequested)
+                    {
+                        return;
+                    }
+
+                    // Close loading window
+                    loadingWindow.Close();
+
+                    // Show movie details using the new DetailsWindow
+                    var detailsWindow = new DetailsWindow(
+                        selectedMovie.Title,
+                        selectedMovie.Year,
+                        description,
+                        genre
+                    );
+                    detailsWindow.Owner = this;
+                    detailsWindow.ShowDialog();
+                }
+                catch (OperationCanceledException)
                 {
-                    Background = new SolidColorBrush(Color.FromRgb(15, 15, 15)),
-                    BorderBrush = new SolidColorBrush(Color.FromRgb(42, 42, 42)),
-                    BorderThickness = new Thickness(1),
-                    CornerRadius = new CornerRadius(8)
-                };
-
-                var detailsGrid = new Grid();
-                detailsGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-                detailsGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-                detailsGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-                detailsGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-                detailsGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-
-                // Title bar
-                var detailsTitleBar = new Grid
-                {
-                    Background = new SolidColorBrush(Color.FromRgb(26, 26, 26)),
-                    Height = 32
-                };
-                detailsTitleBar.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-                detailsTitleBar.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-
-                var detailsTitle = new TextBlock
-                {
-                    Text = $"{selectedMovie.Title} ({selectedMovie.Year}) - Details",
-                    Foreground = Brushes.White,
-                    Margin = new Thickness(12, 0, 0, 0),
-                    VerticalAlignment = VerticalAlignment.Center
-                };
-                Grid.SetColumn(detailsTitle, 0);
-
-                var detailsCloseButton = new Button
-                {
-                    Style = (Style)FindResource("CloseButtonStyle"),
-                    Width = 46,
-                    Height = 32
-                };
-                detailsCloseButton.Content = new FontAwesome.WPF.FontAwesome
-                {
-                    Icon = FontAwesome.WPF.FontAwesomeIcon.Close,
-                    Foreground = Brushes.White,
-                    Width = 12,
-                    Height = 12
-                };
-                detailsCloseButton.Click += (s, args) => detailsWindow.Close();
-                Grid.SetColumn(detailsCloseButton, 1);
-
-                detailsTitleBar.Children.Add(detailsTitle);
-                detailsTitleBar.Children.Add(detailsCloseButton);
-                Grid.SetRow(detailsTitleBar, 0);
-
-                // Content
-                var contentGrid = new Grid { Margin = new Thickness(20) };
-                contentGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-                contentGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-                contentGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-                contentGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-
-                // Title
-                var titleText = new TextBlock
-                {
-                    Text = $"{selectedMovie.Title} ({selectedMovie.Year})",
-                    FontSize = 20,
-                    FontWeight = FontWeights.Bold,
-                    Foreground = Brushes.White,
-                    TextWrapping = TextWrapping.Wrap,
-                    Margin = new Thickness(0, 0, 0, 20)
-                };
-                Grid.SetRow(titleText, 0);
-
-                // Genre
-                var genreText = new TextBlock
-                {
-                    Text = $"Genre: {genre}",
-                    FontSize = 14,
-                    Foreground = Brushes.White,
-                    TextWrapping = TextWrapping.Wrap,
-                    Margin = new Thickness(0, 0, 0, 10)
-                };
-                Grid.SetRow(genreText, 1);
-
-                // Description
-                var descriptionText = new TextBlock
-                {
-                    Text = $"Description:\n{description}",
-                    FontSize = 14,
-                    Foreground = Brushes.White,
-                    TextWrapping = TextWrapping.Wrap,
-                    Margin = new Thickness(0, 0, 0, 20)
-                };
-                Grid.SetRow(descriptionText, 2);
-
-                contentGrid.Children.Add(titleText);
-                contentGrid.Children.Add(genreText);
-                contentGrid.Children.Add(descriptionText);
-
-                Grid.SetRow(contentGrid, 1);
-
-                detailsGrid.Children.Add(detailsTitleBar);
-                detailsGrid.Children.Add(contentGrid);
-
-                detailsBorder.Child = detailsGrid;
-                detailsWindow.Content = detailsBorder;
-
-                // Add drag functionality
-                detailsTitleBar.MouseLeftButtonDown += (s, e) =>
-                {
-                    detailsWindow.DragMove();
-                };
-
-                detailsWindow.ShowDialog();
+                    // Operation was cancelled, just close the loading window
+                    loadingWindow.Close();
+                }
             }
             catch (Exception ex)
             {
@@ -796,7 +702,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         }
     }
 
-    private static (string description, string genre) GetMovieDetails(string url)
+    private static (string description, string genre) GetMovieDetails(string url, CancellationToken cancellationToken)
     {
         try
         {
@@ -821,6 +727,8 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
             using (var driver = new ChromeDriver(service, options))
             {
+                // Check for cancellation before navigating
+                cancellationToken.ThrowIfCancellationRequested();
                 driver.Navigate().GoToUrl(url);
 
                 // Wait for page to load
@@ -830,6 +738,8 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                 string description = "";
                 try
                 {
+                    // Check for cancellation before getting description
+                    cancellationToken.ThrowIfCancellationRequested();
                     var descElement = wait.Until(d => d.FindElement(By.CssSelector("div.description")));
                     description = descElement.Text.Trim();
                 }
@@ -842,6 +752,8 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                 string genre = "";
                 try
                 {
+                    // Check for cancellation before getting genre
+                    cancellationToken.ThrowIfCancellationRequested();
                     var genreElement = wait.Until(d => d.FindElement(By.CssSelector(".col-xl-7.col-lg-7.col-md-8.col-sm-12")));
                     genre = genreElement.Text.Trim();
                 }
@@ -852,6 +764,10 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
                 return (description, genre);
             }
+        }
+        catch (OperationCanceledException)
+        {
+            throw; // Re-throw cancellation exception
         }
         catch (Exception ex)
         {
