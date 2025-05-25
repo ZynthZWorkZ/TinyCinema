@@ -30,22 +30,6 @@ namespace TinyCinema;
 /// </summary>
 public partial class MainWindow : Window, INotifyPropertyChanged
 {
-    // Win32 API for folder selection
-    [DllImport("shell32.dll", CharSet = CharSet.Auto)]
-    private static extern IntPtr ILCreateFromPath([MarshalAs(UnmanagedType.LPTStr)] string pszPath);
-
-    [DllImport("shell32.dll", CharSet = CharSet.None, ExactSpelling = false)]
-    private static extern void ILFree(IntPtr pidl);
-
-    [DllImport("shell32.dll", CharSet = CharSet.Auto, SetLastError = true)]
-    private static extern int SHILCreateFromPath([MarshalAs(UnmanagedType.LPTStr)] string pszPath, out IntPtr ppIdl, ref uint rgfInOut);
-
-    [DllImport("shell32.dll", CharSet = CharSet.Auto)]
-    private static extern int SHCreateItemFromIDList(IntPtr pidl, ref Guid riid, [MarshalAs(UnmanagedType.IUnknown)] out object ppv);
-
-    private const int MAX_PATH = 260;
-    private static readonly Guid IID_IShellItem = new Guid("43826d1e-e718-42ee-bc55-a1e261c37bfe");
-
     private const int BatchSize = 50;
     private readonly ObservableCollection<Movie> _movies;
     private readonly List<Movie> _allMovies;
@@ -55,38 +39,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     private bool _isDragging;
     private string _lastSearchText = string.Empty;
     private static readonly Dictionary<string, BitmapImage> _imageCache = new();
-    private string _cacheLocation;
     private int _movieCount;
-    private bool _isCachingEnabled;
-    private string _movieLinksLocation;
-
-    private static readonly string SettingsFile = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "TinyCinema",
-        "settings.json"
-    );
-
-    public string MovieLinksLocation
-    {
-        get => _movieLinksLocation;
-        private set
-        {
-            _movieLinksLocation = value;
-            OnPropertyChanged(nameof(MovieLinksLocation));
-            SaveSettings();
-        }
-    }
-
-    public bool IsCachingEnabled
-    {
-        get => _isCachingEnabled;
-        set
-        {
-            _isCachingEnabled = value;
-            OnPropertyChanged(nameof(IsCachingEnabled));
-            SaveSettings();
-        }
-    }
 
     public int MovieCount
     {
@@ -95,17 +48,6 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         {
             _movieCount = value;
             OnPropertyChanged(nameof(MovieCount));
-        }
-    }
-
-    public string CacheLocation
-    {
-        get => _cacheLocation;
-        private set
-        {
-            _cacheLocation = value;
-            OnPropertyChanged(nameof(CacheLocation));
-            SaveSettings();
         }
     }
 
@@ -126,9 +68,6 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             MoviesListView.ItemsSource = _movies;
             DataContext = this;
             
-            LoadSettings();
-            InitializeCacheDirectory();
-            
             LoadMoviesAsync();
         }
         catch (Exception ex)
@@ -137,245 +76,21 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         }
     }
 
-    private void LoadSettings()
-    {
-        try
-        {
-            if (File.Exists(SettingsFile))
-            {
-                var settings = File.ReadAllText(SettingsFile);
-                var lines = settings.Split('\n');
-                foreach (var line in lines)
-                {
-                    if (line.StartsWith("CacheLocation="))
-                    {
-                        CacheLocation = line.Substring("CacheLocation=".Length).Trim();
-                    }
-                    else if (line.StartsWith("IsCachingEnabled="))
-                    {
-                        IsCachingEnabled = bool.Parse(line.Substring("IsCachingEnabled=".Length).Trim());
-                    }
-                    else if (line.StartsWith("MovieLinksLocation="))
-                    {
-                        MovieLinksLocation = line.Substring("MovieLinksLocation=".Length).Trim();
-                    }
-                }
-            }
-        }
-        catch
-        {
-            // If settings can't be loaded, use defaults
-        }
-
-        if (string.IsNullOrEmpty(CacheLocation))
-        {
-            CacheLocation = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "TinyCinema",
-                "ImageCache"
-            );
-        }
-
-        if (string.IsNullOrEmpty(MovieLinksLocation))
-        {
-            MovieLinksLocation = Path.Combine(
-                AppDomain.CurrentDomain.BaseDirectory,
-                "movie_links.txt"
-            );
-        }
-    }
-
-    private void SaveSettings()
-    {
-        try
-        {
-            var settingsDir = Path.GetDirectoryName(SettingsFile);
-            if (!Directory.Exists(settingsDir))
-            {
-                Directory.CreateDirectory(settingsDir);
-            }
-
-            var settings = new StringBuilder();
-            settings.AppendLine($"CacheLocation={CacheLocation}");
-            settings.AppendLine($"IsCachingEnabled={IsCachingEnabled}");
-            settings.AppendLine($"MovieLinksLocation={MovieLinksLocation}");
-            File.WriteAllText(SettingsFile, settings.ToString());
-        }
-        catch
-        {
-            // Silently handle settings save errors
-        }
-    }
-
-    private void InitializeCacheDirectory()
-    {
-        try
-        {
-            if (!Directory.Exists(CacheLocation))
-            {
-                Directory.CreateDirectory(CacheLocation);
-            }
-        }
-        catch
-        {
-            // If custom location fails, fall back to default
-            CacheLocation = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "TinyCinema",
-                "ImageCache"
-            );
-            Directory.CreateDirectory(CacheLocation);
-        }
-    }
-
-    private void SelectCacheLocation_Click(object sender, RoutedEventArgs e)
-    {
-        var dialog = new Microsoft.Win32.SaveFileDialog
-        {
-            Title = "Select Cache Location",
-            Filter = "All Files|*.*",
-            FileName = "Select Folder",
-            CheckFileExists = false,
-            CheckPathExists = true
-        };
-
-        if (dialog.ShowDialog() == true)
-        {
-            var selectedPath = Path.GetDirectoryName(dialog.FileName);
-            if (!string.IsNullOrEmpty(selectedPath))
-            {
-                try
-                {
-                    // Test if we can write to the directory
-                    var testFile = Path.Combine(selectedPath, "test.tmp");
-                    File.WriteAllText(testFile, "test");
-                    File.Delete(testFile);
-
-                    // If successful, update cache location
-                    CacheLocation = selectedPath;
-                    InitializeCacheDirectory();
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show($"Cannot use selected location: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                }
-            }
-        }
-    }
-
-    private void SelectMovieLinksLocation_Click(object sender, RoutedEventArgs e)
-    {
-        var dialog = new Microsoft.Win32.OpenFileDialog
-        {
-            Title = "Select Movie Links File",
-            Filter = "Text Files|*.txt|All Files|*.*",
-            CheckFileExists = true,
-            CheckPathExists = true
-        };
-
-        if (dialog.ShowDialog() == true)
-        {
-            try
-            {
-                // Test if we can read the file
-                File.ReadAllLines(dialog.FileName);
-                
-                // If successful, update movie links location
-                MovieLinksLocation = dialog.FileName;
-                
-                // Reload movies with new file location
-                _movies.Clear();
-                _allMovies.Clear();
-                _currentIndex = 0;
-                LoadMoviesAsync();
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Cannot use selected file: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-        }
-    }
-
-    public static async Task<BitmapImage> GetCachedImageAsync(string imageUrl)
-    {
-        try
-        {
-            var mainWindow = Application.Current.MainWindow as MainWindow;
-            if (mainWindow == null) return null;
-
-            // If caching is disabled, load directly from URL
-            if (!mainWindow.IsCachingEnabled)
-            {
-                var image = new BitmapImage();
-                image.BeginInit();
-                image.CacheOption = BitmapCacheOption.None;
-                image.UriSource = new Uri(imageUrl);
-                image.EndInit();
-                return image;
-            }
-
-            // Check memory cache first
-            if (_imageCache.TryGetValue(imageUrl, out var cachedImage))
-            {
-                return cachedImage;
-            }
-
-            // Generate cache file path
-            string cacheFileName = Convert.ToBase64String(
-                System.Security.Cryptography.SHA256.Create()
-                    .ComputeHash(System.Text.Encoding.UTF8.GetBytes(imageUrl)))
-                .Replace("/", "_")
-                .Replace("+", "-")
-                .Replace("=", "");
-
-            string cacheFilePath = Path.Combine(mainWindow.CacheLocation, cacheFileName + ".jpg");
-
-            // Check disk cache
-            if (File.Exists(cacheFilePath))
-            {
-                var image = new BitmapImage();
-                image.BeginInit();
-                image.CacheOption = BitmapCacheOption.OnLoad;
-                image.UriSource = new Uri(cacheFilePath);
-                image.EndInit();
-                _imageCache[imageUrl] = image;
-                return image;
-            }
-
-            // Download and cache the image
-            using (var client = new HttpClient())
-            {
-                var imageBytes = await client.GetByteArrayAsync(imageUrl);
-                await File.WriteAllBytesAsync(cacheFilePath, imageBytes);
-
-                var image = new BitmapImage();
-                image.BeginInit();
-                image.CacheOption = BitmapCacheOption.OnLoad;
-                image.UriSource = new Uri(cacheFilePath);
-                image.EndInit();
-                _imageCache[imageUrl] = image;
-                return image;
-            }
-        }
-        catch (Exception)
-        {
-            // Return a default image or null if download fails
-            return null;
-        }
-    }
-
     private async void LoadMoviesAsync()
     {
         try
         {
-            if (!File.Exists(MovieLinksLocation))
+            var settingsWindow = new SettingsWindow();
+            var movieLinksLocation = settingsWindow.MovieLinksLocation;
+
+            if (!File.Exists(movieLinksLocation))
             {
-                MessageBox.Show($"Movie links file not found at: {MovieLinksLocation}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"Movie links file not found at: {movieLinksLocation}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
             // Read all lines but don't process them yet
-            var lines = await File.ReadAllLinesAsync(MovieLinksLocation);
+            var lines = await File.ReadAllLinesAsync(movieLinksLocation);
             _currentIndex = 0;
 
             // Process all movies first
@@ -458,21 +173,21 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                 }
             }
             else
-        {
-            var endIndex = Math.Min(_currentIndex + BatchSize, _allMovies.Count);
-            var batch = _allMovies.Skip(_currentIndex).Take(endIndex - _currentIndex).ToList();
+            {
+                var endIndex = Math.Min(_currentIndex + BatchSize, _allMovies.Count);
+                var batch = _allMovies.Skip(_currentIndex).Take(endIndex - _currentIndex).ToList();
 
                 await Dispatcher.Invoke(async () =>
-            {
-                foreach (var movie in batch)
                 {
-                    _movies.Add(movie);
+                    foreach (var movie in batch)
+                    {
+                        _movies.Add(movie);
                         // Start loading the image asynchronously
                         _ = movie.LoadImageAsync();
-                }
-            });
+                    }
+                });
 
-            _currentIndex = endIndex;
+                _currentIndex = endIndex;
             }
         });
         _isLoading = false;
@@ -512,8 +227,8 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             // If no valid search terms, immediately load initial batch
             var initialBatch = _allMovies.Take(BatchSize).ToList();
             foreach (var movie in initialBatch)
-        {
-            _movies.Add(movie);
+            {
+                _movies.Add(movie);
             }
             _currentIndex = initialBatch.Count;
             return;
@@ -643,14 +358,14 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         return null;
     }
 
-    private void MoviesListView_MouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    private void MoviesListView_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
         _isDragging = true;
         _lastMousePosition = e.GetPosition(MoviesListView);
         MoviesListView.CaptureMouse();
     }
 
-    private void MoviesListView_MouseMove(object sender, System.Windows.Input.MouseEventArgs e)
+    private void MoviesListView_MouseMove(object sender, MouseEventArgs e)
     {
         if (_isDragging)
         {
@@ -668,7 +383,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         }
     }
 
-    private void MoviesListView_MouseLeftButtonUp(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    private void MoviesListView_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
     {
         _isDragging = false;
         MoviesListView.ReleaseMouseCapture();
@@ -736,7 +451,15 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
     private void CloseButton_Click(object sender, RoutedEventArgs e)
     {
-        Close();
+        ImageCache.Cleanup();
+        Application.Current.Shutdown();
+    }
+
+    protected override void OnClosed(EventArgs e)
+    {
+        base.OnClosed(e);
+        ImageCache.Cleanup();
+        Application.Current.Shutdown();
     }
 
     private void TitleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -758,12 +481,9 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
     private void SettingsButton_Click(object sender, RoutedEventArgs e)
     {
-        SettingsPanel.Visibility = Visibility.Visible;
-    }
-
-    private void CloseSettingsButton_Click(object sender, RoutedEventArgs e)
-    {
-        SettingsPanel.Visibility = Visibility.Collapsed;
+        var settingsWindow = new SettingsWindow();
+        settingsWindow.Owner = this;
+        settingsWindow.ShowDialog();
     }
 
     private void MoviesListView_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -1184,7 +904,7 @@ public class Movie : INotifyPropertyChanged
         try
         {
             IsLoading = true;
-            var image = await MainWindow.GetCachedImageAsync(ImageUrl);
+            var image = await ImageCache.GetCachedImageAsync(ImageUrl);
             if (image != null)
             {
                 CachedImage = image;
@@ -1193,6 +913,105 @@ public class Movie : INotifyPropertyChanged
         finally
         {
             IsLoading = false;
+        }
+    }
+}
+
+public static class ImageCache
+{
+    private static readonly Dictionary<string, BitmapImage> _imageCache = new();
+    private static SettingsWindow _settingsWindow;
+    private static readonly object _lock = new object();
+
+    private static SettingsWindow GetSettingsWindow()
+    {
+        if (_settingsWindow == null)
+        {
+            lock (_lock)
+            {
+                if (_settingsWindow == null)
+                {
+                    _settingsWindow = new SettingsWindow();
+                }
+            }
+        }
+        return _settingsWindow;
+    }
+
+    public static void Cleanup()
+    {
+        _imageCache.Clear();
+        if (_settingsWindow != null)
+        {
+            _settingsWindow.Close();
+            _settingsWindow = null;
+        }
+    }
+
+    public static async Task<BitmapImage> GetCachedImageAsync(string imageUrl)
+    {
+        try
+        {
+            var settingsWindow = GetSettingsWindow();
+
+            // If caching is disabled, load directly from URL
+            if (!settingsWindow.IsCachingEnabled)
+            {
+                var image = new BitmapImage();
+                image.BeginInit();
+                image.CacheOption = BitmapCacheOption.None;
+                image.UriSource = new Uri(imageUrl);
+                image.EndInit();
+                return image;
+            }
+
+            // Check memory cache first
+            if (_imageCache.TryGetValue(imageUrl, out var cachedImage))
+            {
+                return cachedImage;
+            }
+
+            // Generate cache file path
+            string cacheFileName = Convert.ToBase64String(
+                System.Security.Cryptography.SHA256.Create()
+                    .ComputeHash(System.Text.Encoding.UTF8.GetBytes(imageUrl)))
+                .Replace("/", "_")
+                .Replace("+", "-")
+                .Replace("=", "");
+
+            string cacheFilePath = Path.Combine(settingsWindow.CacheLocation, cacheFileName + ".jpg");
+
+            // Check disk cache
+            if (File.Exists(cacheFilePath))
+            {
+                var image = new BitmapImage();
+                image.BeginInit();
+                image.CacheOption = BitmapCacheOption.OnLoad;
+                image.UriSource = new Uri(cacheFilePath);
+                image.EndInit();
+                _imageCache[imageUrl] = image;
+                return image;
+            }
+
+            // Download and cache the image
+            using (var client = new HttpClient())
+            {
+                var imageBytes = await client.GetByteArrayAsync(imageUrl);
+                await File.WriteAllBytesAsync(cacheFilePath, imageBytes);
+
+                var image = new BitmapImage();
+                image.BeginInit();
+                image.CacheOption = BitmapCacheOption.OnLoad;
+                image.UriSource = new Uri(cacheFilePath);
+                image.EndInit();
+                _imageCache[imageUrl] = image;
+                return image;
+            }
+        }
+        catch (Exception)
+        {
+            // Return a default image or null if download fails
+            return null;
         }
     }
 }
