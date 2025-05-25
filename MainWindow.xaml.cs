@@ -54,12 +54,24 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     private string _cacheLocation;
     private int _movieCount;
     private bool _isCachingEnabled;
+    private string _movieLinksLocation;
 
     private static readonly string SettingsFile = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
         "TinyCinema",
         "settings.json"
     );
+
+    public string MovieLinksLocation
+    {
+        get => _movieLinksLocation;
+        private set
+        {
+            _movieLinksLocation = value;
+            OnPropertyChanged(nameof(MovieLinksLocation));
+            SaveSettings();
+        }
+    }
 
     public bool IsCachingEnabled
     {
@@ -139,6 +151,10 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                     {
                         IsCachingEnabled = bool.Parse(line.Substring("IsCachingEnabled=".Length).Trim());
                     }
+                    else if (line.StartsWith("MovieLinksLocation="))
+                    {
+                        MovieLinksLocation = line.Substring("MovieLinksLocation=".Length).Trim();
+                    }
                 }
             }
         }
@@ -153,6 +169,14 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                 "TinyCinema",
                 "ImageCache"
+            );
+        }
+
+        if (string.IsNullOrEmpty(MovieLinksLocation))
+        {
+            MovieLinksLocation = Path.Combine(
+                AppDomain.CurrentDomain.BaseDirectory,
+                "movie_links.txt"
             );
         }
     }
@@ -170,6 +194,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             var settings = new StringBuilder();
             settings.AppendLine($"CacheLocation={CacheLocation}");
             settings.AppendLine($"IsCachingEnabled={IsCachingEnabled}");
+            settings.AppendLine($"MovieLinksLocation={MovieLinksLocation}");
             File.WriteAllText(SettingsFile, settings.ToString());
         }
         catch
@@ -230,6 +255,39 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                 {
                     MessageBox.Show($"Cannot use selected location: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
+            }
+        }
+    }
+
+    private void SelectMovieLinksLocation_Click(object sender, RoutedEventArgs e)
+    {
+        var dialog = new Microsoft.Win32.OpenFileDialog
+        {
+            Title = "Select Movie Links File",
+            Filter = "Text Files|*.txt|All Files|*.*",
+            CheckFileExists = true,
+            CheckPathExists = true
+        };
+
+        if (dialog.ShowDialog() == true)
+        {
+            try
+            {
+                // Test if we can read the file
+                File.ReadAllLines(dialog.FileName);
+                
+                // If successful, update movie links location
+                MovieLinksLocation = dialog.FileName;
+                
+                // Reload movies with new file location
+                _movies.Clear();
+                _allMovies.Clear();
+                _currentIndex = 0;
+                LoadMoviesAsync();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Cannot use selected file: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
     }
@@ -306,15 +364,14 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     {
         try
         {
-            var filePath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "movie_links.txt");
-            
-            if (!File.Exists(filePath))
+            if (!File.Exists(MovieLinksLocation))
             {
+                MessageBox.Show($"Movie links file not found at: {MovieLinksLocation}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
             // Read all lines but don't process them yet
-            var lines = await File.ReadAllLinesAsync(filePath);
+            var lines = await File.ReadAllLinesAsync(MovieLinksLocation);
             _currentIndex = 0;
 
             // Process all movies first
@@ -357,7 +414,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         }
         catch (Exception ex)
         {
-            // Silently handle the error
+            MessageBox.Show($"Error loading movies: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
 

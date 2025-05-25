@@ -552,6 +552,52 @@
                                 </Grid>
                             </Grid>
                         </Border>
+
+                        <!-- Movie Links File Location Setting -->
+                        <Border Background="#1A1A1A"
+                                CornerRadius="8"
+                                Padding="16"
+                                Margin="0,0,0,16">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                
+                                <!-- Setting Title -->
+                                <StackPanel Orientation="Horizontal" 
+                                          Margin="0,0,0,12">
+                                    <fa:FontAwesome Icon="File" 
+                                                   Foreground="White"
+                                                   Width="16" 
+                                                   Height="16"
+                                                   Margin="0,0,8,0"/>
+                                    <TextBlock Text="Movie Links File Settings" 
+                                             Foreground="White"
+                                             FontSize="16"
+                                             FontWeight="SemiBold"/>
+                                </StackPanel>
+                                
+                                <!-- Movie Links File Path and Button -->
+                                <Grid Grid.Row="1">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    
+                                    <TextBlock Text="{Binding MovieLinksLocation}"
+                                             Foreground="#B3FFFFFF"
+                                             TextWrapping="Wrap"
+                                             VerticalAlignment="Center"
+                                             Margin="0,0,16,0"/>
+                                    
+                                    <Button Grid.Column="1"
+                                            Content="Change Location"
+                                            Click="SelectMovieLinksLocation_Click"
+                                            Style="{StaticResource ModernButtonStyle}"/>
+                                </Grid>
+                            </Grid>
+                        </Border>
                     </StackPanel>
                 </ScrollViewer>
             </Grid>
