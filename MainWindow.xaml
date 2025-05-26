@@ -6,7 +6,7 @@
         xmlns:local="clr-namespace:TinyCinema"
         xmlns:fa="http://schemas.fontawesome.io/icons/"
         mc:Ignorable="d"
-        Title="TinyCinema" Height="900" Width="800"
+        Title="TinyCinema" Height="700" Width="800"
         WindowStartupLocation="CenterScreen"
         Background="Transparent"
         ResizeMode="NoResize"
@@ -411,6 +411,7 @@
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="Auto"/>
                                     <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
                                 
                                 <!-- Movie Poster -->
@@ -491,8 +492,21 @@
                                                    Height="16"/>
                                 </Button>
 
-                                <!-- Info Icon -->
+                                <!-- Play Icon -->
                                 <Button Grid.Column="3"
+                                        Style="{StaticResource WindowButtonStyle}"
+                                        Click="PlayButton_Click"
+                                        Margin="8,0,0,0"
+                                        Padding="8"
+                                        Visibility="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListViewItem}, Converter={StaticResource BooleanToVisibilityConverter}, ConverterParameter=Inverse}">
+                                    <fa:FontAwesome Icon="Play" 
+                                                   Foreground="White"
+                                                   Width="16" 
+                                                   Height="16"/>
+                                </Button>
+
+                                <!-- Info Icon -->
+                                <Button Grid.Column="4"
                                         Style="{StaticResource WindowButtonStyle}"
                                         Margin="8,0,8,0"
                                         Padding="8"

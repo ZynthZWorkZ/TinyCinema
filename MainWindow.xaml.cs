@@ -678,6 +678,184 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         }
     }
 
+    private async void PlayButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (MoviesListView.SelectedItem is Movie selectedMovie)
+        {
+            try
+            {
+                // Show loading state
+                var loadingWindow = new Window
+                {
+                    Title = "Processing Movie",
+                    Width = 400,
+                    Height = 150,
+                    WindowStartupLocation = WindowStartupLocation.CenterScreen,
+                    WindowStyle = WindowStyle.None,
+                    ResizeMode = ResizeMode.NoResize,
+                    Background = new SolidColorBrush(Color.FromRgb(15, 15, 15)),
+                    Foreground = Brushes.White,
+                    AllowsTransparency = true
+                };
+
+                var loadingBorder = new Border
+                {
+                    Background = new SolidColorBrush(Color.FromRgb(15, 15, 15)),
+                    BorderBrush = new SolidColorBrush(Color.FromRgb(42, 42, 42)),
+                    BorderThickness = new Thickness(1),
+                    CornerRadius = new CornerRadius(8)
+                };
+
+                var loadingGrid = new Grid();
+                loadingGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+                loadingGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+                loadingGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+
+                // Title bar
+                var loadingTitleBar = new Grid
+                {
+                    Background = new SolidColorBrush(Color.FromRgb(26, 26, 26)),
+                    Height = 32
+                };
+                loadingTitleBar.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+                loadingTitleBar.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+                var loadingTitle = new TextBlock
+                {
+                    Text = "Processing Movie",
+                    Foreground = Brushes.White,
+                    Margin = new Thickness(12, 0, 0, 0),
+                    VerticalAlignment = VerticalAlignment.Center
+                };
+                Grid.SetColumn(loadingTitle, 0);
+
+                var loadingCloseButton = new Button
+                {
+                    Style = (Style)FindResource("CloseButtonStyle"),
+                    Width = 46,
+                    Height = 32
+                };
+                loadingCloseButton.Content = new FontAwesome.WPF.FontAwesome
+                {
+                    Icon = FontAwesome.WPF.FontAwesomeIcon.Close,
+                    Foreground = Brushes.White,
+                    Width = 12,
+                    Height = 12
+                };
+                loadingCloseButton.Click += (s, args) => loadingWindow.Close();
+                Grid.SetColumn(loadingCloseButton, 1);
+
+                loadingTitleBar.Children.Add(loadingTitle);
+                loadingTitleBar.Children.Add(loadingCloseButton);
+                Grid.SetRow(loadingTitleBar, 0);
+
+                var spinner = new FontAwesome.WPF.FontAwesome
+                {
+                    Icon = FontAwesome.WPF.FontAwesomeIcon.Spinner,
+                    Width = 32,
+                    Height = 32,
+                    Foreground = Brushes.White
+                };
+                Grid.SetRow(spinner, 1);
+
+                // Add rotation animation to spinner
+                var rotateTransform = new RotateTransform();
+                spinner.RenderTransform = rotateTransform;
+                var animation = new DoubleAnimation
+                {
+                    From = 0,
+                    To = 360,
+                    Duration = TimeSpan.FromSeconds(1),
+                    RepeatBehavior = RepeatBehavior.Forever
+                };
+                rotateTransform.BeginAnimation(RotateTransform.AngleProperty, animation);
+
+                var loadingText = new TextBlock
+                {
+                    Text = "Waiting for movie processing...",
+                    Foreground = Brushes.White,
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    VerticalAlignment = VerticalAlignment.Center
+                };
+                Grid.SetRow(loadingText, 2);
+
+                loadingGrid.Children.Add(loadingTitleBar);
+                loadingGrid.Children.Add(spinner);
+                loadingGrid.Children.Add(loadingText);
+                loadingBorder.Child = loadingGrid;
+                loadingWindow.Content = loadingBorder;
+
+                // Add drag functionality
+                loadingTitleBar.MouseLeftButtonDown += (s, args) =>
+                {
+                    loadingWindow.DragMove();
+                };
+
+                // Start loading window
+                loadingWindow.Show();
+
+                // Start TinyScraper.exe with the movie URL
+                var startInfo = new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = "TinyScraper.exe",
+                    Arguments = $"-getm3 \"{selectedMovie.Url}\"",
+                    UseShellExecute = false,
+                    CreateNoWindow = false, // Make it visible
+                    WindowStyle = System.Diagnostics.ProcessWindowStyle.Normal // Show the window
+                };
+
+                using (var process = System.Diagnostics.Process.Start(startInfo))
+                {
+                    // Wait for ClickedMovieTemp.txt to appear without timeout
+                    var tempFile = "ClickedMovieTemp.txt";
+                    var startTime = DateTime.Now;
+                    var checkInterval = TimeSpan.FromSeconds(1);
+
+                    while (!File.Exists(tempFile))
+                    {
+                        // Update loading text with elapsed time
+                        var elapsed = DateTime.Now - startTime;
+                        loadingText.Text = $"Waiting for movie processing...\nElapsed time: {elapsed:mm\\:ss}";
+                        
+                        await Task.Delay(checkInterval);
+                    }
+
+                    // Wait a bit more to ensure the file is completely written
+                    await Task.Delay(2000);
+
+                    // Read the m3u8 URL from the file
+                    var m3u8Url = await File.ReadAllTextAsync(tempFile);
+                    m3u8Url = m3u8Url.Trim();
+
+                    // Clean up the temp file
+                    try
+                    {
+                        File.Delete(tempFile);
+                    }
+                    catch
+                    {
+                        // Ignore cleanup errors
+                    }
+
+                    // Close loading window
+                    loadingWindow.Close();
+
+                    // Show success message
+                    MessageBox.Show($"M3U8 URL obtained: {m3u8Url}", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    $"Error processing movie: {ex.Message}",
+                    "Error",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error
+                );
+            }
+        }
+    }
+
     private static (string description, string genre) GetMovieDetails(string url, CancellationToken cancellationToken)
     {
         try
