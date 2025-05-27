@@ -684,6 +684,19 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         {
             try
             {
+                // Check if TinyScraper is already running
+                var existingProcesses = System.Diagnostics.Process.GetProcessesByName("TinyScraper");
+                if (existingProcesses.Length > 0)
+                {
+                    MessageBox.Show(
+                        "TinyScraper is already running. Please wait for it to finish or close it manually.",
+                        "Warning",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Warning
+                    );
+                    return;
+                }
+
                 // Show loading state
                 var loadingWindow = new Window
                 {
@@ -806,18 +819,55 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
                 using (var process = System.Diagnostics.Process.Start(startInfo))
                 {
-                    // Wait for ClickedMovieTemp.txt to appear without timeout
+                    // Wait for either ClickedMovieTemp.txt or nomedia.txt to appear
                     var tempFile = "ClickedMovieTemp.txt";
+                    var noMediaFile = "nomedia.txt";
                     var startTime = DateTime.Now;
                     var checkInterval = TimeSpan.FromSeconds(1);
 
-                    while (!File.Exists(tempFile))
+                    while (!File.Exists(tempFile) && !File.Exists(noMediaFile))
                     {
+                        // Check if process has exited
+                        if (process.HasExited)
+                        {
+                            loadingWindow.Close();
+                            MessageBox.Show(
+                                "No media was found. Please try again later.",
+                                "No Media",
+                                MessageBoxButton.OK,
+                                MessageBoxImage.Information
+                            );
+                            return;
+                        }
+
                         // Update loading text with elapsed time
                         var elapsed = DateTime.Now - startTime;
                         loadingText.Text = $"Waiting for movie processing...\nElapsed time: {elapsed:mm\\:ss}";
                         
                         await Task.Delay(checkInterval);
+                    }
+
+                    // Check which file appeared
+                    if (File.Exists(noMediaFile))
+                    {
+                        // Clean up the no media file
+                        try
+                        {
+                            File.Delete(noMediaFile);
+                        }
+                        catch
+                        {
+                            // Ignore cleanup errors
+                        }
+
+                        loadingWindow.Close();
+                        MessageBox.Show(
+                            "No media was found. Please try again later.",
+                            "No Media",
+                            MessageBoxButton.OK,
+                            MessageBoxImage.Information
+                        );
+                        return;
                     }
 
                     // Wait a bit more to ensure the file is completely written
@@ -837,11 +887,32 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                         // Ignore cleanup errors
                     }
 
-                    // Close loading window
+                    // Close the loading window
                     loadingWindow.Close();
 
-                    // Show success message
-                    MessageBox.Show($"M3U8 URL obtained: {m3u8Url}", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                    // Launch ffplay with the m3u8 URL
+                    var ffplayStartInfo = new System.Diagnostics.ProcessStartInfo
+                    {
+                        FileName = "ffplay",
+                        Arguments = $"\"{m3u8Url}\"",
+                        UseShellExecute = false,
+                        CreateNoWindow = false,
+                        WindowStyle = System.Diagnostics.ProcessWindowStyle.Normal
+                    };
+
+                    try
+                    {
+                        System.Diagnostics.Process.Start(ffplayStartInfo);
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show(
+                            $"Failed to launch ffplay: {ex.Message}\n\nPlease make sure ffplay is installed and available in your system PATH.",
+                            "Error",
+                            MessageBoxButton.OK,
+                            MessageBoxImage.Error
+                        );
+                    }
                 }
             }
             catch (Exception ex)
