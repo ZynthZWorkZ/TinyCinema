@@ -811,7 +811,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                 var startInfo = new System.Diagnostics.ProcessStartInfo
                 {
                     FileName = "TinyScraper.exe",
-                    Arguments = $"-getm3 \"{selectedMovie.Url}\"",
+                    Arguments = $"-getm3 \"{selectedMovie.Url}\" -fast",
                     UseShellExecute = false,
                     CreateNoWindow = false, // Make it visible
                     WindowStyle = System.Diagnostics.ProcessWindowStyle.Normal // Show the window
