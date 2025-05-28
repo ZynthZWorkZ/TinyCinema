@@ -412,6 +412,7 @@
                                     <ColumnDefinition Width="Auto"/>
                                     <ColumnDefinition Width="Auto"/>
                                     <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
                                 
                                 <!-- Movie Poster -->
@@ -516,6 +517,20 @@
                                                    Foreground="White"
                                                    Width="16" 
                                                    Height="16"/>
+                                </Button>
+
+                                <!-- Roku Icon -->
+                                <Button Grid.Column="5"
+                                        Style="{StaticResource WindowButtonStyle}"
+                                        Margin="8,0,8,0"
+                                        Padding="8"
+                                        Width="52"
+                                        Height="38"
+                                        Click="RokuButton_Click"
+                                        Visibility="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListViewItem}, Converter={StaticResource BooleanToVisibilityConverter}, ConverterParameter=Inverse}">
+                                    <Image Source="/Assets/Rokusideload.ico" 
+                                           Width="20" 
+                                           Height="20"/>
                                 </Button>
                             </Grid>
                     </DataTemplate>

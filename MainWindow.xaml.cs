@@ -928,6 +928,20 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         }
     }
 
+    private void RokuButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (MoviesListView.SelectedItem is Movie selectedMovie)
+        {
+            // Placeholder for future Roku functionality
+            MessageBox.Show(
+                "Roku functionality coming soon!",
+                "Coming Soon",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information
+            );
+        }
+    }
+
     private static (string description, string genre) GetMovieDetails(string url, CancellationToken cancellationToken)
     {
         try
