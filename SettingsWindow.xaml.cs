@@ -12,6 +12,7 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
     private bool _isCachingEnabled;
     private string _movieLinksLocation;
     private bool _isFastModeEnabled = true;
+    private string _rokuIpAddress = "";
 
     private static readonly string SettingsFile = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
@@ -63,6 +64,17 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
         }
     }
 
+    public string RokuIpAddress
+    {
+        get => _rokuIpAddress;
+        set
+        {
+            _rokuIpAddress = value;
+            OnPropertyChanged(nameof(RokuIpAddress));
+            SaveSettings();
+        }
+    }
+
     public event PropertyChangedEventHandler? PropertyChanged;
 
     protected virtual void OnPropertyChanged(string propertyName)
@@ -103,6 +115,10 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
                     else if (line.StartsWith("IsFastModeEnabled="))
                     {
                         IsFastModeEnabled = bool.Parse(line.Substring("IsFastModeEnabled=".Length).Trim());
+                    }
+                    else if (line.StartsWith("RokuIpAddress="))
+                    {
+                        RokuIpAddress = line.Substring("RokuIpAddress=".Length).Trim();
                     }
                 }
             }
@@ -145,7 +161,8 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
                 $"CacheLocation={CacheLocation}",
                 $"IsCachingEnabled={IsCachingEnabled}",
                 $"MovieLinksLocation={MovieLinksLocation}",
-                $"IsFastModeEnabled={IsFastModeEnabled}"
+                $"IsFastModeEnabled={IsFastModeEnabled}",
+                $"RokuIpAddress={RokuIpAddress}"
             };
 
             File.WriteAllLines(SettingsFile, settings);

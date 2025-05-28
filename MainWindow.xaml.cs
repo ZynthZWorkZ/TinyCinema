@@ -684,6 +684,9 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         {
             try
             {
+                // Clean up any existing temp files first
+                CleanupTempFiles();
+
                 // Check if TinyScraper is already running
                 var existingProcesses = System.Diagnostics.Process.GetProcessesByName("TinyScraper");
                 if (existingProcesses.Length > 0)
@@ -932,13 +935,78 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     {
         if (MoviesListView.SelectedItem is Movie selectedMovie)
         {
-            // Placeholder for future Roku functionality
-            MessageBox.Show(
-                "Roku functionality coming soon!",
-                "Coming Soon",
-                MessageBoxButton.OK,
-                MessageBoxImage.Information
-            );
+            // Clean up any existing temp files first
+            CleanupTempFiles();
+
+            var settingsWindow = new SettingsWindow();
+            if (string.IsNullOrWhiteSpace(settingsWindow.RokuIpAddress))
+            {
+                MessageBox.Show(
+                    "Please set your Roku IP address in Settings first.",
+                    "Roku IP Required",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning
+                );
+                return;
+            }
+
+            try
+            {
+                // Check if TinyScraper is already running
+                var existingProcesses = System.Diagnostics.Process.GetProcessesByName("TinyScraper");
+                if (existingProcesses.Length > 0)
+                {
+                    MessageBox.Show(
+                        "TinyScraper is already running. Please wait for it to finish or close it manually.",
+                        "Warning",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Warning
+                    );
+                    return;
+                }
+
+                // Start TinyScraper.exe with the movie URL and Roku flags
+                var startInfo = new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = "TinyScraper.exe",
+                    Arguments = $"-getm3 \"{selectedMovie.Url}\"" + 
+                              (settingsWindow.IsFastModeEnabled ? " -fast" : "") + 
+                              $" -rokusl {settingsWindow.RokuIpAddress}",
+                    UseShellExecute = false,
+                    CreateNoWindow = false,
+                    WindowStyle = System.Diagnostics.ProcessWindowStyle.Normal
+                };
+
+                System.Diagnostics.Process.Start(startInfo);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    $"Error launching TinyScraper: {ex.Message}",
+                    "Error",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error
+                );
+            }
+        }
+    }
+
+    private void CleanupTempFiles()
+    {
+        try
+        {
+            var tempFiles = new[] { "ClickedMovieTemp.txt", "nomedia.txt" };
+            foreach (var file in tempFiles)
+            {
+                if (File.Exists(file))
+                {
+                    File.Delete(file);
+                }
+            }
+        }
+        catch
+        {
+            // Ignore cleanup errors
         }
     }
 
