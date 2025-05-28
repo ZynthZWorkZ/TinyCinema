@@ -11,6 +11,7 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
     private string _cacheLocation;
     private bool _isCachingEnabled;
     private string _movieLinksLocation;
+    private bool _isFastModeEnabled = true;
 
     private static readonly string SettingsFile = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
@@ -47,6 +48,17 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
         {
             _cacheLocation = value;
             OnPropertyChanged(nameof(CacheLocation));
+            SaveSettings();
+        }
+    }
+
+    public bool IsFastModeEnabled
+    {
+        get => _isFastModeEnabled;
+        set
+        {
+            _isFastModeEnabled = value;
+            OnPropertyChanged(nameof(IsFastModeEnabled));
             SaveSettings();
         }
     }
@@ -88,6 +100,10 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
                     {
                         MovieLinksLocation = line.Substring("MovieLinksLocation=".Length).Trim();
                     }
+                    else if (line.StartsWith("IsFastModeEnabled="))
+                    {
+                        IsFastModeEnabled = bool.Parse(line.Substring("IsFastModeEnabled=".Length).Trim());
+                    }
                 }
             }
         }
@@ -124,15 +140,19 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
                 Directory.CreateDirectory(settingsDir);
             }
 
-            var settings = new System.Text.StringBuilder();
-            settings.AppendLine($"CacheLocation={CacheLocation}");
-            settings.AppendLine($"IsCachingEnabled={IsCachingEnabled}");
-            settings.AppendLine($"MovieLinksLocation={MovieLinksLocation}");
-            File.WriteAllText(SettingsFile, settings.ToString());
+            var settings = new[]
+            {
+                $"CacheLocation={CacheLocation}",
+                $"IsCachingEnabled={IsCachingEnabled}",
+                $"MovieLinksLocation={MovieLinksLocation}",
+                $"IsFastModeEnabled={IsFastModeEnabled}"
+            };
+
+            File.WriteAllLines(SettingsFile, settings);
         }
         catch
         {
-            // Silently handle settings save errors
+            // If settings can't be saved, continue without them
         }
     }
 

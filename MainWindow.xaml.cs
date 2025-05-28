@@ -808,10 +808,11 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                 loadingWindow.Show();
 
                 // Start TinyScraper.exe with the movie URL
+                var settingsWindow = new SettingsWindow();
                 var startInfo = new System.Diagnostics.ProcessStartInfo
                 {
                     FileName = "TinyScraper.exe",
-                    Arguments = $"-getm3 \"{selectedMovie.Url}\" -fast",
+                    Arguments = $"-getm3 \"{selectedMovie.Url}\"" + (settingsWindow.IsFastModeEnabled ? " -fast" : ""),
                     UseShellExecute = false,
                     CreateNoWindow = false, // Make it visible
                     WindowStyle = System.Diagnostics.ProcessWindowStyle.Normal // Show the window
