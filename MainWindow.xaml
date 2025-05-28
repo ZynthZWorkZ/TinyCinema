@@ -19,6 +19,27 @@
         <!-- Font Resources -->
         <FontFamily x:Key="AbsoluteXeroFont">pack://application:,,,/Assets/Absolute Xero.otf#Absolute Xero</FontFamily>
         
+        <!-- Modern Tooltip Style -->
+        <Style TargetType="ToolTip">
+            <Setter Property="Background" Value="#2A2A2A"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="8,4"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToolTip">
+                        <Border Background="{TemplateBinding Background}"
+                                CornerRadius="4"
+                                BorderThickness="1"
+                                BorderBrush="#3A3A3A">
+                            <ContentPresenter Margin="{TemplateBinding Padding}"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        
         <!-- Modern Toggle Style -->
         <Style x:Key="ModernToggleStyle" TargetType="ToggleButton">
             <Setter Property="Width" Value="44"/>
@@ -486,6 +507,7 @@
                                         Click="UrlButton_Click"
                                         Margin="8,0,0,0"
                                         Padding="8"
+                                        ToolTip="Open movie URL"
                                         Visibility="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListViewItem}, Converter={StaticResource BooleanToVisibilityConverter}, ConverterParameter=Inverse}">
                                     <fa:FontAwesome Icon="Link" 
                                                    Foreground="White"
@@ -499,6 +521,7 @@
                                         Click="PlayButton_Click"
                                         Margin="8,0,0,0"
                                         Padding="8"
+                                        ToolTip="Play movie"
                                         Visibility="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListViewItem}, Converter={StaticResource BooleanToVisibilityConverter}, ConverterParameter=Inverse}">
                                     <fa:FontAwesome Icon="Play" 
                                                    Foreground="White"
@@ -512,6 +535,7 @@
                                         Margin="8,0,8,0"
                                         Padding="8"
                                         Click="InfoButton_Click"
+                                        ToolTip="View movie details"
                                         Visibility="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListViewItem}, Converter={StaticResource BooleanToVisibilityConverter}, ConverterParameter=Inverse}">
                                     <fa:FontAwesome Icon="InfoCircle" 
                                                    Foreground="White"
@@ -527,10 +551,12 @@
                                         Width="52"
                                         Height="38"
                                         Click="RokuButton_Click"
+                                        ToolTip="Play on Roku"
                                         Visibility="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListViewItem}, Converter={StaticResource BooleanToVisibilityConverter}, ConverterParameter=Inverse}">
-                                    <Image Source="/Assets/Rokusideload.ico" 
-                                           Width="20" 
-                                           Height="20"/>
+                                    <fa:FontAwesome Icon="Tv" 
+                                                   Foreground="White"
+                                                   Width="16" 
+                                                   Height="16"/>
                                 </Button>
                             </Grid>
                     </DataTemplate>

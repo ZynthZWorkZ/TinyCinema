@@ -1,0 +1,37 @@
+2025-05-28 15:32:57.748 -05:00 [INF] 
+Movie Description:
+2025-05-28 15:32:57.881 -05:00 [INF] The documentary Air Force Elite: Thunderbirds follows the pilots of the Thunderbirds, one of the most famous and traditional air demonstration teams of the United States Air Force. The production dives into intense training and our pilots’ lives, showing the pressure and the challenges we face to realize high-precision aerial acrobatics.
+2025-05-28 15:32:57.890 -05:00 [INF] 
+Movie Genre:
+2025-05-28 15:32:57.892 -05:00 [INF] Released: 2025
+Genre: Documentary
+Casts: Matt Wilcox
+2025-05-28 15:32:57.925 -05:00 [INF] Play icon found using selector: i.fas.fa-play
+2025-05-28 15:33:02.545 -05:00 [INF] Successfully clicked using JavaScript
+2025-05-28 15:33:08.888 -05:00 [INF] Found cloudnestra scriptlet URL: https://cloudnestra.com/rcp/Y2JmMGY4Mjc2NWIwNmEwMmYyYTlmMTQ2YTRhZWE5NGE6TVV0dmIwNVZhek5yY0hKNk9FODRRMUJyVXpsVlZTdEpkMHgzUjNZd1RYTTVaMGx5Wld4UVIyVTFUVzV2UXpCemJVOVVkMlJXWWxOQk9XZFdWVlI1YlUxNGVsbHhiV2hFVW1sSlJFa3dWVmRFUzNSV1QyWkNWR042ZURsWE1YUXJRV1U0VEhFek4ybDBhbWxyTm1GRVYzY3pWWGszU1dodk9HdHdSR0kxTlV0MGVGTlhaRmxUUXpOVlZscFhSakk1UWpWaFZYcHZTbWxwTHpNd0wxcENhVFZTYnpZdk5sWTJaR1prY2l0T2JEbFpaamR6VHpaWFpYTjVOREpTUzFOQg--
+2025-05-28 15:33:08.903 -05:00 [INF] Found cloudnestra scriptlet URL: https://cloudnestra.com/rcp/Y2JmMGY4Mjc2NWIwNmEwMmYyYTlmMTQ2YTRhZWE5NGE6TVV0dmIwNVZhek5yY0hKNk9FODRRMUJyVXpsVlZTdEpkMHgzUjNZd1RYTTVaMGx5Wld4UVIyVTFUVzV2UXpCemJVOVVkMlJXWWxOQk9XZFdWVlI1YlUxNGVsbHhiV2hFVW1sSlJFa3dWVmRFUzNSV1QyWkNWR042ZURsWE1YUXJRV1U0VEhFek4ybDBhbWxyTm1GRVYzY3pWWGszU1dodk9HdHdSR0kxTlV0MGVGTlhaRmxUUXpOVlZscFhSakk1UWpWaFZYcHZTbWxwTHpNd0wxcENhVFZTYnpZdk5sWTJaR1prY2l0T2JEbFpaamR6VHpaWFpYTjVOREpTUzFOQg--
+2025-05-28 15:33:18.982 -05:00 [INF] No cloudnestra URLs found in the network traffic or fast mode enabled
+2025-05-28 15:33:18.988 -05:00 [INF] Trying Server 1 click sequence for m3u8...
+2025-05-28 15:33:19.107 -05:00 [INF] Clicked server dropdown
+2025-05-28 15:33:21.507 -05:00 [INF] Selected Server 1
+2025-05-28 15:33:28.356 -05:00 [INF] Found m3u8 URL: https://comura.xyz/hls/06c8d77e5ec12f5a-153053b815b526b11e3ff4c7-d12da44b0c315f622403f025909c1ef86b5b17153fa6e88ae80ad8c707dcf849e50357d7e640820e250a982560/master.m3u8
+2025-05-28 15:33:28.357 -05:00 [INF] Found m3u8 URL: https://prd.jwpltx.com/v1/jwplayer6/ping.gif?h=1126621711&e=pa&n=9006527741781420&aid=jwkeymut&amp=0&at=1&c=-1&ccp=0&cp=0&d=1&eb=0&ed=6&emi=1bpj99g1h46y&i=1&lid=rmrdfr6nyya3&lsa=set&mt=1&pbd=1&pbr=1&pgi=x00nt510j52d&ph=0&pii=0&pl=582&plc=1&pli=fzi7wd7qcgm7&pp=hlsjs&prc=1&ps=3&pss=1&pt=Watch%20Air%20Force%20Elite%3A%20Thunderbirds%20Online%20Free%20on%20TinyZone&pu=https%3A%2F%2Fww4.tinyzone.org%2F&pv=8.36.6&pyc=0&s=0&sdk=0&stc=1&stpe=0&tv=4.0.9&vb=0&vi=0.49&vl=90&wd=1035&ab=0&cme=0&flc=0&lng=en&mu=https%3A%2F%2Fcomura.xyz%2Fhls%2F06c8d77e5ec12f5a-153053b815b526b11e3ff4c7-d12da44b0c315f622403f025909c1ef86b5b17153fa6e88ae80ad8c707dcf849e50357d7e640820e250a982560%2Fmaster.m3u8&pd=2&pdr=&plng=en&pni=0&pr=2&tb=0&vd=0&sa=1748464405679
+2025-05-28 15:33:28.359 -05:00 [INF] Found m3u8 URL: https://prd.jwpltx.com/v1/jwplayer6/ping.gif?h=1126621711&e=pa&n=9006527741781420&aid=jwkeymut&amp=0&at=1&c=-1&ccp=0&cp=0&d=1&eb=0&ed=6&emi=1bpj99g1h46y&i=1&lid=rmrdfr6nyya3&lsa=set&mt=1&pbd=1&pbr=1&pgi=x00nt510j52d&ph=0&pii=0&pl=582&plc=1&pli=fzi7wd7qcgm7&pp=hlsjs&prc=1&ps=3&pss=1&pt=Watch%20Air%20Force%20Elite%3A%20Thunderbirds%20Online%20Free%20on%20TinyZone&pu=https%3A%2F%2Fww4.tinyzone.org%2F&pv=8.36.6&pyc=0&s=0&sdk=0&stc=1&stpe=0&tv=4.0.9&vb=0&vi=0.49&vl=90&wd=1035&ab=0&cme=0&flc=0&lng=en&mu=https%3A%2F%2Fcomura.xyz%2Fhls%2F06c8d77e5ec12f5a-153053b815b526b11e3ff4c7-d12da44b0c315f622403f025909c1ef86b5b17153fa6e88ae80ad8c707dcf849e50357d7e640820e250a982560%2Fmaster.m3u8&pd=2&pdr=&plng=en&pni=0&pr=2&tb=0&vd=0&sa=1748464405679
+2025-05-28 15:33:28.361 -05:00 [INF] Found m3u8 URL: https://comura.xyz/hls/06c8d77e5ec12f5a-153053b815b526b11e3ff4c7-d12da44b0c315f622403f025909c1ef86b5b17153fa6e88ae80ad8c707dcf849e50357d7e640820e250a982560/master.m3u8
+2025-05-28 15:33:30.826 -05:00 [INF] Found m3u8 URL: https://prd.jwpltx.com/v1/jwplayer6/ping.gif?h=-1370015545&e=s&n=8942999189569840&aid=jwkeymut&amp=0&at=1&c=-1&ccp=0&cp=0&d=1&eb=0&ed=6&emi=1bpj99g1h46y&i=1&lid=rmrdfr6nyya3&lsa=set&mt=1&pbd=1&pbr=1&pgi=x00nt510j52d&ph=0&pii=0&pl=582&plc=1&pli=fzi7wd7qcgm7&pp=hlsjs&ppm=VOD&prc=1&ps=3&pss=1&pt=Watch%20Air%20Force%20Elite%3A%20Thunderbirds%20Online%20Free%20on%20TinyZone&pu=https%3A%2F%2Fww4.tinyzone.org%2F&pv=8.36.6&pyc=1&s=0&sdk=0&stc=1&stpe=0&tv=4.0.9&vb=0&vi=0.49&vl=90&wd=1035&abm=1&bwe=500&cae=0&cct=1&ch=2&cdid=player&drm=0&ff=2440&fsm=0&l=4&lng=en&mk=hls&mu=https%3A%2F%2Fcomura.xyz%2Fhls%2F06c8d77e5ec12f5a-153053b815b526b11e3ff4c7-d12da44b0c315f622403f025909c1ef86b5b17153fa6e88ae80ad8c707dcf849e50357d7e640820e250a982560%2Fmaster.m3u8&pcp=0&pd=2&pdr=&plng=en&pni=0&pr=2&q=32&qcr=initial%20choice&sbr=0&sp=0&strt=2460&tb=4.6&tt=0&vd=5487&vh=1080&vs=0&vw=1920&sa=1748464408170
+2025-05-28 15:33:30.831 -05:00 [INF] Found m3u8 URL: https://prd.jwpltx.com/v1/jwplayer6/ping.gif?h=-1370015545&e=s&n=8942999189569840&aid=jwkeymut&amp=0&at=1&c=-1&ccp=0&cp=0&d=1&eb=0&ed=6&emi=1bpj99g1h46y&i=1&lid=rmrdfr6nyya3&lsa=set&mt=1&pbd=1&pbr=1&pgi=x00nt510j52d&ph=0&pii=0&pl=582&plc=1&pli=fzi7wd7qcgm7&pp=hlsjs&ppm=VOD&prc=1&ps=3&pss=1&pt=Watch%20Air%20Force%20Elite%3A%20Thunderbirds%20Online%20Free%20on%20TinyZone&pu=https%3A%2F%2Fww4.tinyzone.org%2F&pv=8.36.6&pyc=1&s=0&sdk=0&stc=1&stpe=0&tv=4.0.9&vb=0&vi=0.49&vl=90&wd=1035&abm=1&bwe=500&cae=0&cct=1&ch=2&cdid=player&drm=0&ff=2440&fsm=0&l=4&lng=en&mk=hls&mu=https%3A%2F%2Fcomura.xyz%2Fhls%2F06c8d77e5ec12f5a-153053b815b526b11e3ff4c7-d12da44b0c315f622403f025909c1ef86b5b17153fa6e88ae80ad8c707dcf849e50357d7e640820e250a982560%2Fmaster.m3u8&pcp=0&pd=2&pdr=&plng=en&pni=0&pr=2&q=32&qcr=initial%20choice&sbr=0&sp=0&strt=2460&tb=4.6&tt=0&vd=5487&vh=1080&vs=0&vw=1920&sa=1748464408170
+2025-05-28 15:33:48.382 -05:00 [INF] Found m3u8 URL(s) matching https://comura.xyz/hls:
+2025-05-28 15:33:48.410 -05:00 [INF] https://comura.xyz/hls/06c8d77e5ec12f5a-153053b815b526b11e3ff4c7-d12da44b0c315f622403f025909c1ef86b5b17153fa6e88ae80ad8c707dcf849e50357d7e640820e250a982560/master.m3u8
+2025-05-28 15:33:48.412 -05:00 [INF] 
+Found m3u8 URLs after server selection:
+2025-05-28 15:33:48.459 -05:00 [INF] - https://comura.xyz/hls/06c8d77e5ec12f5a-153053b815b526b11e3ff4c7-d12da44b0c315f622403f025909c1ef86b5b17153fa6e88ae80ad8c707dcf849e50357d7e640820e250a982560/master.m3u8
+2025-05-28 15:34:37.207 -05:00 [ERR] Error uploading to Roku
+OpenQA.Selenium.WebDriverException: unknown error: net::ERR_CONNECTION_TIMED_OUT
+  (Session info: chrome=136.0.7103.116)
+   at OpenQA.Selenium.WebDriver.UnpackAndThrowOnError(Response errorResponse, String commandToExecute)
+   at OpenQA.Selenium.WebDriver.Execute(String driverCommandToExecute, Dictionary`2 parameters)
+   at OpenQA.Selenium.WebDriver.set_Url(String value)
+   at TinyScraper.RokuHandler.UploadToRoku(String ipAddress, String filePath) in C:\Users\Cistian Zano\Desktop\Projects\Python\TinyScrape\Dotnet Version\TinyScraper\RokuHandler.cs:line 115
+2025-05-28 15:34:37.244 -05:00 [ERR] Failed to upload Air Force Elite Thunderbirds 1630859089 to Roku device
+2025-05-28 15:34:37.254 -05:00 [INF] 
+M3U8 URLs have been saved to: ClickedMovieTemp.txt
