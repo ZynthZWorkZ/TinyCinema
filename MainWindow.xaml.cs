@@ -817,8 +817,10 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                     FileName = "TinyScraper.exe",
                     Arguments = $"-getm3 \"{selectedMovie.Url}\"" + (settingsWindow.IsFastModeEnabled ? " -fast" : ""),
                     UseShellExecute = false,
-                    CreateNoWindow = false, // Make it visible
-                    WindowStyle = System.Diagnostics.ProcessWindowStyle.Normal // Show the window
+                    CreateNoWindow = settingsWindow.HideTinyScraper,
+                    WindowStyle = settingsWindow.HideTinyScraper ? 
+                        System.Diagnostics.ProcessWindowStyle.Hidden : 
+                        System.Diagnostics.ProcessWindowStyle.Normal
                 };
 
                 using (var process = System.Diagnostics.Process.Start(startInfo))
@@ -973,8 +975,10 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                               (settingsWindow.IsFastModeEnabled ? " -fast" : "") + 
                               $" -rokusl {settingsWindow.RokuIpAddress}",
                     UseShellExecute = false,
-                    CreateNoWindow = false,
-                    WindowStyle = System.Diagnostics.ProcessWindowStyle.Normal
+                    CreateNoWindow = settingsWindow.HideTinyScraper,
+                    WindowStyle = settingsWindow.HideTinyScraper ? 
+                        System.Diagnostics.ProcessWindowStyle.Hidden : 
+                        System.Diagnostics.ProcessWindowStyle.Normal
                 };
 
                 System.Diagnostics.Process.Start(startInfo);

@@ -287,6 +287,8 @@
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
                             </Grid.RowDefinitions>
                             
                             <!-- Setting Title -->
@@ -306,16 +308,34 @@
                             <!-- Fast Mode Toggle -->
                             <Grid Grid.Row="1">
                                 <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
                                 </Grid.ColumnDefinitions>
                                 
-                                <TextBlock Text="Enable Fast Mode"
+                                <TextBlock Text="Fast Mode:"
                                          Foreground="White"
-                                         VerticalAlignment="Center"/>
+                                         VerticalAlignment="Center"
+                                         Margin="0,0,12,0"/>
                                 
                                 <ToggleButton Grid.Column="1"
                                              IsChecked="{Binding IsFastModeEnabled}"
+                                             Style="{StaticResource ModernToggleStyle}"/>
+                            </Grid>
+
+                            <!-- Hide TinyScraper Toggle -->
+                            <Grid Grid.Row="2" Margin="0,12,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                
+                                <TextBlock Text="Hide TinyScraper Window:"
+                                         Foreground="White"
+                                         VerticalAlignment="Center"
+                                         Margin="0,0,12,0"/>
+                                
+                                <ToggleButton Grid.Column="1"
+                                             IsChecked="{Binding HideTinyScraper}"
                                              Style="{StaticResource ModernToggleStyle}"/>
                             </Grid>
                         </Grid>

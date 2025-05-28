@@ -13,6 +13,7 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
     private string _movieLinksLocation;
     private bool _isFastModeEnabled = true;
     private string _rokuIpAddress = "";
+    private bool _hideTinyScraper = true;
 
     private static readonly string SettingsFile = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
@@ -75,6 +76,17 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
         }
     }
 
+    public bool HideTinyScraper
+    {
+        get => _hideTinyScraper;
+        set
+        {
+            _hideTinyScraper = value;
+            OnPropertyChanged(nameof(HideTinyScraper));
+            SaveSettings();
+        }
+    }
+
     public event PropertyChangedEventHandler? PropertyChanged;
 
     protected virtual void OnPropertyChanged(string propertyName)
@@ -120,6 +132,10 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
                     {
                         RokuIpAddress = line.Substring("RokuIpAddress=".Length).Trim();
                     }
+                    else if (line.StartsWith("HideTinyScraper="))
+                    {
+                        HideTinyScraper = bool.Parse(line.Substring("HideTinyScraper=".Length).Trim());
+                    }
                 }
             }
         }
@@ -150,10 +166,10 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
     {
         try
         {
-            var settingsDir = Path.GetDirectoryName(SettingsFile);
-            if (!Directory.Exists(settingsDir))
+            var directory = Path.GetDirectoryName(SettingsFile);
+            if (!Directory.Exists(directory))
             {
-                Directory.CreateDirectory(settingsDir);
+                Directory.CreateDirectory(directory);
             }
 
             var settings = new[]
@@ -162,14 +178,15 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
                 $"IsCachingEnabled={IsCachingEnabled}",
                 $"MovieLinksLocation={MovieLinksLocation}",
                 $"IsFastModeEnabled={IsFastModeEnabled}",
-                $"RokuIpAddress={RokuIpAddress}"
+                $"RokuIpAddress={RokuIpAddress}",
+                $"HideTinyScraper={HideTinyScraper}"
             };
 
             File.WriteAllLines(SettingsFile, settings);
         }
         catch
         {
-            // If settings can't be saved, continue without them
+            // If settings can't be saved, ignore
         }
     }
 
