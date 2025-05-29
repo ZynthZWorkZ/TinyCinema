@@ -19,6 +19,9 @@ TinyCinema comes pre-loaded with 25k movies.
 - Shuffle feature to discover movies randomly
 - Sort movies by year
 
+
+
+
 ### Playback Options
 - Play movies directly in the application(ffplay)
 - Stream to Roku devices(developer mode needs to be enabled)
@@ -32,6 +35,8 @@ TinyCinema comes pre-loaded with 25k movies.
 1. **Searching Movies**
    - Use the search bar at the top to find specific movies
    - Results update in real-time as you type
+   
+![TinyCinema search](https://raw.githubusercontent.com/ZynthZWorkZ/TinyCinema/refs/heads/main/Readmeimages/search.gif)
 
 2. **Playing Movies**
    - Click the play button next to any movie to start watching
