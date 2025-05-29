@@ -76,10 +76,12 @@ Access the settings panel to customize your experience:
 - save image cache for faster loading 
 - Configure scraping settings 
 - set roku ip device address 
+- change movie links text location
 - view scraping window for nerds
 
 ## 🚀 Getting Started
 
+##(make sure you have chrome & ffmpeg installed)
 1. Launch TinyCinema
 2. Browse the movie collection
 3. Use the search bar to find specific movies
