@@ -2,6 +2,9 @@
 
 A movie player application .
 
+https://raw.githubusercontent.com/ZynthZWorkZ/TinyCinema/refs/heads/main/Readmeimages/buttons.png
+
+
 ## 📺 What's Inside
 
 TinyCinema comes pre-loaded with 25k movies.
