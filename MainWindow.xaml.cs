@@ -705,7 +705,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                 {
                     Title = "Processing Movie",
                     Width = 400,
-                    Height = 150,
+                    Height = 200,
                     WindowStartupLocation = WindowStartupLocation.CenterScreen,
                     WindowStyle = WindowStyle.None,
                     ResizeMode = ResizeMode.NoResize,
@@ -725,7 +725,9 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                 var loadingGrid = new Grid();
                 loadingGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
                 loadingGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
-                loadingGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+                loadingGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+                loadingGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+                loadingGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
 
                 // Title bar
                 var loadingTitleBar = new Grid
@@ -798,39 +800,68 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                 loadingTitleBar.Children.Add(loadingCloseButton);
                 Grid.SetRow(loadingTitleBar, 0);
 
-                var spinner = new FontAwesome.WPF.FontAwesome
+                // Movie title
+                var movieTitleText = new TextBlock
                 {
-                    Icon = FontAwesome.WPF.FontAwesomeIcon.Spinner,
-                    Width = 32,
-                    Height = 32,
-                    Foreground = Brushes.White
+                    Text = selectedMovie.Title,
+                    Foreground = Brushes.White,
+                    FontSize = 16,
+                    FontWeight = FontWeights.SemiBold,
+                    TextAlignment = TextAlignment.Center,
+                    TextWrapping = TextWrapping.Wrap,
+                    Margin = new Thickness(20, 20, 20, 10)
                 };
-                Grid.SetRow(spinner, 1);
+                Grid.SetRow(movieTitleText, 1);
 
-                // Add rotation animation to spinner
-                var rotateTransform = new RotateTransform();
-                spinner.RenderTransform = rotateTransform;
-                var animation = new DoubleAnimation
+                // Progress bar
+                var progressBar = new ProgressBar
+                {
+                    Height = 4,
+                    Margin = new Thickness(20, 0, 20, 0),
+                    Background = new SolidColorBrush(Color.FromRgb(42, 42, 42)),
+                    BorderThickness = new Thickness(0),
+                    Value = 0
+                };
+                Grid.SetRow(progressBar, 2);
+
+                // Progress bar animation
+                var progressAnimation = new DoubleAnimation
                 {
                     From = 0,
-                    To = 360,
-                    Duration = TimeSpan.FromSeconds(1),
+                    To = 100,
+                    Duration = TimeSpan.FromSeconds(30),
                     RepeatBehavior = RepeatBehavior.Forever
                 };
-                rotateTransform.BeginAnimation(RotateTransform.AngleProperty, animation);
+                progressBar.BeginAnimation(ProgressBar.ValueProperty, progressAnimation);
 
+                // Status text
                 var loadingText = new TextBlock
                 {
-                    Text = "Waiting for movie processing...",
+                    Text = "Initializing...",
                     Foreground = Brushes.White,
                     HorizontalAlignment = HorizontalAlignment.Center,
-                    VerticalAlignment = VerticalAlignment.Center
+                    VerticalAlignment = VerticalAlignment.Center,
+                    Margin = new Thickness(0, 10, 0, 20)
                 };
-                Grid.SetRow(loadingText, 2);
+                Grid.SetRow(loadingText, 3);
+
+                // Time elapsed
+                var timeElapsedText = new TextBlock
+                {
+                    Text = "Time elapsed: 00:00",
+                    Foreground = new SolidColorBrush(Color.FromRgb(180, 180, 180)),
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    VerticalAlignment = VerticalAlignment.Center,
+                    Margin = new Thickness(0, 0, 0, 20),
+                    FontSize = 12
+                };
+                Grid.SetRow(timeElapsedText, 4);
 
                 loadingGrid.Children.Add(loadingTitleBar);
-                loadingGrid.Children.Add(spinner);
+                loadingGrid.Children.Add(movieTitleText);
+                loadingGrid.Children.Add(progressBar);
                 loadingGrid.Children.Add(loadingText);
+                loadingGrid.Children.Add(timeElapsedText);
                 loadingBorder.Child = loadingGrid;
                 loadingWindow.Content = loadingBorder;
 
@@ -892,7 +923,19 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
                     // Update loading text with elapsed time
                     var elapsed = DateTime.Now - startTime;
-                    loadingText.Text = $"Waiting for movie processing...\nElapsed time: {elapsed:mm\\:ss}";
+                    timeElapsedText.Text = $"Time elapsed: {elapsed:mm\\:ss}";
+                    
+                    // Update status text based on elapsed time
+                    if (elapsed.TotalSeconds < 5)
+                        loadingText.Text = "Initializing...";
+                    else if (elapsed.TotalSeconds < 10)
+                        loadingText.Text = "Analyzing video source...";
+                    else if (elapsed.TotalSeconds < 15)
+                        loadingText.Text = "Processing media streams...";
+                    else if (elapsed.TotalSeconds < 20)
+                        loadingText.Text = "Optimizing playback...";
+                    else
+                        loadingText.Text = "Almost there...";
                     
                     await Task.Delay(checkInterval);
                 }
