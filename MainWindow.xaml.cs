@@ -995,6 +995,47 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         }
     }
 
+    private void ShuffleButton_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            // Create a random number generator
+            var random = new Random();
+            
+            // Shuffle the entire list using Fisher-Yates algorithm
+            for (int i = _allMovies.Count - 1; i > 0; i--)
+            {
+                int j = random.Next(i + 1);
+                (_allMovies[i], _allMovies[j]) = (_allMovies[j], _allMovies[i]);
+            }
+            
+            // Clear current visible movies
+            _movies.Clear();
+            _currentIndex = 0;
+            
+            // Reload the initial batch of movies
+            var initialBatch = _allMovies.Take(BatchSize).ToList();
+            foreach (var movie in initialBatch)
+            {
+                _movies.Add(movie);
+                // Start loading the image asynchronously
+                _ = movie.LoadImageAsync();
+            }
+            _currentIndex = initialBatch.Count;
+            
+            // Scroll to top
+            var scrollViewer = FindVisualChild<ScrollViewer>(MoviesListView);
+            if (scrollViewer != null)
+            {
+                scrollViewer.ScrollToTop();
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Error shuffling movies: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
     private void CleanupTempFiles()
     {
         try

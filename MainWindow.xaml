@@ -386,6 +386,16 @@
                                  Foreground="#B3FFFFFF"
                                  Margin="8,0,0,0"
                                  VerticalAlignment="Center"/>
+                        <Button Style="{StaticResource WindowButtonStyle}"
+                                Margin="8,0,0,0"
+                                Padding="8"
+                                Click="ShuffleButton_Click"
+                                ToolTip="Shuffle movies">
+                            <fa:FontAwesome Icon="Random" 
+                                           Foreground="White"
+                                           Width="16" 
+                                           Height="16"/>
+                        </Button>
                     </StackPanel>
                 </Grid>
         </Border>
