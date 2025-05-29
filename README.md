@@ -43,7 +43,13 @@ TinyCinema comes pre-loaded with 25k movies.
    - Use the Roku button to stream to your Roku device
    - Click the link icon to open the movie's URL
 
-![TinyCinema search](https://raw.githubusercontent.com/ZynthZWorkZ/TinyCinema/refs/heads/main/Readmeimages/movieplay.png)
+   ![TinyCinema buttons](https://raw.githubusercontent.com/ZynthZWorkZ/TinyCinema/refs/heads/main/Readmeimages/buttons.png)
+
+   ![TinyCinema play](https://raw.githubusercontent.com/ZynthZWorkZ/TinyCinema/refs/heads/main/Readmeimages/movieplay.png)
+
+   ![TinyCinema rokusideload](https://raw.githubusercontent.com/ZynthZWorkZ/TinyCinema/refs/heads/main/Readmeimages/rokusideload.png)
+
+
 
 3. **Movie Information**
    - Click the info button to view detailed movie information
