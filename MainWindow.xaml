@@ -5,6 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:TinyCinema"
         xmlns:fa="http://schemas.fontawesome.io/icons/"
+        xmlns:FontAwesome="clr-namespace:FontAwesome.WPF;assembly=FontAwesome.WPF"
         mc:Ignorable="d"
         Title="TinyCinema" Height="700" Width="800"
         WindowStartupLocation="CenterScreen"
@@ -16,6 +17,30 @@
     <Window.Resources>
         <local:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
         
+        <!-- Action Button Style -->
+        <Style x:Key="ActionButtonStyle" TargetType="Button">
+            <Setter Property="Width" Value="46"/>
+            <Setter Property="Height" Value="32"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Foreground" Value="#FFFFFF"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}">
+                            <ContentPresenter HorizontalAlignment="Center" 
+                                            VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#2A2A2A"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <!-- Font Resources -->
         <FontFamily x:Key="AbsoluteXeroFont">pack://application:,,,/Assets/Absolute Xero.otf#Absolute Xero</FontFamily>
         
@@ -322,12 +347,32 @@
                 <StackPanel Grid.Column="1" 
                             Orientation="Horizontal" 
                             HorizontalAlignment="Right">
-                    <Button Style="{StaticResource WindowButtonStyle}"
-                            Click="SettingsButton_Click">
-                        <fa:FontAwesome Icon="Cog" 
-                                       Foreground="White"
-                                       Width="14" 
-                                       Height="14"/>
+                    <Button x:Name="ShuffleButton" 
+                            Click="ShuffleButton_Click"
+                            Style="{StaticResource ActionButtonStyle}"
+                            ToolTip="Shuffle Movies">
+                        <FontAwesome:FontAwesome Icon="Random" 
+                                               Foreground="White" 
+                                               Width="16" 
+                                               Height="16"/>
+                    </Button>
+                    <Button x:Name="SortButton" 
+                            Click="SortButton_Click"
+                            Style="{StaticResource ActionButtonStyle}"
+                            ToolTip="Sort Movies">
+                        <FontAwesome:FontAwesome Icon="Sort" 
+                                               Foreground="White" 
+                                               Width="16" 
+                                               Height="16"/>
+                    </Button>
+                    <Button x:Name="SettingsButton" 
+                            Click="SettingsButton_Click"
+                            Style="{StaticResource ActionButtonStyle}"
+                            ToolTip="Settings">
+                        <FontAwesome:FontAwesome Icon="Cog" 
+                                               Foreground="White" 
+                                               Width="16" 
+                                               Height="16"/>
                     </Button>
                     <Button Style="{StaticResource WindowButtonStyle}"
                             Click="MinimizeButton_Click">
@@ -386,16 +431,6 @@
                                  Foreground="#B3FFFFFF"
                                  Margin="8,0,0,0"
                                  VerticalAlignment="Center"/>
-                        <Button Style="{StaticResource WindowButtonStyle}"
-                                Margin="8,0,0,0"
-                                Padding="8"
-                                Click="ShuffleButton_Click"
-                                ToolTip="Shuffle movies">
-                            <fa:FontAwesome Icon="Random" 
-                                           Foreground="White"
-                                           Width="16" 
-                                           Height="16"/>
-                        </Button>
                     </StackPanel>
                 </Grid>
         </Border>

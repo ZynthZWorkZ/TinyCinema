@@ -1373,6 +1373,90 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         }
     }
 
+    private void SortButton_Click(object sender, RoutedEventArgs e)
+    {
+        var button = sender as Button;
+        if (button == null) return;
+
+        var contextMenu = new ContextMenu
+        {
+            Background = new SolidColorBrush(Color.FromRgb(26, 26, 26)),
+            BorderBrush = new SolidColorBrush(Color.FromRgb(42, 42, 42)),
+            BorderThickness = new Thickness(1)
+        };
+
+        // Add sort options
+        var sortByYearAsc = new MenuItem
+        {
+            Header = "Sort by Year (Oldest First)",
+            Background = new SolidColorBrush(Color.FromRgb(26, 26, 26)),
+            Foreground = Brushes.White
+        };
+        sortByYearAsc.Click += (s, args) => SortMovies("Year", true);
+
+        var sortByYearDesc = new MenuItem
+        {
+            Header = "Sort by Year (Newest First)",
+            Background = new SolidColorBrush(Color.FromRgb(26, 26, 26)),
+            Foreground = Brushes.White
+        };
+        sortByYearDesc.Click += (s, args) => SortMovies("Year", false);
+
+        contextMenu.Items.Add(sortByYearAsc);
+        contextMenu.Items.Add(sortByYearDesc);
+
+        // Position the context menu below the button
+        contextMenu.PlacementTarget = button;
+        contextMenu.Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom;
+        contextMenu.IsOpen = true;
+    }
+
+    private void SortMovies(string sortBy, bool ascending)
+    {
+        try
+        {
+            // Sort the entire list
+            switch (sortBy)
+            {
+                case "Year":
+                    if (ascending)
+                    {
+                        _allMovies.Sort((a, b) => string.Compare(a.Year, b.Year, StringComparison.Ordinal));
+                    }
+                    else
+                    {
+                        _allMovies.Sort((a, b) => string.Compare(b.Year, a.Year, StringComparison.Ordinal));
+                    }
+                    break;
+            }
+
+            // Clear current visible movies
+            _movies.Clear();
+            _currentIndex = 0;
+
+            // Reload the initial batch of movies
+            var initialBatch = _allMovies.Take(BatchSize).ToList();
+            foreach (var movie in initialBatch)
+            {
+                _movies.Add(movie);
+                // Start loading the image asynchronously
+                _ = movie.LoadImageAsync();
+            }
+            _currentIndex = initialBatch.Count;
+
+            // Scroll to top
+            var scrollViewer = FindVisualChild<ScrollViewer>(MoviesListView);
+            if (scrollViewer != null)
+            {
+                scrollViewer.ScrollToTop();
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Error sorting movies: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
     private void CleanupTempFiles()
     {
         try
