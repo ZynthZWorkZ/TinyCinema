@@ -2,7 +2,7 @@
 
 A movie player application .
 
-https://raw.githubusercontent.com/ZynthZWorkZ/TinyCinema/refs/heads/main/Readmeimages/buttons.png
+![TinyCinema main](https://raw.githubusercontent.com/ZynthZWorkZ/TinyCinema/refs/heads/main/Readmeimages/main.png)
 
 
 ## 📺 What's Inside
