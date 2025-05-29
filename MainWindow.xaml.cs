@@ -758,6 +758,39 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                     Width = 12,
                     Height = 12
                 };
+
+                // Store the process reference
+                System.Diagnostics.Process? tinyScraperProcess = null;
+
+                // Add event handler for window closing
+                loadingWindow.Closing += (s, args) =>
+                {
+                    try
+                    {
+                        // Kill all TinyScraper processes
+                        var processes = System.Diagnostics.Process.GetProcessesByName("TinyScraper");
+                        foreach (var process in processes)
+                        {
+                            try
+                            {
+                                if (!process.HasExited)
+                                {
+                                    process.Kill(true); // Kill the process and its child processes
+                                    process.WaitForExit(1000); // Wait up to 1 second for the process to exit
+                                }
+                            }
+                            catch
+                            {
+                                // Ignore errors for individual processes
+                            }
+                        }
+                    }
+                    catch
+                    {
+                        // Ignore any errors during process termination
+                    }
+                };
+
                 loadingCloseButton.Click += (s, args) => loadingWindow.Close();
                 Grid.SetColumn(loadingCloseButton, 1);
 
@@ -823,49 +856,30 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                         System.Diagnostics.ProcessWindowStyle.Normal
                 };
 
-                using (var process = System.Diagnostics.Process.Start(startInfo))
+                tinyScraperProcess = System.Diagnostics.Process.Start(startInfo);
+                if (tinyScraperProcess == null)
                 {
-                    // Wait for either ClickedMovieTemp.txt or nomedia.txt to appear
-                    var tempFile = "ClickedMovieTemp.txt";
-                    var noMediaFile = "nomedia.txt";
-                    var startTime = DateTime.Now;
-                    var checkInterval = TimeSpan.FromSeconds(1);
+                    loadingWindow.Close();
+                    MessageBox.Show(
+                        "Failed to start TinyScraper process.",
+                        "Error",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Error
+                    );
+                    return;
+                }
 
-                    while (!File.Exists(tempFile) && !File.Exists(noMediaFile))
+                // Wait for either ClickedMovieTemp.txt or nomedia.txt to appear
+                var tempFile = "ClickedMovieTemp.txt";
+                var noMediaFile = "nomedia.txt";
+                var startTime = DateTime.Now;
+                var checkInterval = TimeSpan.FromSeconds(1);
+
+                while (!File.Exists(tempFile) && !File.Exists(noMediaFile))
+                {
+                    // Check if process has exited
+                    if (tinyScraperProcess.HasExited)
                     {
-                        // Check if process has exited
-                        if (process.HasExited)
-                        {
-                            loadingWindow.Close();
-                            MessageBox.Show(
-                                "No media was found. Please try again later.",
-                                "No Media",
-                                MessageBoxButton.OK,
-                                MessageBoxImage.Information
-                            );
-                            return;
-                        }
-
-                        // Update loading text with elapsed time
-                        var elapsed = DateTime.Now - startTime;
-                        loadingText.Text = $"Waiting for movie processing...\nElapsed time: {elapsed:mm\\:ss}";
-                        
-                        await Task.Delay(checkInterval);
-                    }
-
-                    // Check which file appeared
-                    if (File.Exists(noMediaFile))
-                    {
-                        // Clean up the no media file
-                        try
-                        {
-                            File.Delete(noMediaFile);
-                        }
-                        catch
-                        {
-                            // Ignore cleanup errors
-                        }
-
                         loadingWindow.Close();
                         MessageBox.Show(
                             "No media was found. Please try again later.",
@@ -876,49 +890,78 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                         return;
                     }
 
-                    // Wait a bit more to ensure the file is completely written
-                    await Task.Delay(2000);
+                    // Update loading text with elapsed time
+                    var elapsed = DateTime.Now - startTime;
+                    loadingText.Text = $"Waiting for movie processing...\nElapsed time: {elapsed:mm\\:ss}";
+                    
+                    await Task.Delay(checkInterval);
+                }
 
-                    // Read the m3u8 URL from the file
-                    var m3u8Url = await File.ReadAllTextAsync(tempFile);
-                    m3u8Url = m3u8Url.Trim();
-
-                    // Clean up the temp file
+                // Check which file appeared
+                if (File.Exists(noMediaFile))
+                {
+                    // Clean up the no media file
                     try
                     {
-                        File.Delete(tempFile);
+                        File.Delete(noMediaFile);
                     }
                     catch
                     {
                         // Ignore cleanup errors
                     }
 
-                    // Close the loading window
                     loadingWindow.Close();
+                    MessageBox.Show(
+                        "No media was found. Please try again later.",
+                        "No Media",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Information
+                    );
+                    return;
+                }
 
-                    // Launch ffplay with the m3u8 URL
-                    var ffplayStartInfo = new System.Diagnostics.ProcessStartInfo
-                    {
-                        FileName = "ffplay",
-                        Arguments = $"\"{m3u8Url}\"",
-                        UseShellExecute = false,
-                        CreateNoWindow = false,
-                        WindowStyle = System.Diagnostics.ProcessWindowStyle.Normal
-                    };
+                // Wait a bit more to ensure the file is completely written
+                await Task.Delay(2000);
 
-                    try
-                    {
-                        System.Diagnostics.Process.Start(ffplayStartInfo);
-                    }
-                    catch (Exception ex)
-                    {
-                        MessageBox.Show(
-                            $"Failed to launch ffplay: {ex.Message}\n\nPlease make sure ffplay is installed and available in your system PATH.",
-                            "Error",
-                            MessageBoxButton.OK,
-                            MessageBoxImage.Error
-                        );
-                    }
+                // Read the m3u8 URL from the file
+                var m3u8Url = await File.ReadAllTextAsync(tempFile);
+                m3u8Url = m3u8Url.Trim();
+
+                // Clean up the temp file
+                try
+                {
+                    File.Delete(tempFile);
+                }
+                catch
+                {
+                    // Ignore cleanup errors
+                }
+
+                // Close the loading window
+                loadingWindow.Close();
+
+                // Launch ffplay with the m3u8 URL
+                var ffplayStartInfo = new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = "ffplay",
+                    Arguments = $"\"{m3u8Url}\"",
+                    UseShellExecute = false,
+                    CreateNoWindow = false,
+                    WindowStyle = System.Diagnostics.ProcessWindowStyle.Normal
+                };
+
+                try
+                {
+                    System.Diagnostics.Process.Start(ffplayStartInfo);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(
+                        $"Failed to launch ffplay: {ex.Message}\n\nPlease make sure ffplay is installed and available in your system PATH.",
+                        "Error",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Error
+                    );
                 }
             }
             catch (Exception ex)
