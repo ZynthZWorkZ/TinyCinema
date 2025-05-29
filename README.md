@@ -55,6 +55,10 @@ TinyCinema comes pre-loaded with 25k movies.
    - Click the info button to view detailed movie information
    - See movie titles, years, and other relevant details
 
+     ![TinyCinema movieinfo](https://raw.githubusercontent.com/ZynthZWorkZ/TinyCinema/refs/heads/main/Readmeimages/movieinfo.png)
+
+
+
 4. **Organization**
    - Use the shuffle button to randomize the movie list
    - Sort movies using the sort button
