@@ -1019,7 +1019,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         }
     }
 
-    private void RokuButton_Click(object sender, RoutedEventArgs e)
+    private async void RokuButton_Click(object sender, RoutedEventArgs e)
     {
         if (MoviesListView.SelectedItem is Movie selectedMovie)
         {
@@ -1053,6 +1053,203 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                     return;
                 }
 
+                // Show loading state
+                var loadingWindow = new Window
+                {
+                    Title = "Sending to Roku",
+                    Width = 400,
+                    Height = 200,
+                    WindowStartupLocation = WindowStartupLocation.CenterScreen,
+                    WindowStyle = WindowStyle.None,
+                    ResizeMode = ResizeMode.NoResize,
+                    Background = new SolidColorBrush(Color.FromRgb(15, 15, 15)),
+                    Foreground = Brushes.White,
+                    AllowsTransparency = true
+                };
+
+                var loadingBorder = new Border
+                {
+                    Background = new SolidColorBrush(Color.FromRgb(15, 15, 15)),
+                    BorderBrush = new SolidColorBrush(Color.FromRgb(42, 42, 42)),
+                    BorderThickness = new Thickness(1),
+                    CornerRadius = new CornerRadius(8)
+                };
+
+                var loadingGrid = new Grid();
+                loadingGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+                loadingGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+                loadingGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+                loadingGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+                loadingGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+
+                // Title bar
+                var loadingTitleBar = new Grid
+                {
+                    Background = new SolidColorBrush(Color.FromRgb(26, 26, 26)),
+                    Height = 32
+                };
+                loadingTitleBar.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+                loadingTitleBar.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+                var loadingTitle = new TextBlock
+                {
+                    Text = "Sending to Roku",
+                    Foreground = Brushes.White,
+                    Margin = new Thickness(12, 0, 0, 0),
+                    VerticalAlignment = VerticalAlignment.Center
+                };
+                Grid.SetColumn(loadingTitle, 0);
+
+                var loadingCloseButton = new Button
+                {
+                    Style = (Style)FindResource("CloseButtonStyle"),
+                    Width = 46,
+                    Height = 32
+                };
+                loadingCloseButton.Content = new FontAwesome.WPF.FontAwesome
+                {
+                    Icon = FontAwesome.WPF.FontAwesomeIcon.Close,
+                    Foreground = Brushes.White,
+                    Width = 12,
+                    Height = 12
+                };
+
+                // Store the process reference
+                System.Diagnostics.Process? tinyScraperProcess = null;
+
+                // Add event handler for window closing
+                loadingWindow.Closing += (s, args) =>
+                {
+                    try
+                    {
+                        // Kill all TinyScraper processes
+                        var processes = System.Diagnostics.Process.GetProcessesByName("TinyScraper");
+                        foreach (var process in processes)
+                        {
+                            try
+                            {
+                                if (!process.HasExited)
+                                {
+                                    process.Kill(true); // Kill the process and its child processes
+                                    process.WaitForExit(1000); // Wait up to 1 second for the process to exit
+                                }
+                            }
+                            catch
+                            {
+                                // Ignore errors for individual processes
+                            }
+                        }
+                    }
+                    catch
+                    {
+                        // Ignore any errors during process termination
+                    }
+                };
+
+                loadingCloseButton.Click += (s, args) => loadingWindow.Close();
+                Grid.SetColumn(loadingCloseButton, 1);
+
+                loadingTitleBar.Children.Add(loadingTitle);
+                loadingTitleBar.Children.Add(loadingCloseButton);
+                Grid.SetRow(loadingTitleBar, 0);
+
+                // Movie title with TV icon
+                var titleStack = new StackPanel
+                {
+                    Orientation = Orientation.Horizontal,
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    Margin = new Thickness(20, 20, 20, 10)
+                };
+
+                var tvIcon = new FontAwesome.WPF.FontAwesome
+                {
+                    Icon = FontAwesome.WPF.FontAwesomeIcon.Tv,
+                    Foreground = Brushes.White,
+                    Width = 24,
+                    Height = 24,
+                    Margin = new Thickness(0, 0, 10, 0)
+                };
+
+                var movieTitleText = new TextBlock
+                {
+                    Text = selectedMovie.Title,
+                    Foreground = Brushes.White,
+                    FontSize = 16,
+                    FontWeight = FontWeights.SemiBold,
+                    TextAlignment = TextAlignment.Center,
+                    TextWrapping = TextWrapping.Wrap,
+                    VerticalAlignment = VerticalAlignment.Center
+                };
+
+                titleStack.Children.Add(tvIcon);
+                titleStack.Children.Add(movieTitleText);
+                Grid.SetRow(titleStack, 1);
+
+                // Progress bar with Roku purple color
+                var progressBar = new ProgressBar
+                {
+                    Height = 4,
+                    Margin = new Thickness(20, 0, 20, 0),
+                    Background = new SolidColorBrush(Color.FromRgb(42, 42, 42)),
+                    BorderThickness = new Thickness(0),
+                    Value = 0
+                };
+
+                // Set Roku purple color for the progress bar
+                var rokuPurple = new SolidColorBrush(Color.FromRgb(102, 45, 145)); // Roku's purple color
+                progressBar.Foreground = rokuPurple;
+                Grid.SetRow(progressBar, 2);
+
+                // Progress bar animation
+                var progressAnimation = new DoubleAnimation
+                {
+                    From = 0,
+                    To = 100,
+                    Duration = TimeSpan.FromSeconds(30),
+                    RepeatBehavior = RepeatBehavior.Forever
+                };
+                progressBar.BeginAnimation(ProgressBar.ValueProperty, progressAnimation);
+
+                // Status text
+                var loadingText = new TextBlock
+                {
+                    Text = "Initializing...",
+                    Foreground = Brushes.White,
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    VerticalAlignment = VerticalAlignment.Center,
+                    Margin = new Thickness(0, 10, 0, 20)
+                };
+                Grid.SetRow(loadingText, 3);
+
+                // Time elapsed
+                var timeElapsedText = new TextBlock
+                {
+                    Text = "Time elapsed: 00:00",
+                    Foreground = new SolidColorBrush(Color.FromRgb(180, 180, 180)),
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    VerticalAlignment = VerticalAlignment.Center,
+                    Margin = new Thickness(0, 0, 0, 20),
+                    FontSize = 12
+                };
+                Grid.SetRow(timeElapsedText, 4);
+
+                loadingGrid.Children.Add(loadingTitleBar);
+                loadingGrid.Children.Add(titleStack);
+                loadingGrid.Children.Add(progressBar);
+                loadingGrid.Children.Add(loadingText);
+                loadingGrid.Children.Add(timeElapsedText);
+                loadingBorder.Child = loadingGrid;
+                loadingWindow.Content = loadingBorder;
+
+                // Add drag functionality
+                loadingTitleBar.MouseLeftButtonDown += (s, args) =>
+                {
+                    loadingWindow.DragMove();
+                };
+
+                // Start loading window
+                loadingWindow.Show();
+
                 // Start TinyScraper.exe with the movie URL and Roku flags
                 var startInfo = new System.Diagnostics.ProcessStartInfo
                 {
@@ -1067,7 +1264,61 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                         System.Diagnostics.ProcessWindowStyle.Normal
                 };
 
-                System.Diagnostics.Process.Start(startInfo);
+                tinyScraperProcess = System.Diagnostics.Process.Start(startInfo);
+                if (tinyScraperProcess == null)
+                {
+                    loadingWindow.Close();
+                    MessageBox.Show(
+                        "Failed to start TinyScraper process.",
+                        "Error",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Error
+                    );
+                    return;
+                }
+
+                // Wait for either ClickedMovieTemp.txt or nomedia.txt to appear
+                var tempFile = "ClickedMovieTemp.txt";
+                var noMediaFile = "nomedia.txt";
+                var startTime = DateTime.Now;
+                var checkInterval = TimeSpan.FromSeconds(1);
+
+                while (!File.Exists(tempFile) && !File.Exists(noMediaFile))
+                {
+                    // Check if process has exited
+                    if (tinyScraperProcess.HasExited)
+                    {
+                        loadingWindow.Close();
+                        MessageBox.Show(
+                            "No media was found. Please try again later.",
+                            "No Media",
+                            MessageBoxButton.OK,
+                            MessageBoxImage.Information
+                        );
+                        return;
+                    }
+
+                    // Update loading text with elapsed time
+                    var elapsed = DateTime.Now - startTime;
+                    timeElapsedText.Text = $"Time elapsed: {elapsed:mm\\:ss}";
+                    
+                    // Update status text based on elapsed time
+                    if (elapsed.TotalSeconds < 5)
+                        loadingText.Text = "Initializing Roku connection...";
+                    else if (elapsed.TotalSeconds < 10)
+                        loadingText.Text = "Analyzing video source...";
+                    else if (elapsed.TotalSeconds < 15)
+                        loadingText.Text = "Preparing for Roku...";
+                    else if (elapsed.TotalSeconds < 20)
+                        loadingText.Text = "Sending to Roku...";
+                    else
+                        loadingText.Text = "Almost there...";
+                    
+                    await Task.Delay(checkInterval);
+                }
+
+                // Close the loading window
+                loadingWindow.Close();
             }
             catch (Exception ex)
             {
