@@ -64,22 +64,7 @@ TinyCinema comes pre-loaded with 25k movies.
    - Sort movies using the sort button
    - Access settings through the gear icon
 
-## 🎨 Design
 
-TinyCinema features a modern, minimalist design with:
-- Dark theme for comfortable viewing
-- Custom window controls
-- Smooth animations
-- High-quality movie posters
-- Responsive layout that adapts to your screen
-
-## 🛠️ Technical Details
-
-- Built with WPF (Windows Presentation Foundation)
-- Modern UI components and controls
-- Efficient image caching system
-- Smooth scrolling and animations
-- Custom styling and templates
 
 ## 🎥 Movie Collection
 

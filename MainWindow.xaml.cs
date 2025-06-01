@@ -98,14 +98,17 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             foreach (var line in lines)
             {
                 var parts = line.Split('|').Select(p => p.Trim()).ToArray();
-                if (parts.Length == 4)
+                if (parts.Length >= 7) // Now we expect 7 parts: year, title, url, image url, genre, duration, country
                 {
                     _allMovies.Add(new Movie
                     {
                         Year = parts[0],
                         Title = parts[1],
                         Url = parts[2],
-                        ImageUrl = parts[3]
+                        ImageUrl = parts[3],
+                        Genre = parts[4],
+                        Duration = parts[5],
+                        Country = parts[6]
                     });
                 }
             }
@@ -1557,6 +1560,9 @@ public class Movie : INotifyPropertyChanged
     public required string Title { get; set; }
     public required string Url { get; set; }
     public required string ImageUrl { get; set; }
+    public required string Genre { get; set; }
+    public required string Duration { get; set; }
+    public required string Country { get; set; }
     private BitmapImage _cachedImage;
     private bool _isLoading;
 

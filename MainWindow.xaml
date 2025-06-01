@@ -544,6 +544,42 @@
                                               FontSize="14" 
                                               Foreground="#B3FFFFFF" 
                                               Margin="0,4,0,0"/>
+                                    
+                                    <!-- Genre with icon -->
+                                    <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                                        <FontAwesome:FontAwesome Icon="Tag" 
+                                                       Foreground="#B3FFFFFF"
+                                                       Width="12" 
+                                                       Height="12"
+                                                       Margin="0,0,6,0"/>
+                                        <TextBlock Text="{Binding Genre}" 
+                                                  FontSize="12" 
+                                                  Foreground="#B3FFFFFF"/>
+                                    </StackPanel>
+                                    
+                                    <!-- Duration with icon -->
+                                    <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                                        <FontAwesome:FontAwesome Icon="HourglassHalf" 
+                                                       Foreground="#B3FFFFFF"
+                                                       Width="12" 
+                                                       Height="12"
+                                                       Margin="0,0,6,0"/>
+                                        <TextBlock Text="{Binding Duration}" 
+                                                  FontSize="12" 
+                                                  Foreground="#B3FFFFFF"/>
+                                    </StackPanel>
+                                    
+                                    <!-- Country with icon -->
+                                    <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                                        <FontAwesome:FontAwesome Icon="MapMarker" 
+                                                       Foreground="#B3FFFFFF"
+                                                       Width="12" 
+                                                       Height="12"
+                                                       Margin="0,0,6,0"/>
+                                        <TextBlock Text="{Binding Country}" 
+                                                  FontSize="12" 
+                                                  Foreground="#B3FFFFFF"/>
+                                    </StackPanel>
                                 </StackPanel>
 
                                 <!-- URL Icon -->
