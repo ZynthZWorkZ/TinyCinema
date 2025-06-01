@@ -43,6 +43,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     private int _movieCount;
     private string _selectedGenre = string.Empty;
     private string _selectedCountry = string.Empty;
+    private List<Movie> _filteredMovies = new List<Movie>();
 
     public int MovieCount
     {
@@ -142,6 +143,9 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             CountryFilter.ItemsSource = countries;
             CountryFilter.SelectedIndex = 0;
 
+            // In LoadMoviesAsync, after loading all movies, set _filteredMovies = _allMovies before loading the initial batch
+            _filteredMovies = _allMovies;
+
             // Load initial batch
             await LoadNextBatchAsync();
 
@@ -174,51 +178,24 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         _isLoading = true;
         await Task.Run(async () =>
         {
-            if (!string.IsNullOrWhiteSpace(_lastSearchText))
+            var sourceList = string.IsNullOrWhiteSpace(_lastSearchText) && string.IsNullOrEmpty(_selectedGenre) && string.IsNullOrEmpty(_selectedCountry)
+                ? _allMovies
+                : _filteredMovies;
+
+            var endIndex = Math.Min(_currentIndex + BatchSize, sourceList.Count);
+            var batch = sourceList.Skip(_currentIndex).Take(endIndex - _currentIndex).ToList();
+
+            await Dispatcher.Invoke(async () =>
             {
-                var searchTerms = _lastSearchText.Split(new[] { ' ', '-', '_', '.', ',' }, StringSplitOptions.RemoveEmptyEntries)
-                                               .Where(term => term.Length >= 2)
-                                               .ToArray();
-
-                if (searchTerms.Length > 0)
+                foreach (var movie in batch)
                 {
-                    var filteredMovies = _allMovies
-                        .Where(m => IsMatch(m, searchTerms))
-                        .OrderByDescending(m => GetMatchScore(m, searchTerms))
-                        .Skip(_currentIndex)
-                        .Take(BatchSize)
-                        .ToList();
-
-                    await Dispatcher.Invoke(async () =>
-                    {
-                        foreach (var movie in filteredMovies)
-                        {
-                            _movies.Add(movie);
-                            // Start loading the image asynchronously
-                            _ = movie.LoadImageAsync();
-                        }
-                    });
-
-                    _currentIndex += filteredMovies.Count;
+                    _movies.Add(movie);
+                    // Start loading the image asynchronously
+                    _ = movie.LoadImageAsync();
                 }
-            }
-            else
-            {
-                var endIndex = Math.Min(_currentIndex + BatchSize, _allMovies.Count);
-                var batch = _allMovies.Skip(_currentIndex).Take(endIndex - _currentIndex).ToList();
+            });
 
-                await Dispatcher.Invoke(async () =>
-                {
-                    foreach (var movie in batch)
-                    {
-                        _movies.Add(movie);
-                        // Start loading the image asynchronously
-                        _ = movie.LoadImageAsync();
-                    }
-                });
-
-                _currentIndex = endIndex;
-            }
+            _currentIndex = endIndex;
         });
         _isLoading = false;
     }
@@ -260,12 +237,11 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
     private void ApplyFilters()
     {
-        // Clear current items
-        _movies.Clear();
         _currentIndex = 0;
+        _movies.Clear();
 
         // Apply filters
-        var filteredMovies = _allMovies.Where(m =>
+        _filteredMovies = _allMovies.Where(m =>
             (string.IsNullOrEmpty(_selectedGenre) || m.Genre.Split(',').Select(g => g.Trim()).Contains(_selectedGenre)) &&
             (string.IsNullOrEmpty(_selectedCountry) || m.Country.Split(',').Select(c => c.Trim()).Contains(_selectedCountry)) &&
             (string.IsNullOrEmpty(_lastSearchText) || IsMatch(m, _lastSearchText.Split(new[] { ' ', '-', '_', '.', ',' }, StringSplitOptions.RemoveEmptyEntries)
@@ -274,14 +250,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         ).ToList();
 
         // Load initial batch of filtered movies
-        var initialBatch = filteredMovies.Take(BatchSize).ToList();
-        foreach (var movie in initialBatch)
-        {
-            _movies.Add(movie);
-            // Start loading the image asynchronously
-            _ = movie.LoadImageAsync();
-        }
-        _currentIndex = initialBatch.Count;
+        LoadNextBatchAsync();
 
         // Scroll to top
         var scrollViewer = FindVisualChild<ScrollViewer>(MoviesListView);
