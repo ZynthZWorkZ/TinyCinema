@@ -41,6 +41,8 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     private string _lastSearchText = string.Empty;
     private static readonly Dictionary<string, BitmapImage> _imageCache = new();
     private int _movieCount;
+    private string _selectedGenre = string.Empty;
+    private string _selectedCountry = string.Empty;
 
     public int MovieCount
     {
@@ -115,6 +117,30 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
             // Update movie count
             MovieCount = _allMovies.Count;
+
+            // Get unique genres by splitting comma-separated values
+            var genres = _allMovies
+                .SelectMany(m => m.Genre.Split(',')
+                    .Select(g => g.Trim())
+                    .Where(g => !string.IsNullOrWhiteSpace(g)))
+                .Distinct()
+                .OrderBy(g => g)
+                .ToList();
+            genres.Insert(0, "All Genres");
+            GenreFilter.ItemsSource = genres;
+            GenreFilter.SelectedIndex = 0;
+
+            // Get unique countries by splitting comma-separated values
+            var countries = _allMovies
+                .SelectMany(m => m.Country.Split(',')
+                    .Select(c => c.Trim())
+                    .Where(c => !string.IsNullOrWhiteSpace(c)))
+                .Distinct()
+                .OrderBy(c => c)
+                .ToList();
+            countries.Insert(0, "All Countries");
+            CountryFilter.ItemsSource = countries;
+            CountryFilter.SelectedIndex = 0;
 
             // Load initial batch
             await LoadNextBatchAsync();
@@ -205,41 +231,64 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         if (searchText == _lastSearchText) return;
         _lastSearchText = searchText;
         
+        ApplyFilters();
+    }
+
+    private void GenreFilter_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (GenreFilter.SelectedItem != null)
+        {
+            _selectedGenre = GenreFilter.SelectedItem.ToString();
+            if (_selectedGenre == "All Genres")
+                _selectedGenre = string.Empty;
+            
+            ApplyFilters();
+        }
+    }
+
+    private void CountryFilter_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (CountryFilter.SelectedItem != null)
+        {
+            _selectedCountry = CountryFilter.SelectedItem.ToString();
+            if (_selectedCountry == "All Countries")
+                _selectedCountry = string.Empty;
+            
+            ApplyFilters();
+        }
+    }
+
+    private void ApplyFilters()
+    {
         // Clear current items
         _movies.Clear();
         _currentIndex = 0;
 
-        if (string.IsNullOrWhiteSpace(searchText))
+        // Apply filters
+        var filteredMovies = _allMovies.Where(m =>
+            (string.IsNullOrEmpty(_selectedGenre) || m.Genre.Split(',').Select(g => g.Trim()).Contains(_selectedGenre)) &&
+            (string.IsNullOrEmpty(_selectedCountry) || m.Country.Split(',').Select(c => c.Trim()).Contains(_selectedCountry)) &&
+            (string.IsNullOrEmpty(_lastSearchText) || IsMatch(m, _lastSearchText.Split(new[] { ' ', '-', '_', '.', ',' }, StringSplitOptions.RemoveEmptyEntries)
+                .Where(term => term.Length >= 2)
+                .ToArray()))
+        ).ToList();
+
+        // Load initial batch of filtered movies
+        var initialBatch = filteredMovies.Take(BatchSize).ToList();
+        foreach (var movie in initialBatch)
         {
-            // If search is empty, immediately load initial batch
-            var initialBatch = _allMovies.Take(BatchSize).ToList();
-            foreach (var movie in initialBatch)
-            {
-                _movies.Add(movie);
-            }
-            _currentIndex = initialBatch.Count;
-            return;
+            _movies.Add(movie);
+            // Start loading the image asynchronously
+            _ = movie.LoadImageAsync();
         }
+        _currentIndex = initialBatch.Count;
 
-        // Split search terms and remove empty entries
-        var searchTerms = searchText.Split(new[] { ' ', '-', '_', '.', ',' }, StringSplitOptions.RemoveEmptyEntries)
-                                  .Where(term => term.Length >= 2)
-                                  .ToArray();
-
-        if (searchTerms.Length == 0)
+        // Scroll to top
+        var scrollViewer = FindVisualChild<ScrollViewer>(MoviesListView);
+        if (scrollViewer != null)
         {
-            // If no valid search terms, immediately load initial batch
-            var initialBatch = _allMovies.Take(BatchSize).ToList();
-            foreach (var movie in initialBatch)
-            {
-                _movies.Add(movie);
-            }
-            _currentIndex = initialBatch.Count;
-            return;
+            scrollViewer.ScrollToTop();
         }
-
-        // Load first batch of matching items
-        LoadNextBatchAsync();
     }
 
     private bool IsMatch(Movie movie, string[] searchTerms)
@@ -1385,28 +1434,123 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         {
             Background = new SolidColorBrush(Color.FromRgb(26, 26, 26)),
             BorderBrush = new SolidColorBrush(Color.FromRgb(42, 42, 42)),
-            BorderThickness = new Thickness(1)
+            BorderThickness = new Thickness(1),
+            Padding = new Thickness(0)
         };
 
-        // Add sort options
+        // Year sorting options
+        var yearHeader = new MenuItem
+        {
+            Header = "Year",
+            Background = new SolidColorBrush(Color.FromRgb(26, 26, 26)),
+            Foreground = new SolidColorBrush(Color.FromRgb(180, 180, 180)),
+            FontWeight = FontWeights.SemiBold,
+            IsEnabled = false
+        };
+        contextMenu.Items.Add(yearHeader);
+
         var sortByYearAsc = new MenuItem
         {
-            Header = "Sort by Year (Oldest First)",
+            Header = "Oldest First",
             Background = new SolidColorBrush(Color.FromRgb(26, 26, 26)),
-            Foreground = Brushes.White
+            Foreground = Brushes.White,
+            Padding = new Thickness(16, 8, 16, 8)
         };
         sortByYearAsc.Click += (s, args) => SortMovies("Year", true);
 
         var sortByYearDesc = new MenuItem
         {
-            Header = "Sort by Year (Newest First)",
+            Header = "Newest First",
             Background = new SolidColorBrush(Color.FromRgb(26, 26, 26)),
-            Foreground = Brushes.White
+            Foreground = Brushes.White,
+            Padding = new Thickness(16, 8, 16, 8)
         };
         sortByYearDesc.Click += (s, args) => SortMovies("Year", false);
 
         contextMenu.Items.Add(sortByYearAsc);
         contextMenu.Items.Add(sortByYearDesc);
+
+        // Add separator
+        contextMenu.Items.Add(new Separator { Background = new SolidColorBrush(Color.FromRgb(42, 42, 42)) });
+
+        // Genre sorting options
+        var genreHeader = new MenuItem
+        {
+            Header = "Genre",
+            Background = new SolidColorBrush(Color.FromRgb(26, 26, 26)),
+            Foreground = new SolidColorBrush(Color.FromRgb(180, 180, 180)),
+            FontWeight = FontWeights.SemiBold,
+            IsEnabled = false
+        };
+        contextMenu.Items.Add(genreHeader);
+
+        var sortByGenreAsc = new MenuItem
+        {
+            Header = "A to Z",
+            Background = new SolidColorBrush(Color.FromRgb(26, 26, 26)),
+            Foreground = Brushes.White,
+            Padding = new Thickness(16, 8, 16, 8)
+        };
+        sortByGenreAsc.Click += (s, args) => SortMovies("Genre", true);
+
+        var sortByGenreDesc = new MenuItem
+        {
+            Header = "Z to A",
+            Background = new SolidColorBrush(Color.FromRgb(26, 26, 26)),
+            Foreground = Brushes.White,
+            Padding = new Thickness(16, 8, 16, 8)
+        };
+        sortByGenreDesc.Click += (s, args) => SortMovies("Genre", false);
+
+        contextMenu.Items.Add(sortByGenreAsc);
+        contextMenu.Items.Add(sortByGenreDesc);
+
+        // Add separator
+        contextMenu.Items.Add(new Separator { Background = new SolidColorBrush(Color.FromRgb(42, 42, 42)) });
+
+        // Country sorting options
+        var countryHeader = new MenuItem
+        {
+            Header = "Country",
+            Background = new SolidColorBrush(Color.FromRgb(26, 26, 26)),
+            Foreground = new SolidColorBrush(Color.FromRgb(180, 180, 180)),
+            FontWeight = FontWeights.SemiBold,
+            IsEnabled = false
+        };
+        contextMenu.Items.Add(countryHeader);
+
+        var sortByCountryAsc = new MenuItem
+        {
+            Header = "A to Z",
+            Background = new SolidColorBrush(Color.FromRgb(26, 26, 26)),
+            Foreground = Brushes.White,
+            Padding = new Thickness(16, 8, 16, 8)
+        };
+        sortByCountryAsc.Click += (s, args) => SortMovies("Country", true);
+
+        var sortByCountryDesc = new MenuItem
+        {
+            Header = "Z to A",
+            Background = new SolidColorBrush(Color.FromRgb(26, 26, 26)),
+            Foreground = Brushes.White,
+            Padding = new Thickness(16, 8, 16, 8)
+        };
+        sortByCountryDesc.Click += (s, args) => SortMovies("Country", false);
+
+        contextMenu.Items.Add(sortByCountryAsc);
+        contextMenu.Items.Add(sortByCountryDesc);
+
+        // Style for menu items
+        var menuItemStyle = new Style(typeof(MenuItem));
+        menuItemStyle.Setters.Add(new Setter(MenuItem.BackgroundProperty, new SolidColorBrush(Color.FromRgb(26, 26, 26))));
+        menuItemStyle.Setters.Add(new Setter(MenuItem.ForegroundProperty, Brushes.White));
+        menuItemStyle.Setters.Add(new Setter(MenuItem.PaddingProperty, new Thickness(16, 8, 16, 8)));
+        
+        var trigger = new Trigger { Property = MenuItem.IsMouseOverProperty, Value = true };
+        trigger.Setters.Add(new Setter(MenuItem.BackgroundProperty, new SolidColorBrush(Color.FromRgb(42, 42, 42))));
+        menuItemStyle.Triggers.Add(trigger);
+
+        contextMenu.Resources.Add(typeof(MenuItem), menuItemStyle);
 
         // Position the context menu below the button
         contextMenu.PlacementTarget = button;
@@ -1429,6 +1573,26 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                     else
                     {
                         _allMovies.Sort((a, b) => string.Compare(b.Year, a.Year, StringComparison.Ordinal));
+                    }
+                    break;
+                case "Genre":
+                    if (ascending)
+                    {
+                        _allMovies.Sort((a, b) => string.Compare(a.Genre, b.Genre, StringComparison.Ordinal));
+                    }
+                    else
+                    {
+                        _allMovies.Sort((a, b) => string.Compare(b.Genre, a.Genre, StringComparison.Ordinal));
+                    }
+                    break;
+                case "Country":
+                    if (ascending)
+                    {
+                        _allMovies.Sort((a, b) => string.Compare(a.Country, b.Country, StringComparison.Ordinal));
+                    }
+                    else
+                    {
+                        _allMovies.Sort((a, b) => string.Compare(b.Country, a.Country, StringComparison.Ordinal));
                     }
                     break;
             }
