@@ -7,7 +7,7 @@
         xmlns:fa="http://schemas.fontawesome.io/icons/"
         xmlns:FontAwesome="clr-namespace:FontAwesome.WPF;assembly=FontAwesome.WPF"
         mc:Ignorable="d"
-        Title="TinyCinema" Height="700" Width="800"
+        Title="TinyCinema" Height="720" Width="800"
         WindowStartupLocation="CenterScreen"
         Background="Transparent"
         ResizeMode="NoResize"
@@ -630,6 +630,7 @@
                                     <ColumnDefinition Width="Auto"/>
                                     <ColumnDefinition Width="Auto"/>
                                     <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
                                 
                                 <!-- Movie Poster -->
@@ -761,8 +762,22 @@
                                                    Height="16"/>
                                 </Button>
 
-                                <!-- Info Icon -->
+                                <!-- Trailer Icon -->
                                 <Button Grid.Column="4"
+                                        Style="{StaticResource WindowButtonStyle}"
+                                        Click="TrailerButton_Click"
+                                        Margin="8,0,0,0"
+                                        Padding="8"
+                                        ToolTip="Watch trailer"
+                                        Visibility="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListViewItem}, Converter={StaticResource BooleanToVisibilityConverter}, ConverterParameter=Inverse}">
+                                    <fa:FontAwesome Icon="Film" 
+                                                   Foreground="White"
+                                                   Width="16" 
+                                                   Height="16"/>
+                                </Button>
+
+                                <!-- Info Icon -->
+                                <Button Grid.Column="5"
                                         Style="{StaticResource WindowButtonStyle}"
                                         Margin="8,0,8,0"
                                         Padding="8"
@@ -776,7 +791,7 @@
                                 </Button>
 
                                 <!-- Roku Icon -->
-                                <Button Grid.Column="5"
+                                <Button Grid.Column="6"
                                         Style="{StaticResource WindowButtonStyle}"
                                         Margin="8,0,8,0"
                                         Padding="8"

@@ -1040,6 +1040,247 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         }
     }
 
+    private async void TrailerButton_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var button = (Button)sender;
+            var movie = (Movie)button.DataContext;
+
+            // Show loading state
+            var loadingWindow = new Window
+            {
+                Title = "Loading Trailer",
+                Width = 400,
+                Height = 200,
+                WindowStartupLocation = WindowStartupLocation.CenterScreen,
+                WindowStyle = WindowStyle.None,
+                ResizeMode = ResizeMode.NoResize,
+                Background = new SolidColorBrush(Color.FromRgb(15, 15, 15)),
+                Foreground = Brushes.White,
+                AllowsTransparency = true
+            };
+
+            var loadingBorder = new Border
+            {
+                Background = new SolidColorBrush(Color.FromRgb(15, 15, 15)),
+                BorderBrush = new SolidColorBrush(Color.FromRgb(42, 42, 42)),
+                BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(8)
+            };
+
+            var loadingGrid = new Grid();
+            loadingGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            loadingGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+            loadingGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            loadingGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            loadingGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+
+            // Title bar
+            var loadingTitleBar = new Grid
+            {
+                Background = new SolidColorBrush(Color.FromRgb(26, 26, 26)),
+                Height = 32
+            };
+            loadingTitleBar.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            loadingTitleBar.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+            var loadingTitle = new TextBlock
+            {
+                Text = "Loading Trailer",
+                Foreground = Brushes.White,
+                Margin = new Thickness(12, 0, 0, 0),
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            Grid.SetColumn(loadingTitle, 0);
+
+            var loadingCloseButton = new Button
+            {
+                Style = (Style)FindResource("CloseButtonStyle"),
+                Width = 46,
+                Height = 32
+            };
+            loadingCloseButton.Content = new FontAwesome.WPF.FontAwesome
+            {
+                Icon = FontAwesome.WPF.FontAwesomeIcon.Close,
+                Foreground = Brushes.White,
+                Width = 12,
+                Height = 12
+            };
+
+            // Store the process reference
+            System.Diagnostics.Process? trailerSearchProcess = null;
+
+            // Add event handler for window closing
+            loadingWindow.Closing += (s, args) =>
+            {
+                try
+                {
+                    // Kill all TrailerSearch processes
+                    var processes = System.Diagnostics.Process.GetProcessesByName("TrailerSearch");
+                    foreach (var process in processes)
+                    {
+                        try
+                        {
+                            if (!process.HasExited)
+                            {
+                                process.Kill(true); // Kill the process and its child processes
+                                process.WaitForExit(1000); // Wait up to 1 second for the process to exit
+                            }
+                        }
+                        catch
+                        {
+                            // Ignore errors for individual processes
+                        }
+                    }
+                }
+                catch
+                {
+                    // Ignore any errors during process termination
+                }
+            };
+
+            loadingCloseButton.Click += (s, args) => loadingWindow.Close();
+            Grid.SetColumn(loadingCloseButton, 1);
+
+            loadingTitleBar.Children.Add(loadingTitle);
+            loadingTitleBar.Children.Add(loadingCloseButton);
+            Grid.SetRow(loadingTitleBar, 0);
+
+            // Movie title
+            var movieTitleText = new TextBlock
+            {
+                Text = movie.Title,
+                Foreground = Brushes.White,
+                FontSize = 16,
+                FontWeight = FontWeights.SemiBold,
+                TextAlignment = TextAlignment.Center,
+                TextWrapping = TextWrapping.Wrap,
+                Margin = new Thickness(20, 20, 20, 10)
+            };
+            Grid.SetRow(movieTitleText, 1);
+
+            // Progress bar
+            var progressBar = new ProgressBar
+            {
+                Height = 4,
+                Margin = new Thickness(20, 0, 20, 0),
+                Background = new SolidColorBrush(Color.FromRgb(42, 42, 42)),
+                BorderThickness = new Thickness(0),
+                Value = 0
+            };
+            Grid.SetRow(progressBar, 2);
+
+            // Progress bar animation
+            var progressAnimation = new DoubleAnimation
+            {
+                From = 0,
+                To = 100,
+                Duration = TimeSpan.FromSeconds(30),
+                RepeatBehavior = RepeatBehavior.Forever
+            };
+            progressBar.BeginAnimation(ProgressBar.ValueProperty, progressAnimation);
+
+            // Status text
+            var loadingText = new TextBlock
+            {
+                Text = "Searching for trailer...",
+                Foreground = Brushes.White,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(0, 10, 0, 20)
+            };
+            Grid.SetRow(loadingText, 3);
+
+            // Time elapsed
+            var timeElapsedText = new TextBlock
+            {
+                Text = "Time elapsed: 00:00",
+                Foreground = new SolidColorBrush(Color.FromRgb(180, 180, 180)),
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(0, 0, 0, 20),
+                FontSize = 12
+            };
+            Grid.SetRow(timeElapsedText, 4);
+
+            loadingGrid.Children.Add(loadingTitleBar);
+            loadingGrid.Children.Add(movieTitleText);
+            loadingGrid.Children.Add(progressBar);
+            loadingGrid.Children.Add(loadingText);
+            loadingGrid.Children.Add(timeElapsedText);
+            loadingBorder.Child = loadingGrid;
+            loadingWindow.Content = loadingBorder;
+
+            // Add drag functionality
+            loadingTitleBar.MouseLeftButtonDown += (s, args) =>
+            {
+                loadingWindow.DragMove();
+            };
+
+            // Start loading window
+            loadingWindow.Show();
+
+            // Start TrailerSearch.exe
+            var startInfo = new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = "TrailerSearch.exe",
+                Arguments = $"\"{movie.Title} {movie.Year}\" -year \"{movie.Year}\"",
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true
+            };
+
+            trailerSearchProcess = System.Diagnostics.Process.Start(startInfo);
+            if (trailerSearchProcess == null)
+            {
+                loadingWindow.Close();
+                MessageBox.Show(
+                    "Failed to start TrailerSearch process.",
+                    "Error",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error
+                );
+                return;
+            }
+
+            var startTime = DateTime.Now;
+            var checkInterval = TimeSpan.FromSeconds(1);
+
+            while (!trailerSearchProcess.HasExited)
+            {
+                // Update loading text with elapsed time
+                var elapsed = DateTime.Now - startTime;
+                timeElapsedText.Text = $"Time elapsed: {elapsed:mm\\:ss}";
+                
+                // Update status text based on elapsed time
+                if (elapsed.TotalSeconds < 5)
+                    loadingText.Text = "Searching for trailer...";
+                else if (elapsed.TotalSeconds < 10)
+                    loadingText.Text = "Processing video source...";
+                else if (elapsed.TotalSeconds < 15)
+                    loadingText.Text = "Preparing playback...";
+                else
+                    loadingText.Text = "Almost there...";
+                
+                await Task.Delay(checkInterval);
+            }
+
+            // Close the loading window
+            loadingWindow.Close();
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(
+                $"Error loading trailer: {ex.Message}",
+                "Error",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error
+            );
+        }
+    }
+
     private async void RokuButton_Click(object sender, RoutedEventArgs e)
     {
         if (MoviesListView.SelectedItem is Movie selectedMovie)

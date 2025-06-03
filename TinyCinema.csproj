@@ -11,7 +11,7 @@
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <PublishReadyToRun>true</PublishReadyToRun>
     <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
-    <ApplicationIcon>Assets\Rokusideload.ico</ApplicationIcon>
+    <ApplicationIcon>Assets\APPICON.ico</ApplicationIcon>
     <Version>1.0.0</Version>
     <Authors>TinyCinema</Authors>
     <Company>TinyCinema</Company>

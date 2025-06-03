@@ -68,7 +68,7 @@ TinyCinema comes pre-loaded with 25k movies.
 
 ## 🎥 Movie Collection
 
-The application includes 25k movies, each with:
+The application includes 25k movies in URL formats, each with:
 - High-quality poster images
 - Title and year information
 - Direct playback options
