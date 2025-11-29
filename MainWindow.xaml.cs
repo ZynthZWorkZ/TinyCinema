@@ -1004,24 +1004,52 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                 // Close the loading window
                 loadingWindow.Close();
 
-                // Launch ffplay with the m3u8 URL
-                var ffplayStartInfo = new System.Diagnostics.ProcessStartInfo
+                // Get the selected player from settings (reuse existing settingsWindow)
+                var selectedPlayer = settingsWindow.SelectedPlayer ?? "TinyPlayer";
+                
+                // Launch the selected player with the m3u8 URL
+                System.Diagnostics.ProcessStartInfo playerStartInfo;
+                
+                if (selectedPlayer == "FFPLAY")
                 {
-                    FileName = "ffplay",
-                    Arguments = $"\"{m3u8Url}\"",
-                    UseShellExecute = false,
-                    CreateNoWindow = false,
-                    WindowStyle = System.Diagnostics.ProcessWindowStyle.Normal
-                };
+                    playerStartInfo = new System.Diagnostics.ProcessStartInfo
+                    {
+                        FileName = "ffplay",
+                        Arguments = $"\"{m3u8Url}\"",
+                        UseShellExecute = false,
+                        CreateNoWindow = false,
+                        WindowStyle = System.Diagnostics.ProcessWindowStyle.Normal
+                    };
+                }
+                else // Default to TinyPlayer
+                {
+                    // TinyPlayer.exe is in TinyPlayer subdirectory
+                    var tinyPlayerPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "TinyPlayer", "TinyPlayer.exe");
+                    if (!File.Exists(tinyPlayerPath))
+                    {
+                        // Fallback to current directory
+                        tinyPlayerPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "TinyPlayer.exe");
+                    }
+                    
+                    playerStartInfo = new System.Diagnostics.ProcessStartInfo
+                    {
+                        FileName = tinyPlayerPath,
+                        Arguments = $"\"{m3u8Url}\"",
+                        UseShellExecute = false,
+                        CreateNoWindow = false,
+                        WindowStyle = System.Diagnostics.ProcessWindowStyle.Normal
+                    };
+                }
 
                 try
                 {
-                    System.Diagnostics.Process.Start(ffplayStartInfo);
+                    System.Diagnostics.Process.Start(playerStartInfo);
                 }
                 catch (Exception ex)
                 {
+                    var playerName = selectedPlayer == "FFPLAY" ? "ffplay" : "TinyPlayer";
                     MessageBox.Show(
-                        $"Failed to launch ffplay: {ex.Message}\n\nPlease make sure ffplay is installed and available in your system PATH.",
+                        $"Failed to launch {playerName}: {ex.Message}\n\nPlease make sure {playerName} is installed and available.",
                         "Error",
                         MessageBoxButton.OK,
                         MessageBoxImage.Error

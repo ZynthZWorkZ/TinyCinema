@@ -14,6 +14,7 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
     private bool _isFastModeEnabled = true;
     private string _rokuIpAddress = "";
     private bool _hideTinyScraper = true;
+    private string _selectedPlayer = "TinyPlayer"; // Default to TinyPlayer
 
     private static readonly string SettingsFile = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
@@ -87,6 +88,17 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
         }
     }
 
+    public string SelectedPlayer
+    {
+        get => _selectedPlayer;
+        set
+        {
+            _selectedPlayer = value;
+            OnPropertyChanged(nameof(SelectedPlayer));
+            SaveSettings();
+        }
+    }
+
     public event PropertyChangedEventHandler? PropertyChanged;
 
     protected virtual void OnPropertyChanged(string propertyName)
@@ -100,6 +112,20 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
         DataContext = this;
         LoadSettings();
         InitializeCacheDirectory();
+        
+        // Initialize player ComboBox
+        if (PlayerComboBox != null)
+        {
+            PlayerComboBox.SelectedItem = SelectedPlayer;
+        }
+    }
+    
+    private void PlayerComboBox_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+    {
+        if (PlayerComboBox?.SelectedItem is string selectedPlayer)
+        {
+            SelectedPlayer = selectedPlayer;
+        }
     }
 
     private void LoadSettings()
@@ -135,6 +161,10 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
                     else if (line.StartsWith("HideTinyScraper="))
                     {
                         HideTinyScraper = bool.Parse(line.Substring("HideTinyScraper=".Length).Trim());
+                    }
+                    else if (line.StartsWith("SelectedPlayer="))
+                    {
+                        SelectedPlayer = line.Substring("SelectedPlayer=".Length).Trim();
                     }
                 }
             }
@@ -179,7 +209,8 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
                 $"MovieLinksLocation={MovieLinksLocation}",
                 $"IsFastModeEnabled={IsFastModeEnabled}",
                 $"RokuIpAddress={RokuIpAddress}",
-                $"HideTinyScraper={HideTinyScraper}"
+                $"HideTinyScraper={HideTinyScraper}",
+                $"SelectedPlayer={SelectedPlayer}"
             };
 
             File.WriteAllLines(SettingsFile, settings);

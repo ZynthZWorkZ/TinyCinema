@@ -7,3 +7,7 @@ selenium-manager
 ClickedMovieTemp.txt
 TrailerSearch.exe
 TrailerSearch.pdb
+imdb_links.txt
+*.log
+TinyPlayer/
+.cursor/
