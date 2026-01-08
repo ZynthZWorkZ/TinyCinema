@@ -708,12 +708,48 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                 // Clean up any existing temp files first
                 CleanupTempFiles();
 
-                // Check if TinyScraper is already running
-                var existingProcesses = System.Diagnostics.Process.GetProcessesByName("TinyScraper");
+                // Close all Firefox processes - this is crucial for the app to work properly
+                try
+                {
+                    var firefoxProcesses = System.Diagnostics.Process.GetProcessesByName("firefox");
+                    if (firefoxProcesses.Length > 0)
+                    {
+                        foreach (var firefoxProcess in firefoxProcesses)
+                        {
+                            try
+                            {
+                                if (!firefoxProcess.HasExited)
+                                {
+                                    firefoxProcess.Kill(true); // Kill the process and its child processes
+                                    firefoxProcess.WaitForExit(3000); // Wait up to 3 seconds for the process to exit
+                                }
+                            }
+                            catch
+                            {
+                                // Ignore errors for individual processes, continue killing others
+                            }
+                        }
+                        // Give a brief moment for all Firefox processes to fully terminate
+                        await Task.Delay(500);
+                    }
+                }
+                catch
+                {
+                    // If there's an error closing Firefox, show a warning but continue
+                    MessageBox.Show(
+                        "Warning: Could not close all Firefox processes. Please manually close Firefox before playing.",
+                        "Firefox Warning",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Warning
+                    );
+                }
+
+                // Check if TinyScrapev2 is already running
+                var existingProcesses = System.Diagnostics.Process.GetProcessesByName("TinyScrapev2");
                 if (existingProcesses.Length > 0)
                 {
                     MessageBox.Show(
-                        "TinyScraper is already running. Please wait for it to finish or close it manually.",
+                        "TinyScrapev2 is already running. Please wait for it to finish or close it manually.",
                         "Warning",
                         MessageBoxButton.OK,
                         MessageBoxImage.Warning
@@ -783,15 +819,15 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                 };
 
                 // Store the process reference
-                System.Diagnostics.Process? tinyScraperProcess = null;
+                System.Diagnostics.Process? tinyScrapev2Process = null;
 
                 // Add event handler for window closing
                 loadingWindow.Closing += (s, args) =>
                 {
                     try
                     {
-                        // Kill all TinyScraper processes
-                        var processes = System.Diagnostics.Process.GetProcessesByName("TinyScraper");
+                        // Kill all TinyScrapev2 processes
+                        var processes = System.Diagnostics.Process.GetProcessesByName("TinyScrapev2");
                         foreach (var process in processes)
                         {
                             try
@@ -895,12 +931,12 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                 // Start loading window
                 loadingWindow.Show();
 
-                // Start TinyScraper.exe with the movie URL
+                // Start TinyScrapev2.exe with the movie URL (without -ffplay, we'll launch player ourselves)
                 var settingsWindow = new SettingsWindow();
                 var startInfo = new System.Diagnostics.ProcessStartInfo
                 {
-                    FileName = "TinyScraper.exe",
-                    Arguments = $"-getm3 \"{selectedMovie.Url}\"" + (settingsWindow.IsFastModeEnabled ? " -fast" : ""),
+                    FileName = "TinyScrapev2.exe",
+                    Arguments = $"\"{selectedMovie.Url}\"",
                     UseShellExecute = false,
                     CreateNoWindow = settingsWindow.HideTinyScraper,
                     WindowStyle = settingsWindow.HideTinyScraper ? 
@@ -908,12 +944,12 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                         System.Diagnostics.ProcessWindowStyle.Normal
                 };
 
-                tinyScraperProcess = System.Diagnostics.Process.Start(startInfo);
-                if (tinyScraperProcess == null)
+                tinyScrapev2Process = System.Diagnostics.Process.Start(startInfo);
+                if (tinyScrapev2Process == null)
                 {
                     loadingWindow.Close();
                     MessageBox.Show(
-                        "Failed to start TinyScraper process.",
+                        "Failed to start TinyScrapev2 process.",
                         "Error",
                         MessageBoxButton.OK,
                         MessageBoxImage.Error
@@ -921,29 +957,207 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                     return;
                 }
 
-                // Wait for either ClickedMovieTemp.txt or nomedia.txt to appear
-                var tempFile = "ClickedMovieTemp.txt";
-                var noMediaFile = "nomedia.txt";
-                var startTime = DateTime.Now;
-                var checkInterval = TimeSpan.FromSeconds(1);
-
-                while (!File.Exists(tempFile) && !File.Exists(noMediaFile))
+                // Wait for hls-urls.txt to appear in the application directory - poll more frequently to catch it ASAP
+                var hlsUrlsFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "hls-urls.txt");
+                
+                // Ensure any existing hls-urls.txt is removed before starting (clean slate)
+                try
                 {
-                    // Check if process has exited
-                    if (tinyScraperProcess.HasExited)
+                    if (File.Exists(hlsUrlsFile))
                     {
+                        File.Delete(hlsUrlsFile);
+                        await Task.Delay(100); // Brief delay to ensure file system has released it
+                    }
+                }
+                catch { }
+                
+                var startTime = DateTime.Now;
+                var checkInterval = TimeSpan.FromMilliseconds(50); // Check every 50ms for even faster detection
+                string m3u8Url = null;
+                const int maxWaitTimeSeconds = 60; // Maximum time to wait for the file (60 seconds)
+                var maxWaitTime = TimeSpan.FromSeconds(maxWaitTimeSeconds);
+                var lastFileSize = 0L;
+
+                // Poll for the file and read it immediately when it appears
+                while (m3u8Url == null)
+                {
+                    // Check if we've exceeded the maximum wait time
+                    var elapsed = DateTime.Now - startTime;
+                    if (elapsed > maxWaitTime)
+                    {
+                        // Clean up any leftover file before showing error
+                        try
+                        {
+                            if (File.Exists(hlsUrlsFile))
+                            {
+                                File.Delete(hlsUrlsFile);
+                            }
+                        }
+                        catch { }
+                        
                         loadingWindow.Close();
                         MessageBox.Show(
-                            "No media was found. Please try again later.",
-                            "No Media",
+                            "Timeout: hls-urls.txt was not found. Please try again later.",
+                            "Timeout",
                             MessageBoxButton.OK,
                             MessageBoxImage.Information
                         );
                         return;
                     }
 
-                    // Update loading text with elapsed time
-                    var elapsed = DateTime.Now - startTime;
+                    // Check if process has exited without creating the file
+                    if (tinyScrapev2Process.HasExited)
+                    {
+                        // Give it multiple chances to finish writing, with retries
+                        for (int retry = 0; retry < 5; retry++)
+                        {
+                            await Task.Delay(300);
+                            if (File.Exists(hlsUrlsFile))
+                            {
+                                try
+                                {
+                                    // Try to read with file size check to ensure it's fully written
+                                    var fileInfo = new FileInfo(hlsUrlsFile);
+                                    if (fileInfo.Length > 0)
+                                    {
+                                        // Try reading with retries in case file is still being written
+                                        for (int readRetry = 0; readRetry < 3; readRetry++)
+                                        {
+                                            try
+                                            {
+                                                m3u8Url = await File.ReadAllTextAsync(hlsUrlsFile);
+                                                m3u8Url = m3u8Url.Trim();
+                                                
+                                                if (!string.IsNullOrEmpty(m3u8Url))
+                                                {
+                                                    // Clean up the file immediately after reading
+                                                    try
+                                                    {
+                                                        File.Delete(hlsUrlsFile);
+                                                    }
+                                                    catch { }
+                                                    break;
+                                                }
+                                            }
+                                            catch (IOException)
+                                            {
+                                                // File might still be locked, wait and retry
+                                                if (readRetry < 2)
+                                                {
+                                                    await Task.Delay(100);
+                                                }
+                                            }
+                                        }
+                                        
+                                        if (!string.IsNullOrEmpty(m3u8Url))
+                                        {
+                                            break;
+                                        }
+                                    }
+                                }
+                                catch { }
+                            }
+                        }
+                        
+                        // Clean up any leftover file
+                        try
+                        {
+                            if (File.Exists(hlsUrlsFile))
+                            {
+                                File.Delete(hlsUrlsFile);
+                            }
+                        }
+                        catch { }
+                        
+                        if (string.IsNullOrEmpty(m3u8Url))
+                        {
+                            loadingWindow.Close();
+                            MessageBox.Show(
+                                "No media was found. The hls-urls.txt file was not created or was empty. Please try again later.",
+                                "No Media",
+                                MessageBoxButton.OK,
+                                MessageBoxImage.Information
+                            );
+                            return;
+                        }
+                        else
+                        {
+                            break; // We got the URL, exit the loop
+                        }
+                    }
+
+                    // Check if file exists and try to read it immediately
+                    if (File.Exists(hlsUrlsFile))
+                    {
+                        try
+                        {
+                            // Check if file size has changed (indicates it's being written)
+                            var fileInfo = new FileInfo(hlsUrlsFile);
+                            if (fileInfo.Length > 0 && fileInfo.Length == lastFileSize)
+                            {
+                                // File size hasn't changed, likely fully written - try to read
+                                // Try reading with retries in case of file locks
+                                for (int readRetry = 0; readRetry < 5; readRetry++)
+                                {
+                                    try
+                                    {
+                                        // Read the file immediately before TinyScrapev2 removes it
+                                        m3u8Url = await File.ReadAllTextAsync(hlsUrlsFile);
+                                        m3u8Url = m3u8Url.Trim();
+                                        
+                                        // Validate it's a URL (contains http:// or https://)
+                                        if (!string.IsNullOrEmpty(m3u8Url) && 
+                                            (m3u8Url.StartsWith("http://", StringComparison.OrdinalIgnoreCase) || 
+                                             m3u8Url.StartsWith("https://", StringComparison.OrdinalIgnoreCase)))
+                                        {
+                                            // Clean up the file immediately after reading
+                                            try
+                                            {
+                                                File.Delete(hlsUrlsFile);
+                                            }
+                                            catch { }
+                                            break; // Exit the loop once we have the URL
+                                        }
+                                        else
+                                        {
+                                            // Invalid URL, continue waiting
+                                            m3u8Url = null;
+                                            break;
+                                        }
+                                    }
+                                    catch (IOException)
+                                    {
+                                        // File might be locked, wait briefly and retry
+                                        if (readRetry < 4)
+                                        {
+                                            await Task.Delay(50);
+                                        }
+                                    }
+                                    catch (Exception)
+                                    {
+                                        // Other error, break and continue polling
+                                        break;
+                                    }
+                                }
+                                
+                                if (!string.IsNullOrEmpty(m3u8Url))
+                                {
+                                    break; // Successfully read the URL
+                                }
+                            }
+                            else if (fileInfo.Length > 0)
+                            {
+                                // File size changed, update and continue waiting for it to stabilize
+                                lastFileSize = fileInfo.Length;
+                            }
+                        }
+                        catch (Exception)
+                        {
+                            // Error checking file, continue polling
+                        }
+                    }
+
+                    // Update loading text with elapsed time (reuse elapsed from timeout check above)
                     timeElapsedText.Text = $"Time elapsed: {elapsed:mm\\:ss}";
                     
                     // Update status text based on elapsed time
@@ -961,19 +1175,9 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                     await Task.Delay(checkInterval);
                 }
 
-                // Check which file appeared
-                if (File.Exists(noMediaFile))
+                // Check if we got a valid URL
+                if (string.IsNullOrEmpty(m3u8Url))
                 {
-                    // Clean up the no media file
-                    try
-                    {
-                        File.Delete(noMediaFile);
-                    }
-                    catch
-                    {
-                        // Ignore cleanup errors
-                    }
-
                     loadingWindow.Close();
                     MessageBox.Show(
                         "No media was found. Please try again later.",
@@ -982,23 +1186,6 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                         MessageBoxImage.Information
                     );
                     return;
-                }
-
-                // Wait a bit more to ensure the file is completely written
-                await Task.Delay(2000);
-
-                // Read the m3u8 URL from the file
-                var m3u8Url = await File.ReadAllTextAsync(tempFile);
-                m3u8Url = m3u8Url.Trim();
-
-                // Clean up the temp file
-                try
-                {
-                    File.Delete(tempFile);
-                }
-                catch
-                {
-                    // Ignore cleanup errors
                 }
 
                 // Close the loading window
@@ -1866,7 +2053,13 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     {
         try
         {
-            var tempFiles = new[] { "ClickedMovieTemp.txt", "nomedia.txt" };
+            var baseDirectory = AppDomain.CurrentDomain.BaseDirectory;
+            var tempFiles = new[] 
+            { 
+                Path.Combine(baseDirectory, "ClickedMovieTemp.txt"), 
+                Path.Combine(baseDirectory, "nomedia.txt"), 
+                Path.Combine(baseDirectory, "hls-urls.txt") 
+            };
             foreach (var file in tempFiles)
             {
                 if (File.Exists(file))

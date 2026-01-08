@@ -11,3 +11,5 @@ imdb_links.txt
 *.log
 TinyPlayer/
 .cursor/
+TinyScrapev2.exe
+TinyScrapev2.pdb
