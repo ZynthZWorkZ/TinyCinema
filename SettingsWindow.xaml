@@ -415,6 +415,7 @@
                                 
                                 <ComboBox x:Name="PlayerComboBox"
                                          Grid.Column="1"
+                                         ItemsSource="{Binding AvailablePlayers}"
                                          SelectedItem="{Binding SelectedPlayer}"
                                          SelectionChanged="PlayerComboBox_SelectionChanged"
                                          Background="#2A2A2A"
@@ -422,10 +423,7 @@
                                          BorderBrush="#3A3A3A"
                                          BorderThickness="1"
                                          Padding="8,4"
-                                         Style="{StaticResource ModernComboBoxStyle}">
-                                    <system:String>TinyPlayer</system:String>
-                                    <system:String>FFPLAY</system:String>
-                                </ComboBox>
+                                         Style="{StaticResource ModernComboBoxStyle}"/>
                             </Grid>
                         </Grid>
                     </Border>

@@ -23,9 +23,9 @@ TinyCinema comes pre-loaded with 25k movies.
 
 
 ### Playback Options
-- Play movies directly in the application(ffplay)
-- Stream to Roku devices(developer mode needs to be enabled)
-- Open movie URLs in your preferred browser(chrome prefered)
+- Play movies directly in the application (ffplay, VLC, or TinyPlayer)
+- Stream to Roku devices (developer mode needs to be enabled)
+- Open movie URLs in your preferred browser (chrome preferred)
 - View detailed movie information
 
 
@@ -78,19 +78,28 @@ The application includes 25k movies in URL formats, each with:
 ## ⚙️ Settings
 
 Access the settings panel to customize your experience:
-- save image cache for faster loading 
+- Save image cache for faster loading 
 - Configure scraping settings 
-- set roku ip device address 
-- change movie links text location
-- view scraping window for nerds
+- Set Roku IP device address 
+- Change movie links text location
+- Select default video player (TinyPlayer, FFPLAY, or VLC - if installed)
+- View scraping window for nerds
 
 ## 🚀 Getting Started
 
-##(make sure you have chrome & ffmpeg installed)
+### Requirements
+- Chrome browser (for TinyScrapev2 video extraction only)
+- At least one video player:
+  - **FFPLAY** (part of FFmpeg) - Lightweight command-line player
+  - **VLC Media Player** - Full-featured media player (auto-detected if installed at `C:\Program Files\VideoLAN\VLC`)
+  - **TinyPlayer** - Custom player (included)
+
+### Steps
 1. Launch TinyCinema
 2. Browse the movie collection
 3. Use the search bar to find specific movies
 4. Click play to start watching
-5. Explore the various features and options
+5. Access Settings (gear icon) to select your preferred video player
+6. Explore the various features and options
 
 Enjoy your movie-watching experience with TinyCinema! 🎬 

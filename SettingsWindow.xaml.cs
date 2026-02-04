@@ -3,6 +3,8 @@ using System.IO;
 using System.Windows;
 using System.Windows.Input;
 using System.ComponentModel;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace TinyCinema;
 
@@ -15,12 +17,15 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
     private string _rokuIpAddress = "";
     private bool _hideTinyScraper = true;
     private string _selectedPlayer = "TinyPlayer"; // Default to TinyPlayer
+    private List<string> _availablePlayers;
 
     private static readonly string SettingsFile = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
         "TinyCinema",
         "settings.json"
     );
+    
+    private static readonly string VlcPath = @"C:\Program Files\VideoLAN\VLC\vlc.exe";
 
     public string MovieLinksLocation
     {
@@ -99,6 +104,16 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
         }
     }
 
+    public List<string> AvailablePlayers
+    {
+        get => _availablePlayers;
+        private set
+        {
+            _availablePlayers = value;
+            OnPropertyChanged(nameof(AvailablePlayers));
+        }
+    }
+
     public event PropertyChangedEventHandler? PropertyChanged;
 
     protected virtual void OnPropertyChanged(string propertyName)
@@ -110,14 +125,44 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
     {
         InitializeComponent();
         DataContext = this;
+        DetectAvailablePlayers();
         LoadSettings();
         InitializeCacheDirectory();
         
         // Initialize player ComboBox
         if (PlayerComboBox != null)
         {
+            PlayerComboBox.ItemsSource = AvailablePlayers;
+            // Ensure selected player is still available, otherwise use first available
+            if (!AvailablePlayers.Contains(SelectedPlayer) && AvailablePlayers.Count > 0)
+            {
+                SelectedPlayer = AvailablePlayers[0];
+            }
             PlayerComboBox.SelectedItem = SelectedPlayer;
         }
+    }
+    
+    private void DetectAvailablePlayers()
+    {
+        var players = new List<string> { "TinyPlayer", "FFPLAY" };
+        
+        // Check if VLC is installed
+        if (File.Exists(VlcPath))
+        {
+            players.Add("VLC");
+        }
+        
+        AvailablePlayers = players;
+    }
+    
+    public static bool IsVlcInstalled()
+    {
+        return File.Exists(VlcPath);
+    }
+    
+    public static string GetVlcPath()
+    {
+        return VlcPath;
     }
     
     private void PlayerComboBox_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)

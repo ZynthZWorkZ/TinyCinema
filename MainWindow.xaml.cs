@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -18,11 +18,9 @@ using System.ComponentModel;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows.Interop;
-using OpenQA.Selenium.Chrome;
-using OpenQA.Selenium.Support.UI;
-using OpenQA.Selenium;
 using Serilog;
 using System.Threading;
+using HtmlAgilityPack;
 
 namespace TinyCinema;
 
@@ -44,6 +42,12 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     private string _selectedGenre = string.Empty;
     private string _selectedCountry = string.Empty;
     private List<Movie> _filteredMovies = new List<Movie>();
+    private bool _showFavoritesOnly = false;
+    private static readonly string FavoritesFile = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+        "TinyCinema",
+        "favorites.txt"
+    );
 
     public int MovieCount
     {
@@ -116,6 +120,9 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                 }
             }
 
+            // Load favorites from file
+            LoadFavorites();
+
             // Update movie count
             MovieCount = _allMovies.Count;
 
@@ -178,7 +185,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         _isLoading = true;
         await Task.Run(async () =>
         {
-            var sourceList = string.IsNullOrWhiteSpace(_lastSearchText) && string.IsNullOrEmpty(_selectedGenre) && string.IsNullOrEmpty(_selectedCountry)
+            var sourceList = string.IsNullOrWhiteSpace(_lastSearchText) && string.IsNullOrEmpty(_selectedGenre) && string.IsNullOrEmpty(_selectedCountry) && !_showFavoritesOnly
                 ? _allMovies
                 : _filteredMovies;
 
@@ -246,7 +253,8 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             (string.IsNullOrEmpty(_selectedCountry) || m.Country.Split(',').Select(c => c.Trim()).Contains(_selectedCountry)) &&
             (string.IsNullOrEmpty(_lastSearchText) || IsMatch(m, _lastSearchText.Split(new[] { ' ', '-', '_', '.', ',' }, StringSplitOptions.RemoveEmptyEntries)
                 .Where(term => term.Length >= 2)
-                .ToArray()))
+                .ToArray())) &&
+            (!_showFavoritesOnly || m.IsFavorite)
         ).ToList();
 
         // Load initial batch of filtered movies
@@ -658,8 +666,8 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
                 try
                 {
-                    // Get movie details in background with cancellation support
-                    var (description, genre) = await Task.Run(() => GetMovieDetails(selectedMovie.Url, cts.Token));
+                    // Get movie details with HTTP request (no browser needed)
+                    var (description, genre) = await GetMovieDetails(selectedMovie.Url, cts.Token);
 
                     // Check if operation was cancelled
                     if (cts.Token.IsCancellationRequested)
@@ -1196,9 +1204,11 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                 
                 // Launch the selected player with the m3u8 URL
                 System.Diagnostics.ProcessStartInfo playerStartInfo;
+                string playerName;
                 
                 if (selectedPlayer == "FFPLAY")
                 {
+                    playerName = "ffplay";
                     playerStartInfo = new System.Diagnostics.ProcessStartInfo
                     {
                         FileName = "ffplay",
@@ -1208,8 +1218,21 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                         WindowStyle = System.Diagnostics.ProcessWindowStyle.Normal
                     };
                 }
+                else if (selectedPlayer == "VLC")
+                {
+                    playerName = "VLC";
+                    playerStartInfo = new System.Diagnostics.ProcessStartInfo
+                    {
+                        FileName = SettingsWindow.GetVlcPath(),
+                        Arguments = $"\"{m3u8Url}\"",
+                        UseShellExecute = false,
+                        CreateNoWindow = false,
+                        WindowStyle = System.Diagnostics.ProcessWindowStyle.Normal
+                    };
+                }
                 else // Default to TinyPlayer
                 {
+                    playerName = "TinyPlayer";
                     // TinyPlayer.exe is in TinyPlayer subdirectory
                     var tinyPlayerPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "TinyPlayer", "TinyPlayer.exe");
                     if (!File.Exists(tinyPlayerPath))
@@ -1234,7 +1257,6 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                 }
                 catch (Exception ex)
                 {
-                    var playerName = selectedPlayer == "FFPLAY" ? "ffplay" : "TinyPlayer";
                     MessageBox.Show(
                         $"Failed to launch {playerName}: {ex.Message}\n\nPlease make sure {playerName} is installed and available.",
                         "Error",
@@ -2074,67 +2096,146 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         }
     }
 
-    private static (string description, string genre) GetMovieDetails(string url, CancellationToken cancellationToken)
+    private void FavoriteButton_Click(object sender, RoutedEventArgs e)
+    {
+        var button = (Button)sender;
+        var movie = (Movie)button.DataContext;
+        
+        // Toggle favorite status
+        movie.IsFavorite = !movie.IsFavorite;
+        
+        // Save favorites to file
+        SaveFavorites();
+    }
+
+    private void LoadFavorites()
     {
         try
         {
-            var options = new ChromeOptions();
-            options.AddArgument("--headless=new"); // Use new headless mode
-            options.AddArgument("--disable-gpu");
-            options.AddArgument("--no-sandbox");
-            options.AddArgument("--disable-dev-shm-usage");
-            options.AddArgument("--window-size=1920,1080");
-            options.AddArgument("--hide-scrollbars");
-            options.AddArgument("--disable-extensions");
-            options.AddArgument("--disable-notifications");
-            options.AddArgument("--disable-infobars");
-            options.AddArgument("--disable-logging");
-            options.AddArgument("--log-level=3"); // Only show fatal errors
-            options.AddArgument("--silent");
-            options.AddExcludedArgument("enable-automation"); // Remove automation flag
-            options.AddAdditionalOption("useAutomationExtension", false);
-
-            var service = ChromeDriverService.CreateDefaultService();
-            service.HideCommandPromptWindow = true; // Hide the console window
-
-            using (var driver = new ChromeDriver(service, options))
+            if (File.Exists(FavoritesFile))
             {
-                // Check for cancellation before navigating
-                cancellationToken.ThrowIfCancellationRequested();
-                driver.Navigate().GoToUrl(url);
-
-                // Wait for page to load
-                var wait = new WebDriverWait(driver, TimeSpan.FromSeconds(10));
-
-                // Get description
-                string description = "";
-                try
+                var favoriteUrls = File.ReadAllLines(FavoritesFile).ToHashSet();
+                foreach (var movie in _allMovies)
                 {
-                    // Check for cancellation before getting description
+                    movie.IsFavorite = favoriteUrls.Contains(movie.Url);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Error loading favorites");
+        }
+    }
+
+    private void SaveFavorites()
+    {
+        try
+        {
+            var directory = Path.GetDirectoryName(FavoritesFile);
+            if (!Directory.Exists(directory))
+            {
+                Directory.CreateDirectory(directory);
+            }
+
+            var favoriteUrls = _allMovies.Where(m => m.IsFavorite).Select(m => m.Url).ToList();
+            File.WriteAllLines(FavoritesFile, favoriteUrls);
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Error saving favorites");
+        }
+    }
+
+    private void FavoritesButton_Click(object sender, RoutedEventArgs e)
+    {
+        _showFavoritesOnly = !_showFavoritesOnly;
+        
+        // Update button appearance to show active state
+        if (_showFavoritesOnly)
+        {
+            FavoritesIcon.Foreground = new SolidColorBrush(Color.FromRgb(220, 38, 38)); // Red when active
+            FavoritesButton.ToolTip = "Show All Movies";
+        }
+        else
+        {
+            FavoritesIcon.Foreground = new SolidColorBrush(Color.FromRgb(255, 255, 255)); // White when inactive
+            FavoritesButton.ToolTip = "Show Favorites";
+        }
+        
+        ApplyFilters();
+    }
+
+    private static async Task<(string description, string genre)> GetMovieDetails(string url, CancellationToken cancellationToken)
+    {
+        try
+        {
+            // Check for cancellation before making request
+            cancellationToken.ThrowIfCancellationRequested();
+
+            using (var handler = new HttpClientHandler())
+            {
+                // Add cookie container for session cookies
+                handler.CookieContainer = new System.Net.CookieContainer();
+                var uri = new Uri(url);
+                handler.CookieContainer.Add(uri, new System.Net.Cookie("srv", "2", "/", uri.Host));
+
+                using (var client = new HttpClient(handler))
+                {
+                    client.Timeout = TimeSpan.FromSeconds(30);
+
+                    // Set headers to mimic a real browser request
+                    client.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0");
+                    client.DefaultRequestHeaders.Add("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8");
+                    client.DefaultRequestHeaders.Add("Accept-Language", "en-US,en;q=0.9");
+                    client.DefaultRequestHeaders.Add("Accept-Encoding", "identity");
+                    client.DefaultRequestHeaders.Add("Upgrade-Insecure-Requests", "1");
+                    client.DefaultRequestHeaders.Add("Sec-Fetch-Dest", "document");
+                    client.DefaultRequestHeaders.Add("Sec-Fetch-Mode", "navigate");
+                    client.DefaultRequestHeaders.Add("Sec-Fetch-Site", "none");
+                    client.DefaultRequestHeaders.Add("Sec-Fetch-User", "?1");
+
+                    // Get the HTML content
+                    var response = await client.GetStringAsync(url);
+
+                    // Check for cancellation after receiving response
                     cancellationToken.ThrowIfCancellationRequested();
-                    var descElement = wait.Until(d => d.FindElement(By.CssSelector("div.description")));
-                    description = descElement.Text.Trim();
-                }
-                catch
-                {
-                    Log.Information("Could not find movie description");
-                }
 
-                // Get genre
-                string genre = "";
-                try
-                {
-                    // Check for cancellation before getting genre
-                    cancellationToken.ThrowIfCancellationRequested();
-                    var genreElement = wait.Until(d => d.FindElement(By.CssSelector(".col-xl-7.col-lg-7.col-md-8.col-sm-12")));
-                    genre = genreElement.Text.Trim();
-                }
-                catch
-                {
-                    Log.Information("Could not find movie genre");
-                }
+                    // Parse HTML using HtmlAgilityPack
+                    var htmlDoc = new HtmlDocument();
+                    htmlDoc.LoadHtml(response);
 
-                return (description, genre);
+                    // Get description
+                    string description = "";
+                    try
+                    {
+                        var descNode = htmlDoc.DocumentNode.SelectSingleNode("//div[@class='description']");
+                        if (descNode != null)
+                        {
+                            description = descNode.InnerText.Trim();
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Information($"Could not find movie description: {ex.Message}");
+                    }
+
+                    // Get genre
+                    string genre = "";
+                    try
+                    {
+                        var genreNode = htmlDoc.DocumentNode.SelectSingleNode("//div[contains(@class, 'col-xl-7') and contains(@class, 'col-lg-7') and contains(@class, 'col-md-8') and contains(@class, 'col-sm-12')]");
+                        if (genreNode != null)
+                        {
+                            genre = genreNode.InnerText.Trim();
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Information($"Could not find movie genre: {ex.Message}");
+                    }
+
+                    return (description, genre);
+                }
             }
         }
         catch (OperationCanceledException)
@@ -2160,6 +2261,17 @@ public class Movie : INotifyPropertyChanged
     public required string Country { get; set; }
     private BitmapImage _cachedImage;
     private bool _isLoading;
+    private bool _isFavorite;
+
+    public bool IsFavorite
+    {
+        get => _isFavorite;
+        set
+        {
+            _isFavorite = value;
+            OnPropertyChanged(nameof(IsFavorite));
+        }
+    }
 
     public BitmapImage CachedImage
     {
@@ -2337,5 +2449,33 @@ public class BooleanToVisibilityConverter : IValueConverter
         {
             return visibility == Visibility.Collapsed;
         }
+    }
+}
+
+public class FavoriteIconConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
+    {
+        bool isFavorite = value is bool b && b;
+        return isFavorite ? FontAwesome.WPF.FontAwesomeIcon.Heart : FontAwesome.WPF.FontAwesomeIcon.HeartOutline;
+    }
+
+    public object ConvertBack(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
+    {
+        throw new NotImplementedException();
+    }
+}
+
+public class FavoriteColorConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
+    {
+        bool isFavorite = value is bool b && b;
+        return new SolidColorBrush(isFavorite ? Color.FromRgb(220, 38, 38) : Color.FromRgb(255, 255, 255));
+    }
+
+    public object ConvertBack(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
+    {
+        throw new NotImplementedException();
     }
 }
