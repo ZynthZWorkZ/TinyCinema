@@ -1530,7 +1530,18 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             {
                 MessageBox.Show(
                     "Please set your Roku IP address in Settings first.",
-                    "Roku IP Required",
+                    "Roku Settings Required",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning
+                );
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(settingsWindow.RokuUsername) || string.IsNullOrWhiteSpace(settingsWindow.RokuPassword))
+            {
+                MessageBox.Show(
+                    "Please set your Roku username and password in Settings first.",
+                    "Roku Settings Required",
                     MessageBoxButton.OK,
                     MessageBoxImage.Warning
                 );
@@ -1539,12 +1550,12 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
             try
             {
-                // Check if TinyScraper is already running
-                var existingProcesses = System.Diagnostics.Process.GetProcessesByName("TinyScraper");
+                // Check if TinyScrapev2 is already running
+                var existingProcesses = System.Diagnostics.Process.GetProcessesByName("TinyScrapev2");
                 if (existingProcesses.Length > 0)
                 {
                     MessageBox.Show(
-                        "TinyScraper is already running. Please wait for it to finish or close it manually.",
+                        "TinyScrapev2 is already running. Please wait for it to finish or close it manually.",
                         "Warning",
                         MessageBoxButton.OK,
                         MessageBoxImage.Warning
@@ -1621,8 +1632,8 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                 {
                     try
                     {
-                        // Kill all TinyScraper processes
-                        var processes = System.Diagnostics.Process.GetProcessesByName("TinyScraper");
+                        // Kill all TinyScrapev2 processes
+                        var processes = System.Diagnostics.Process.GetProcessesByName("TinyScrapev2");
                         foreach (var process in processes)
                         {
                             try
@@ -1749,13 +1760,11 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                 // Start loading window
                 loadingWindow.Show();
 
-                // Start TinyScraper.exe with the movie URL and Roku flags
+                // Run TinyScrapev2.exe with Roku sideload command
                 var startInfo = new System.Diagnostics.ProcessStartInfo
                 {
-                    FileName = "TinyScraper.exe",
-                    Arguments = $"-getm3 \"{selectedMovie.Url}\"" + 
-                              (settingsWindow.IsFastModeEnabled ? " -fast" : "") + 
-                              $" -rokusl {settingsWindow.RokuIpAddress}",
+                    FileName = "TinyScrapev2.exe",
+                    Arguments = $"\"{selectedMovie.Url}\" -rokusl {settingsWindow.RokuIpAddress} {settingsWindow.RokuUsername} {settingsWindow.RokuPassword}",
                     UseShellExecute = false,
                     CreateNoWindow = settingsWindow.HideTinyScraper,
                     WindowStyle = settingsWindow.HideTinyScraper ? 
@@ -1768,7 +1777,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                 {
                     loadingWindow.Close();
                     MessageBox.Show(
-                        "Failed to start TinyScraper process.",
+                        "Failed to start TinyScrapev2 Roku sideload.",
                         "Error",
                         MessageBoxButton.OK,
                         MessageBoxImage.Error
@@ -1776,53 +1785,62 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                     return;
                 }
 
-                // Wait for either ClickedMovieTemp.txt or nomedia.txt to appear
-                var tempFile = "ClickedMovieTemp.txt";
-                var noMediaFile = "nomedia.txt";
+                // Monitor the process and update loading text
                 var startTime = DateTime.Now;
-                var checkInterval = TimeSpan.FromSeconds(1);
-
-                while (!File.Exists(tempFile) && !File.Exists(noMediaFile))
+                while (!tinyScraperProcess.HasExited)
                 {
-                    // Check if process has exited
-                    if (tinyScraperProcess.HasExited)
-                    {
-                        loadingWindow.Close();
-                        MessageBox.Show(
-                            "No media was found. Please try again later.",
-                            "No Media",
-                            MessageBoxButton.OK,
-                            MessageBoxImage.Information
-                        );
-                        return;
-                    }
-
-                    // Update loading text with elapsed time
                     var elapsed = DateTime.Now - startTime;
                     timeElapsedText.Text = $"Time elapsed: {elapsed:mm\\:ss}";
                     
-                    // Update status text based on elapsed time
-                    if (elapsed.TotalSeconds < 5)
+                    if (elapsed.TotalSeconds < 10)
                         loadingText.Text = "Initializing Roku connection...";
-                    else if (elapsed.TotalSeconds < 10)
-                        loadingText.Text = "Analyzing video source...";
-                    else if (elapsed.TotalSeconds < 15)
-                        loadingText.Text = "Preparing for Roku...";
-                    else if (elapsed.TotalSeconds < 20)
-                        loadingText.Text = "Sending to Roku...";
+                    else if (elapsed.TotalSeconds < 30)
+                        loadingText.Text = "Fetching movie stream...";
+                    else if (elapsed.TotalSeconds < 60)
+                        loadingText.Text = "Uploading to Roku...";
+                    else if (elapsed.TotalSeconds < 90)
+                        loadingText.Text = "Installing on Roku...";
                     else
-                        loadingText.Text = "Almost there...";
+                        loadingText.Text = "Finalizing...";
                     
-                    await Task.Delay(checkInterval);
+                    await Task.Delay(1000);
+                    
+                    // Timeout after 3 minutes (180 seconds) - plenty of time for Roku sideload
+                    if (elapsed.TotalSeconds > 180)
+                    {
+                        try
+                        {
+                            if (!tinyScraperProcess.HasExited)
+                                tinyScraperProcess.Kill();
+                        }
+                        catch { }
+                        
+                        loadingWindow.Close();
+                        MessageBox.Show(
+                            "Roku sideload took too long. Please try again.",
+                            "Timeout",
+                            MessageBoxButton.OK,
+                            MessageBoxImage.Warning
+                        );
+                        return;
+                    }
                 }
 
                 // Close the loading window
                 loadingWindow.Close();
+                
+                // Show success message
+                MessageBox.Show(
+                    $"{selectedMovie.Title} has been sent to your Roku!",
+                    "Success",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information
+                );
             }
             catch (Exception ex)
             {
                 MessageBox.Show(
-                    $"Error launching TinyScraper: {ex.Message}",
+                    $"Error launching TinyScrapev2: {ex.Message}",
                     "Error",
                     MessageBoxButton.OK,
                     MessageBoxImage.Error

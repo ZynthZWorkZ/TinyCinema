@@ -7,7 +7,7 @@
         xmlns:fa="http://schemas.fontawesome.io/icons/"
         xmlns:system="clr-namespace:System;assembly=mscorlib"
         mc:Ignorable="d"
-        Title="Settings" Height="600" Width="500"
+        Title="Settings" Height="650" Width="500"
         WindowStartupLocation="CenterScreen"
         Background="Transparent"
         ResizeMode="CanResize"
@@ -501,6 +501,8 @@
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
                             </Grid.RowDefinitions>
                             
                             <!-- Setting Title -->
@@ -511,7 +513,7 @@
                                                Width="16" 
                                                Height="16"
                                                Margin="0,0,8,0"/>
-                                <TextBlock Text="Roku Settings" 
+                                <TextBlock Text="Roku Sideload Settings" 
                                          Foreground="White"
                                          FontSize="16"
                                          FontWeight="SemiBold"/>
@@ -527,7 +529,8 @@
                                 <TextBlock Text="Roku IP Address:"
                                          Foreground="White"
                                          VerticalAlignment="Center"
-                                         Margin="0,0,12,0"/>
+                                         Margin="0,0,12,0"
+                                         Width="130"/>
                                 
                                 <TextBox Grid.Column="1"
                                          Text="{Binding RokuIpAddress}"
@@ -538,8 +541,52 @@
                                          Padding="8,4"/>
                             </Grid>
 
+                            <!-- Roku Username Input -->
+                            <Grid Grid.Row="2" Margin="0,0,0,12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                
+                                <TextBlock Text="Username:"
+                                         Foreground="White"
+                                         VerticalAlignment="Center"
+                                         Margin="0,0,12,0"
+                                         Width="130"/>
+                                
+                                <TextBox Grid.Column="1"
+                                         Text="{Binding RokuUsername}"
+                                         Background="#2A2A2A"
+                                         Foreground="White"
+                                         BorderThickness="1"
+                                         BorderBrush="#3A3A3A"
+                                         Padding="8,4"/>
+                            </Grid>
+
+                            <!-- Roku Password Input -->
+                            <Grid Grid.Row="3" Margin="0,0,0,12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                
+                                <TextBlock Text="Password:"
+                                         Foreground="White"
+                                         VerticalAlignment="Center"
+                                         Margin="0,0,12,0"
+                                         Width="130"/>
+                                
+                                <TextBox Grid.Column="1"
+                                         Text="{Binding RokuPassword}"
+                                         Background="#2A2A2A"
+                                         Foreground="White"
+                                         BorderThickness="1"
+                                         BorderBrush="#3A3A3A"
+                                         Padding="8,4"/>
+                            </Grid>
+
                             <!-- Setup Instructions -->
-                            <Expander Grid.Row="2"
+                            <Expander Grid.Row="4"
                                      Header="How to Enable Developer Mode"
                                      Foreground="White"
                                      BorderThickness="0"
@@ -554,10 +601,10 @@
                                     <TextBlock Text="2. Wait for the Developer Mode screen to appear"
                                              Foreground="#B3FFFFFF"
                                              Margin="0,0,0,4"/>
-                                    <TextBlock Text="3. Note down the IP address shown on screen"
+                                    <TextBlock Text="3. Note down the IP address, username, and password"
                                              Foreground="#B3FFFFFF"
                                              Margin="0,0,0,4"/>
-                                    <TextBlock Text="4. Enter that IP address above"
+                                    <TextBlock Text="4. Enter the credentials above (default username is 'rokudev')"
                                              Foreground="#B3FFFFFF"
                                              Margin="0,0,0,4"/>
                                 </StackPanel>

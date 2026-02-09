@@ -15,6 +15,8 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
     private string _movieLinksLocation;
     private bool _isFastModeEnabled = true;
     private string _rokuIpAddress = "";
+    private string _rokuUsername = "rokudev";
+    private string _rokuPassword = "";
     private bool _hideTinyScraper = true;
     private string _selectedPlayer = "TinyPlayer"; // Default to TinyPlayer
     private List<string> _availablePlayers;
@@ -78,6 +80,28 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
         {
             _rokuIpAddress = value;
             OnPropertyChanged(nameof(RokuIpAddress));
+            SaveSettings();
+        }
+    }
+
+    public string RokuUsername
+    {
+        get => _rokuUsername;
+        set
+        {
+            _rokuUsername = value;
+            OnPropertyChanged(nameof(RokuUsername));
+            SaveSettings();
+        }
+    }
+
+    public string RokuPassword
+    {
+        get => _rokuPassword;
+        set
+        {
+            _rokuPassword = value;
+            OnPropertyChanged(nameof(RokuPassword));
             SaveSettings();
         }
     }
@@ -203,6 +227,14 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
                     {
                         RokuIpAddress = line.Substring("RokuIpAddress=".Length).Trim();
                     }
+                    else if (line.StartsWith("RokuUsername="))
+                    {
+                        RokuUsername = line.Substring("RokuUsername=".Length).Trim();
+                    }
+                    else if (line.StartsWith("RokuPassword="))
+                    {
+                        RokuPassword = line.Substring("RokuPassword=".Length).Trim();
+                    }
                     else if (line.StartsWith("HideTinyScraper="))
                     {
                         HideTinyScraper = bool.Parse(line.Substring("HideTinyScraper=".Length).Trim());
@@ -254,6 +286,8 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
                 $"MovieLinksLocation={MovieLinksLocation}",
                 $"IsFastModeEnabled={IsFastModeEnabled}",
                 $"RokuIpAddress={RokuIpAddress}",
+                $"RokuUsername={RokuUsername}",
+                $"RokuPassword={RokuPassword}",
                 $"HideTinyScraper={HideTinyScraper}",
                 $"SelectedPlayer={SelectedPlayer}"
             };

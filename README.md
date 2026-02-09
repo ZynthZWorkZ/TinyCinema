@@ -80,7 +80,7 @@ The application includes 25k movies in URL formats, each with:
 Access the settings panel to customize your experience:
 - Save image cache for faster loading 
 - Configure scraping settings 
-- Set Roku IP device address 
+- Set Roku sideload credentials (IP address, username, password)
 - Change movie links text location
 - Select default video player (TinyPlayer, FFPLAY, or VLC - if installed)
 - View scraping window for nerds
