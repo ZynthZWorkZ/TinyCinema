@@ -1,3 +1,5 @@
+(PROJECT IS ON HOLD LOTS OF NEW UPDATES ADDED BUT WILL COME BACK TO THIS )
+
 # TinyCinema 🎬
 
 A movie player application .
