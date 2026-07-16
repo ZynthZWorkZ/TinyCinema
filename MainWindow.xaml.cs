@@ -66,6 +66,8 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
     }
 
+    private bool _scrollViewerHooked;
+
     public MainWindow()
     {
         try
@@ -86,26 +88,41 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
     private async void LoadMoviesAsync()
     {
+        await ReloadMoviesAsync();
+    }
+
+    public async Task ReloadMoviesAsync()
+    {
         try
         {
+            _movies.Clear();
+            _allMovies.Clear();
+            _filteredMovies.Clear();
+            _currentIndex = 0;
+            _lastSearchText = string.Empty;
+            _selectedGenre = string.Empty;
+            _selectedCountry = string.Empty;
+            _showFavoritesOnly = false;
+
             var settingsWindow = new SettingsWindow();
             var movieLinksLocation = settingsWindow.MovieLinksLocation;
 
             if (!File.Exists(movieLinksLocation))
             {
-                MessageBox.Show($"Movie links file not found at: {movieLinksLocation}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(
+                    $"Movie links file not found at: {movieLinksLocation}\n\nUse Settings → Fetch Movies from TinyZone to create one.",
+                    "Error",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
                 return;
             }
 
-            // Read all lines but don't process them yet
             var lines = await File.ReadAllLinesAsync(movieLinksLocation);
-            _currentIndex = 0;
 
-            // Process all movies first
             foreach (var line in lines)
             {
                 var parts = line.Split('|').Select(p => p.Trim()).ToArray();
-                if (parts.Length >= 7) // Now we expect 7 parts: year, title, url, image url, genre, duration, country
+                if (parts.Length >= 7)
                 {
                     _allMovies.Add(new Movie
                     {
@@ -120,13 +137,9 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                 }
             }
 
-            // Load favorites from file
             LoadFavorites();
-
-            // Update movie count
             MovieCount = _allMovies.Count;
 
-            // Get unique genres by splitting comma-separated values
             var genres = _allMovies
                 .SelectMany(m => m.Genre.Split(',')
                     .Select(g => g.Trim())
@@ -138,7 +151,6 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             GenreFilter.ItemsSource = genres;
             GenreFilter.SelectedIndex = 0;
 
-            // Get unique countries by splitting comma-separated values
             var countries = _allMovies
                 .SelectMany(m => m.Country.Split(',')
                     .Select(c => c.Trim())
@@ -150,26 +162,23 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             CountryFilter.ItemsSource = countries;
             CountryFilter.SelectedIndex = 0;
 
-            // In LoadMoviesAsync, after loading all movies, set _filteredMovies = _allMovies before loading the initial batch
             _filteredMovies = _allMovies;
-
-            // Load initial batch
             await LoadNextBatchAsync();
 
-            // Find the ScrollViewer in the visual tree
-            var scrollViewer = FindVisualChild<ScrollViewer>(MoviesListView);
-            if (scrollViewer != null)
+            if (!_scrollViewerHooked)
             {
-                scrollViewer.ScrollChanged += async (s, e) =>
+                var scrollViewer = FindVisualChild<ScrollViewer>(MoviesListView);
+                if (scrollViewer != null)
                 {
-                    if (_isLoading) return;
-
-                    // If we're near the bottom, load more items
-                    if (e.VerticalOffset >= e.ExtentHeight - e.ViewportHeight - 100)
+                    scrollViewer.ScrollChanged += async (s, e) =>
                     {
-                        await LoadNextBatchAsync();
-                    }
-                };
+                        if (_isLoading) return;
+
+                        if (e.VerticalOffset >= e.ExtentHeight - e.ViewportHeight - 100)
+                            await LoadNextBatchAsync();
+                    };
+                    _scrollViewerHooked = true;
+                }
             }
         }
         catch (Exception ex)

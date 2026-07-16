@@ -357,6 +357,10 @@
                             
                             <!-- Movie Links File Path and Button -->
                             <Grid Grid.Row="1">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="Auto"/>
@@ -366,12 +370,20 @@
                                          Foreground="#B3FFFFFF"
                                          TextWrapping="Wrap"
                                          VerticalAlignment="Center"
-                                         Margin="0,0,16,0"/>
+                                         Margin="0,0,16,12"/>
                                 
                                 <Button Grid.Column="1"
                                         Content="Change Location"
                                         Click="SelectMovieLinksLocation_Click"
-                                        Style="{StaticResource ModernButtonStyle}"/>
+                                        Style="{StaticResource ModernButtonStyle}"
+                                        Margin="0,0,0,12"/>
+
+                                <Button Grid.Row="1"
+                                        Grid.ColumnSpan="2"
+                                        Content="Fetch Movies from TinyZone"
+                                        Click="FetchMovies_Click"
+                                        Style="{StaticResource ModernButtonStyle}"
+                                        HorizontalAlignment="Stretch"/>
                             </Grid>
                         </Grid>
                     </Border>

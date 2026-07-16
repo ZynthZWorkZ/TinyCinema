@@ -19,6 +19,7 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
     private string _rokuPassword = "";
     private bool _hideTinyScraper = true;
     private string _selectedPlayer = "TinyPlayer"; // Default to TinyPlayer
+    private string _tinyZoneBaseUrl = "https://ww5.tinyzone.org";
     private List<string> _availablePlayers;
 
     private static readonly string SettingsFile = Path.Combine(
@@ -32,7 +33,7 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
     public string MovieLinksLocation
     {
         get => _movieLinksLocation;
-        private set
+        set
         {
             _movieLinksLocation = value;
             OnPropertyChanged(nameof(MovieLinksLocation));
@@ -124,6 +125,17 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
         {
             _selectedPlayer = value;
             OnPropertyChanged(nameof(SelectedPlayer));
+            SaveSettings();
+        }
+    }
+
+    public string TinyZoneBaseUrl
+    {
+        get => _tinyZoneBaseUrl;
+        set
+        {
+            _tinyZoneBaseUrl = value;
+            OnPropertyChanged(nameof(TinyZoneBaseUrl));
             SaveSettings();
         }
     }
@@ -243,6 +255,10 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
                     {
                         SelectedPlayer = line.Substring("SelectedPlayer=".Length).Trim();
                     }
+                    else if (line.StartsWith("TinyZoneBaseUrl="))
+                    {
+                        TinyZoneBaseUrl = line.Substring("TinyZoneBaseUrl=".Length).Trim();
+                    }
                 }
             }
         }
@@ -289,7 +305,8 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
                 $"RokuUsername={RokuUsername}",
                 $"RokuPassword={RokuPassword}",
                 $"HideTinyScraper={HideTinyScraper}",
-                $"SelectedPlayer={SelectedPlayer}"
+                $"SelectedPlayer={SelectedPlayer}",
+                $"TinyZoneBaseUrl={TinyZoneBaseUrl}"
             };
 
             File.WriteAllLines(SettingsFile, settings);
@@ -394,5 +411,22 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
     private void CloseButton_Click(object sender, RoutedEventArgs e)
     {
         Close();
+    }
+
+    private void FetchMovies_Click(object sender, RoutedEventArgs e)
+    {
+        var dialog = new FetchMoviesDialog(TinyZoneBaseUrl, MovieLinksLocation)
+        {
+            Owner = Owner ?? this
+        };
+
+        if (dialog.ShowDialog() == true)
+        {
+            MovieLinksLocation = dialog.OutputPath;
+            TinyZoneBaseUrl = dialog.SelectedBaseUrl;
+
+            if (Owner is MainWindow mainWindow)
+                _ = mainWindow.ReloadMoviesAsync();
+        }
     }
 } 
