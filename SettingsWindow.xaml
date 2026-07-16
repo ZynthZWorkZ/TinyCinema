@@ -7,7 +7,7 @@
         xmlns:fa="http://schemas.fontawesome.io/icons/"
         xmlns:system="clr-namespace:System;assembly=mscorlib"
         mc:Ignorable="d"
-        Title="Settings" Height="650" Width="500"
+        Title="Settings" Height="720" Width="500"
         WindowStartupLocation="CenterScreen"
         Background="Transparent"
         ResizeMode="CanResize"
@@ -397,10 +397,12 @@
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
                             </Grid.RowDefinitions>
                             
                             <!-- Setting Title -->
-                            <StackPanel Orientation="Horizontal" 
+                            <StackPanel Grid.Row="0"
+                                      Orientation="Horizontal" 
                                       Margin="0,0,0,12">
                                 <fa:FontAwesome Icon="Play" 
                                                Foreground="White"
@@ -414,7 +416,7 @@
                             </StackPanel>
                             
                             <!-- Player Selection -->
-                            <Grid Grid.Row="1">
+                            <Grid Grid.Row="1" Margin="0,0,0,12">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto"/>
                                     <ColumnDefinition Width="*"/>
@@ -437,69 +439,12 @@
                                          Padding="8,4"
                                          Style="{StaticResource ModernComboBoxStyle}"/>
                             </Grid>
-                        </Grid>
-                    </Border>
 
-                    <!-- Fast Mode Setting -->
-                    <Border Background="#1A1A1A"
-                            CornerRadius="8"
-                            Padding="16"
-                            Margin="0,0,0,16">
-                        <Grid>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                            </Grid.RowDefinitions>
-                            
-                            <!-- Setting Title -->
-                            <StackPanel Orientation="Horizontal" 
-                                      Margin="0,0,0,12">
-                                <fa:FontAwesome Icon="Bolt" 
-                                               Foreground="White"
-                                               Width="16" 
-                                               Height="16"
-                                               Margin="0,0,8,0"/>
-                                <TextBlock Text="Scraper Settings" 
-                                         Foreground="White"
-                                         FontSize="16"
-                                         FontWeight="SemiBold"/>
-                            </StackPanel>
-                            
-                            <!-- Fast Mode Toggle -->
-                            <Grid Grid.Row="1">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-                                
-                                <TextBlock Text="Fast Mode:"
-                                         Foreground="White"
-                                         VerticalAlignment="Center"
-                                         Margin="0,0,12,0"/>
-                                
-                                <ToggleButton Grid.Column="1"
-                                             IsChecked="{Binding IsFastModeEnabled}"
-                                             Style="{StaticResource ModernToggleStyle}"/>
-                            </Grid>
-
-                            <!-- Hide TinyScraper Toggle -->
-                            <Grid Grid.Row="2" Margin="0,12,0,0">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-                                
-                                <TextBlock Text="Hide TinyScraper Window:"
-                                         Foreground="White"
-                                         VerticalAlignment="Center"
-                                         Margin="0,0,12,0"/>
-                                
-                                <ToggleButton Grid.Column="1"
-                                             IsChecked="{Binding HideTinyScraper}"
-                                             Style="{StaticResource ModernToggleStyle}"/>
-                            </Grid>
+                            <TextBlock Grid.Row="2"
+                                       Text="In-App Browser watches on TinyZone. Other players open automatically when an m3u8 stream is captured."
+                                       Foreground="#808080"
+                                       FontSize="12"
+                                       TextWrapping="Wrap"/>
                         </Grid>
                     </Border>
 

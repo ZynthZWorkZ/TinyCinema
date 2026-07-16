@@ -13,12 +13,10 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
     private string _cacheLocation;
     private bool _isCachingEnabled;
     private string _movieLinksLocation;
-    private bool _isFastModeEnabled = true;
     private string _rokuIpAddress = "";
     private string _rokuUsername = "rokudev";
     private string _rokuPassword = "";
-    private bool _hideTinyScraper = true;
-    private string _selectedPlayer = "TinyPlayer"; // Default to TinyPlayer
+    private string _selectedPlayer = PlayerNames.InAppBrowser;
     private string _tinyZoneBaseUrl = "https://ww5.tinyzone.org";
     private List<string> _availablePlayers;
 
@@ -63,17 +61,6 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
         }
     }
 
-    public bool IsFastModeEnabled
-    {
-        get => _isFastModeEnabled;
-        set
-        {
-            _isFastModeEnabled = value;
-            OnPropertyChanged(nameof(IsFastModeEnabled));
-            SaveSettings();
-        }
-    }
-
     public string RokuIpAddress
     {
         get => _rokuIpAddress;
@@ -103,17 +90,6 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
         {
             _rokuPassword = value;
             OnPropertyChanged(nameof(RokuPassword));
-            SaveSettings();
-        }
-    }
-
-    public bool HideTinyScraper
-    {
-        get => _hideTinyScraper;
-        set
-        {
-            _hideTinyScraper = value;
-            OnPropertyChanged(nameof(HideTinyScraper));
             SaveSettings();
         }
     }
@@ -180,13 +156,15 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
     
     private void DetectAvailablePlayers()
     {
-        var players = new List<string> { "TinyPlayer", "FFPLAY" };
-        
-        // Check if VLC is installed
-        if (File.Exists(VlcPath))
+        var players = new List<string>
         {
-            players.Add("VLC");
-        }
+            PlayerNames.InAppBrowser,
+            PlayerNames.TinyPlayer,
+            PlayerNames.FFPLAY
+        };
+        
+        if (File.Exists(VlcPath))
+            players.Add(PlayerNames.VLC);
         
         AvailablePlayers = players;
     }
@@ -231,10 +209,6 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
                     {
                         MovieLinksLocation = line.Substring("MovieLinksLocation=".Length).Trim();
                     }
-                    else if (line.StartsWith("IsFastModeEnabled="))
-                    {
-                        IsFastModeEnabled = bool.Parse(line.Substring("IsFastModeEnabled=".Length).Trim());
-                    }
                     else if (line.StartsWith("RokuIpAddress="))
                     {
                         RokuIpAddress = line.Substring("RokuIpAddress=".Length).Trim();
@@ -247,13 +221,14 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
                     {
                         RokuPassword = line.Substring("RokuPassword=".Length).Trim();
                     }
-                    else if (line.StartsWith("HideTinyScraper="))
-                    {
-                        HideTinyScraper = bool.Parse(line.Substring("HideTinyScraper=".Length).Trim());
-                    }
                     else if (line.StartsWith("SelectedPlayer="))
                     {
-                        SelectedPlayer = line.Substring("SelectedPlayer=".Length).Trim();
+                        var player = line.Substring("SelectedPlayer=".Length).Trim();
+                        SelectedPlayer = player switch
+                        {
+                            "Built-in Browser" or "TinyZone Browser" => PlayerNames.InAppBrowser,
+                            _ => player
+                        };
                     }
                     else if (line.StartsWith("TinyZoneBaseUrl="))
                     {
@@ -300,11 +275,9 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
                 $"CacheLocation={CacheLocation}",
                 $"IsCachingEnabled={IsCachingEnabled}",
                 $"MovieLinksLocation={MovieLinksLocation}",
-                $"IsFastModeEnabled={IsFastModeEnabled}",
                 $"RokuIpAddress={RokuIpAddress}",
                 $"RokuUsername={RokuUsername}",
                 $"RokuPassword={RokuPassword}",
-                $"HideTinyScraper={HideTinyScraper}",
                 $"SelectedPlayer={SelectedPlayer}",
                 $"TinyZoneBaseUrl={TinyZoneBaseUrl}"
             };
