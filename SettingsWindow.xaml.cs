@@ -18,6 +18,7 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
     private string _rokuPassword = "";
     private string _selectedPlayer = PlayerNames.InAppBrowser;
     private string _tinyZoneBaseUrl = "https://ww5.tinyzone.org";
+    private string _tmdbApiKey = "";
     private List<string> _availablePlayers;
 
     private static readonly string SettingsFile = Path.Combine(
@@ -112,6 +113,17 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
         {
             _tinyZoneBaseUrl = value;
             OnPropertyChanged(nameof(TinyZoneBaseUrl));
+            SaveSettings();
+        }
+    }
+
+    public string TmdbApiKey
+    {
+        get => _tmdbApiKey;
+        set
+        {
+            _tmdbApiKey = value;
+            OnPropertyChanged(nameof(TmdbApiKey));
             SaveSettings();
         }
     }
@@ -234,6 +246,10 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
                     {
                         TinyZoneBaseUrl = line.Substring("TinyZoneBaseUrl=".Length).Trim();
                     }
+                    else if (line.StartsWith("TmdbApiKey="))
+                    {
+                        TmdbApiKey = line.Substring("TmdbApiKey=".Length).Trim();
+                    }
                 }
             }
         }
@@ -279,7 +295,8 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
                 $"RokuUsername={RokuUsername}",
                 $"RokuPassword={RokuPassword}",
                 $"SelectedPlayer={SelectedPlayer}",
-                $"TinyZoneBaseUrl={TinyZoneBaseUrl}"
+                $"TinyZoneBaseUrl={TinyZoneBaseUrl}",
+                $"TmdbApiKey={TmdbApiKey}"
             };
 
             File.WriteAllLines(SettingsFile, settings);
@@ -309,6 +326,27 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
             );
             Directory.CreateDirectory(CacheLocation);
         }
+    }
+
+    public static string GetTmdbApiKey()
+    {
+        try
+        {
+            if (!File.Exists(SettingsFile))
+                return "";
+
+            foreach (var line in File.ReadAllLines(SettingsFile))
+            {
+                if (line.StartsWith("TmdbApiKey=", StringComparison.Ordinal))
+                    return line.Substring("TmdbApiKey=".Length).Trim();
+            }
+        }
+        catch
+        {
+            // Ignore read errors.
+        }
+
+        return "";
     }
 
     private void SelectCacheLocation_Click(object sender, RoutedEventArgs e)

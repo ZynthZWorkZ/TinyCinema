@@ -21,6 +21,8 @@ public partial class TinyZonePlayerWindow : Window
     private bool _isInitialized;
     private bool _urlsPanelOpen;
     private bool _hlsFilterOnly;
+    private bool _urlCaptureEnabled = true;
+    private bool _cinemaModeEnabled = true;
 
     public TinyZonePlayerWindow(Movie movie, string selectedPlayer)
     {
@@ -34,14 +36,28 @@ public partial class TinyZonePlayerWindow : Window
         _urlsView = CollectionViewSource.GetDefaultView(_liveUrls);
         _urlsView.Filter = UrlFilter;
         UrlsItemsControl.ItemsSource = _urlsView;
+        HidePlayerSurface();
         Loaded += (_, _) => ToggleUrlsPanel(open: true);
         Loaded += async (_, _) => await InitializeAndNavigateAsync(movie.Url);
+    }
+
+    private void HidePlayerSurface()
+    {
+        PlayerWebViewHost.Visibility = Visibility.Collapsed;
+        LoadingOverlay.Visibility = Visibility.Visible;
+    }
+
+    private void ShowPlayerSurface()
+    {
+        PlayerWebViewHost.Visibility = Visibility.Visible;
+        LoadingOverlay.Visibility = Visibility.Collapsed;
     }
 
     private async Task InitializeAndNavigateAsync(string pageUrl)
     {
         try
         {
+            PlayerWebView.DefaultBackgroundColor = System.Drawing.Color.FromArgb(255, 7, 7, 7);
             await PlayerWebView.EnsureCoreWebView2Async();
             _isInitialized = true;
 
@@ -49,18 +65,41 @@ public partial class TinyZonePlayerWindow : Window
             core.Settings.AreDefaultContextMenusEnabled = true;
             core.Settings.AreDevToolsEnabled = false;
             core.Settings.IsStatusBarEnabled = false;
+            await core.AddScriptToExecuteOnDocumentCreatedAsync(TinyZonePopupBlocker.BlockPopupsScript);
+            await core.AddScriptToExecuteOnDocumentCreatedAsync(TinyZoneCinemaMode.EarlyHideScript);
+            await core.AddScriptToExecuteOnDocumentCreatedAsync(TinyZoneCinemaMode.BootstrapScript);
+            TinyZonePopupBlocker.Attach(core);
+            core.FrameCreated += OnFrameCreated;
             core.WebResourceResponseReceived += OnWebResourceResponseReceived;
+            core.NavigationStarting += (_, _) =>
+            {
+                if (_cinemaModeEnabled)
+                    HidePlayerSurface();
+            };
             core.NavigationCompleted += async (_, args) =>
             {
-                LoadingOverlay.Visibility = Visibility.Collapsed;
-                if (args.IsSuccess)
+                if (!args.IsSuccess)
                 {
-                    StatusText.Text = "Page loaded. Start playback on the page to capture the stream.";
-                    await TryAutoStartPlaybackAsync();
-                }
-                else
-                {
+                    ShowPlayerSurface();
                     StatusText.Text = $"Failed to load page (HTTP {args.HttpStatusCode}).";
+                    return;
+                }
+
+                try
+                {
+                    if (_cinemaModeEnabled)
+                        await PrepareCinemaViewAsync();
+                    else
+                        ShowPlayerSurface();
+
+                    StatusText.Text = _cinemaModeEnabled
+                        ? "Cinema mode active. Playback should start automatically."
+                        : "Page loaded. Start playback on the page to capture the stream.";
+                }
+                catch
+                {
+                    ShowPlayerSurface();
+                    StatusText.Text = "Page loaded with limited cinema styling.";
                 }
             };
 
@@ -68,7 +107,7 @@ public partial class TinyZonePlayerWindow : Window
         }
         catch (Exception ex)
         {
-            LoadingOverlay.Visibility = Visibility.Collapsed;
+            ShowPlayerSurface();
             StatusText.Text = "WebView2 failed to start.";
             MessageBox.Show(
                 $"Could not start the TinyZone browser.\n\n{ex.Message}\n\nMake sure Microsoft Edge WebView2 Runtime is installed.",
@@ -79,8 +118,120 @@ public partial class TinyZonePlayerWindow : Window
         }
     }
 
+    private async void OnFrameCreated(object? sender, CoreWebView2FrameCreatedEventArgs e)
+    {
+        if (!_cinemaModeEnabled)
+            return;
+
+        try
+        {
+            e.Frame.NavigationCompleted += async (_, _) =>
+            {
+                try
+                {
+                    await e.Frame.ExecuteScriptAsync(TinyZoneCinemaMode.BuildInjectIframeCssScript());
+                }
+                catch
+                {
+                    // Some embed frames block injection; main-page cinema mode still applies.
+                }
+            };
+        }
+        catch
+        {
+            // Ignore frame hook errors.
+        }
+    }
+
+    private async Task PrepareCinemaViewAsync()
+    {
+        if (!_isInitialized)
+            return;
+
+        HidePlayerSurface();
+        LoadingHintText.Text = "Loading page in background...";
+
+        await WaitForPageReadyAsync();
+
+        LoadingHintText.Text = "Applying cinema view...";
+        await ApplyCinemaHiddenAsync();
+
+        LoadingHintText.Text = "Selecting Server 1...";
+        await PlayerWebView.CoreWebView2.ExecuteScriptAsync(TinyZoneCinemaMode.SelectServer1Script);
+        await Task.Delay(200);
+
+        LoadingHintText.Text = "Starting playback...";
+        await TryAutoStartPlaybackAsync();
+
+        await PlayerWebView.CoreWebView2.ExecuteScriptAsync(TinyZoneCinemaMode.SelectServer1Script);
+        await ApplyCinemaHiddenAsync();
+
+        if (!await VerifyCinemaAppliedAsync())
+            await ApplyCinemaHiddenAsync();
+
+        await PlayerWebView.CoreWebView2.ExecuteScriptAsync(
+            TinyZoneCinemaMode.BuildRevealScript(_movieTitle));
+
+        ShowPlayerSurface();
+        StatusText.Text = "Cinema mode active. Listening for stream URLs...";
+    }
+
+    private async Task ApplyCinemaHiddenAsync()
+    {
+        await PlayerWebView.CoreWebView2.ExecuteScriptAsync(
+            TinyZoneCinemaMode.BuildSetModeScript(true, _movieTitle, reveal: false));
+        await Task.Delay(50);
+    }
+
+    private async Task<bool> VerifyCinemaAppliedAsync()
+    {
+        var result = await PlayerWebView.CoreWebView2.ExecuteScriptAsync(TinyZoneCinemaMode.BuildVerifyScript());
+        return result.Contains("ok", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private async Task WaitForPageReadyAsync()
+    {
+        for (var attempt = 0; attempt < 40; attempt++)
+        {
+            var result = await PlayerWebView.CoreWebView2.ExecuteScriptAsync(
+                """
+                (() => {
+                    if (document.getElementById('srv-1')) return 'ready';
+                    if (document.getElementById('play-now')) return 'ready-play-cover';
+                    if (document.getElementById('watch')) return 'ready-watch';
+                    if (document.getElementById('header')) return 'ready-header';
+                    return 'waiting';
+                })()
+                """);
+
+            if (result.Contains("ready", StringComparison.OrdinalIgnoreCase))
+                return;
+
+            await Task.Delay(100);
+        }
+    }
+
+    private async Task ApplyCinemaModeAsync(bool reveal = false)
+    {
+        if (!_isInitialized)
+            return;
+
+        try
+        {
+            await PlayerWebView.CoreWebView2.ExecuteScriptAsync(
+                TinyZoneCinemaMode.BuildSetModeScript(_cinemaModeEnabled, _movieTitle, reveal));
+        }
+        catch
+        {
+            // Page may still be initializing.
+        }
+    }
+
     private void OnWebResourceResponseReceived(object? sender, CoreWebView2WebResourceResponseReceivedEventArgs e)
     {
+        if (!_urlCaptureEnabled)
+            return;
+
         var url = e.Request.Uri;
         if (string.IsNullOrWhiteSpace(url) || !_seenUrls.Add(url))
             return;
@@ -118,6 +269,14 @@ public partial class TinyZonePlayerWindow : Window
 
     private void UpdateUrlCountText()
     {
+        if (!_urlCaptureEnabled)
+        {
+            UrlCountText.Text = _liveUrls.Count > 0
+                ? $"{_liveUrls.Count} captured · capture paused"
+                : "Capture paused";
+            return;
+        }
+
         var streamCount = _liveUrls.Count(u => u.IsStream);
         var visibleCount = _urlsView.Cast<object>().Count();
 
@@ -146,9 +305,15 @@ public partial class TinyZonePlayerWindow : Window
 
         try
         {
+            await PlayerWebView.CoreWebView2.ExecuteScriptAsync(TinyZoneCinemaMode.SelectServer1Script);
+
             var result = await PlayerWebView.CoreWebView2.ExecuteScriptAsync(
                 """
                 (() => {
+                    if (typeof window.tinyCinemaSelectServer1 === 'function') {
+                        window.tinyCinemaSelectServer1();
+                    }
+
                     const playNow = document.getElementById('play-now');
                     if (playNow) {
                         playNow.click();
@@ -166,12 +331,35 @@ public partial class TinyZonePlayerWindow : Window
                 """);
 
             if (result.Contains("clicked", StringComparison.OrdinalIgnoreCase))
-                StatusText.Text = "Playback started. Listening for stream URLs...";
+            {
+                await Task.Delay(600);
+                await PlayerWebView.CoreWebView2.ExecuteScriptAsync(TinyZoneCinemaMode.SelectServer1Script);
+                await ApplyCinemaHiddenAsync();
+            }
         }
         catch
         {
             // User can start playback manually.
         }
+    }
+
+    private async void CinemaModeToggle_Click(object sender, RoutedEventArgs e)
+    {
+        _cinemaModeEnabled = CinemaModeToggle.IsChecked == true;
+
+        if (_cinemaModeEnabled)
+        {
+            HidePlayerSurface();
+            await PrepareCinemaViewAsync();
+            StatusText.Text = "Cinema mode enabled.";
+            return;
+        }
+
+        await ApplyCinemaModeAsync();
+        if (_isInitialized)
+            await PlayerWebView.CoreWebView2.ExecuteScriptAsync("window.tinyCinemaReveal && window.tinyCinemaReveal();");
+        ShowPlayerSurface();
+        StatusText.Text = "Showing full TinyZone page.";
     }
 
     private void OpenHlsInPlayerButton_Click(object sender, RoutedEventArgs e)
@@ -249,6 +437,15 @@ public partial class TinyZonePlayerWindow : Window
         UpdateUrlCountText();
     }
 
+    private void UrlCaptureToggle_Click(object sender, RoutedEventArgs e)
+    {
+        _urlCaptureEnabled = UrlCaptureToggle.IsChecked == true;
+        UpdateUrlCountText();
+        StatusText.Text = _urlCaptureEnabled
+            ? "URL capture enabled. Listening for stream URLs..."
+            : "URL capture paused. Existing URLs are kept.";
+    }
+
     private void CopyUrlButton_Click(object sender, RoutedEventArgs e)
     {
         var url = ResolveUrlFromSender(sender);
@@ -299,9 +496,12 @@ public partial class TinyZonePlayerWindow : Window
         _capturedUrls.Clear();
         _seenUrls.Clear();
         _liveUrls.Clear();
+        UrlCaptureToggle.IsChecked = true;
+        _urlCaptureEnabled = true;
         StatusText.Text = "Refreshing page...";
         UpdateUrlCountText();
-        LoadingOverlay.Visibility = Visibility.Visible;
+        HidePlayerSurface();
+        LoadingHintText.Text = "Preparing player view...";
 
         if (_isInitialized)
             PlayerWebView.CoreWebView2.Reload();
@@ -324,6 +524,8 @@ public partial class TinyZonePlayerWindow : Window
         {
             try
             {
+                TinyZonePopupBlocker.Detach(PlayerWebView.CoreWebView2);
+                PlayerWebView.CoreWebView2.FrameCreated -= OnFrameCreated;
                 PlayerWebView.CoreWebView2.WebResourceResponseReceived -= OnWebResourceResponseReceived;
                 PlayerWebView.Dispose();
             }
