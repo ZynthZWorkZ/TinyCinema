@@ -408,6 +408,7 @@
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto"/>
                                     <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
                                 </Grid.RowDefinitions>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
@@ -430,6 +431,14 @@
                                         Grid.ColumnSpan="2"
                                         Content="Fetch Movies from TinyZone"
                                         Click="FetchMovies_Click"
+                                        Style="{StaticResource ModernButtonStyle}"
+                                        HorizontalAlignment="Stretch"
+                                        Margin="0,0,0,8"/>
+
+                                <Button Grid.Row="2"
+                                        Grid.ColumnSpan="2"
+                                        Content="Add Movie by URL"
+                                        Click="AddMovieByUrl_Click"
                                         Style="{StaticResource ModernButtonStyle}"
                                         HorizontalAlignment="Stretch"/>
                             </Grid>
@@ -464,6 +473,7 @@
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto"/>
                                     <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
                                 </Grid.RowDefinitions>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
@@ -486,6 +496,14 @@
                                         Grid.ColumnSpan="2"
                                         Content="Fetch TV Shows from MovieLair"
                                         Click="FetchTvShows_Click"
+                                        Style="{StaticResource ModernButtonStyle}"
+                                        HorizontalAlignment="Stretch"
+                                        Margin="0,0,0,8"/>
+
+                                <Button Grid.Row="2"
+                                        Grid.ColumnSpan="2"
+                                        Content="Add TV Show by URL"
+                                        Click="AddTvShowByUrl_Click"
                                         Style="{StaticResource ModernButtonStyle}"
                                         HorizontalAlignment="Stretch"/>
                             </Grid>

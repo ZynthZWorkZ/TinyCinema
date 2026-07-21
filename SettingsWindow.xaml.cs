@@ -343,6 +343,14 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
                 "movie_links.txt"
             );
         }
+
+        if (string.IsNullOrEmpty(TvShowLinksLocation))
+        {
+            TvShowLinksLocation = Path.Combine(
+                AppDomain.CurrentDomain.BaseDirectory,
+                "tv_show_links.txt"
+            );
+        }
     }
 
     private void SaveSettings()
@@ -591,6 +599,17 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
         }
     }
 
+    private void AddMovieByUrl_Click(object sender, RoutedEventArgs e)
+    {
+        var dialog = new AddCatalogItemDialog(CatalogContentType.Movie, MovieLinksLocation)
+        {
+            Owner = Owner ?? this
+        };
+
+        if (dialog.ShowDialog() == true && dialog.CatalogUpdated && Owner is MainWindow mainWindow)
+            _ = mainWindow.ReloadMoviesAsync();
+    }
+
     private void SelectTvShowLinksLocation_Click(object sender, RoutedEventArgs e)
     {
         var dialog = new Microsoft.Win32.OpenFileDialog
@@ -630,5 +649,16 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
             if (Owner is MainWindow mainWindow)
                 _ = mainWindow.ReloadMoviesAsync();
         }
+    }
+
+    private void AddTvShowByUrl_Click(object sender, RoutedEventArgs e)
+    {
+        var dialog = new AddCatalogItemDialog(CatalogContentType.TvShow, TvShowLinksLocation, TmdbApiKey)
+        {
+            Owner = Owner ?? this
+        };
+
+        if (dialog.ShowDialog() == true && dialog.CatalogUpdated && Owner is MainWindow mainWindow)
+            _ = mainWindow.ReloadMoviesAsync();
     }
 } 

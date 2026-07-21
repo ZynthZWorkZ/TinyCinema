@@ -896,26 +896,66 @@ public partial class TinyZonePlayerWindow : Window
 
     private void DownloadHlsButton_Click(object sender, RoutedEventArgs e)
     {
-        var url = ResolveUrlFromSender(sender);
-        if (string.IsNullOrWhiteSpace(url))
-            return;
-
-        if (!FfmpegDownloader.TryResolveFfmpegPath(out _))
+        try
         {
-            MessageBox.Show(
-                "ffmpeg was not found.\n\nInstall ffmpeg and add it to your PATH, or place ffmpeg.exe next to TinyCinema.",
-                "ffmpeg Required",
-                MessageBoxButton.OK,
-                MessageBoxImage.Warning);
-            return;
+            var url = ResolveUrlFromSender(sender);
+            if (string.IsNullOrWhiteSpace(url))
+                return;
+
+            if (!FfmpegDownloader.TryResolveFfmpegPath(out _))
+            {
+                MessageBox.Show(
+                    "ffmpeg was not found.\n\nInstall ffmpeg and add it to your PATH, or place ffmpeg.exe next to TinyCinema.",
+                    "ffmpeg Required",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+                return;
+            }
+
+            DownloadOptionsDialog optionsDialog;
+            try
+            {
+                optionsDialog = new DownloadOptionsDialog
+                {
+                    Owner = this
+                };
+            }
+            catch (Exception ex)
+            {
+                DownloadDebugHelper.ShowError("Creating download options dialog", ex, $"Stream URL: {url}");
+                return;
+            }
+
+            if (optionsDialog.ShowDialog() != true || optionsDialog.Request == null)
+                return;
+
+            DownloadProgressWindow downloadWindow;
+            try
+            {
+                downloadWindow = new DownloadProgressWindow(url, _movieTitle, _pageUrl, optionsDialog.Request)
+                {
+                    Owner = this
+                };
+            }
+            catch (Exception ex)
+            {
+                DownloadDebugHelper.ShowError(
+                    "Creating download progress window",
+                    ex,
+                    $"Stream URL: {url}\nMode: {optionsDialog.Request.Mode}");
+                return;
+            }
+
+            downloadWindow.Show();
+
+            StatusText.Text = optionsDialog.Request.Mode == StreamDownloadMode.Clip
+                ? "Clip download started in background window."
+                : "Download started in background window.";
         }
-
-        var downloadWindow = new DownloadProgressWindow(url, _movieTitle, _pageUrl)
+        catch (Exception ex)
         {
-            Owner = this
-        };
-        downloadWindow.Show();
-        StatusText.Text = "Download started in background window.";
+            DownloadDebugHelper.ShowError("Starting HLS download", ex);
+        }
     }
 
     private async void SendToRokuButton_Click(object sender, RoutedEventArgs e)

@@ -574,7 +574,7 @@
                                                     </Button>
                                                     <Button CommandParameter="{Binding Url}"
                                                             Click="DownloadHlsButton_Click"
-                                                            ToolTip="Download with ffmpeg"
+                                                            ToolTip="Download or clip with ffmpeg"
                                                             Style="{StaticResource UrlIconButtonStyle}"
                                                             Background="#2A3548"
                                                             Margin="0,0,4,0"

@@ -10,30 +10,66 @@ public partial class DownloadProgressWindow : Window
     private readonly string _streamUrl;
     private readonly string _movieTitle;
     private readonly string? _referer;
+    private readonly StreamDownloadRequest _request;
     private readonly FfmpegDownloader _downloader = new();
     private readonly CancellationTokenSource _cancellationTokenSource = new();
     private string? _outputPath;
     private bool _isCompleted;
     private bool _isClosing;
 
-    public DownloadProgressWindow(string streamUrl, string movieTitle, string? referer)
+    public DownloadProgressWindow(string streamUrl, string movieTitle, string? referer, StreamDownloadRequest request)
     {
-        InitializeComponent();
-        _streamUrl = streamUrl;
-        _movieTitle = movieTitle;
-        _referer = referer;
-        TitleText.Text = movieTitle;
-        _outputPath = FfmpegDownloader.BuildOutputPath(movieTitle);
-        OutputPathText.Text = _outputPath;
-        Loaded += async (_, _) => await StartDownloadAsync();
-        Closing += (_, _) =>
+        try
         {
-            if (_isClosing)
-                return;
+            InitializeComponent();
+            _streamUrl = streamUrl;
+            _movieTitle = movieTitle;
+            _referer = referer;
+            _request = request;
 
-            if (!_isCompleted)
-                _cancellationTokenSource.Cancel();
-        };
+            if (_request.Mode == StreamDownloadMode.Clip && _request.ClipStart.HasValue && _request.ClipEnd.HasValue)
+            {
+                Title = "Download Clip";
+                TitleText.Text = $"{movieTitle} · clip";
+                _outputPath = FfmpegDownloader.BuildOutputPath(movieTitle, _request.ClipStart, _request.ClipEnd);
+            }
+            else
+            {
+                TitleText.Text = movieTitle;
+                _outputPath = FfmpegDownloader.BuildOutputPath(movieTitle);
+            }
+
+            OutputPathText.Text = _outputPath;
+            Loaded += (_, _) => _ = StartDownloadSafeAsync();
+            Closing += (_, _) =>
+            {
+                if (_isClosing)
+                    return;
+
+                if (!_isCompleted)
+                    _cancellationTokenSource.Cancel();
+            };
+        }
+        catch (Exception ex)
+        {
+            DownloadDebugHelper.ShowError(
+                "Initializing download progress window",
+                ex,
+                $"Stream URL: {streamUrl}\nMode: {request.Mode}");
+            throw;
+        }
+    }
+
+    private async Task StartDownloadSafeAsync()
+    {
+        try
+        {
+            await StartDownloadAsync();
+        }
+        catch (Exception ex)
+        {
+            DownloadDebugHelper.ShowError("Unexpected download failure", ex, $"Output: {_outputPath}");
+        }
     }
 
     private async Task StartDownloadAsync()
@@ -61,13 +97,15 @@ public partial class DownloadProgressWindow : Window
                 _outputPath!,
                 _referer,
                 progress,
-                _cancellationTokenSource.Token);
+                _cancellationTokenSource.Token,
+                _request.Mode == StreamDownloadMode.Clip ? _request.ClipStart : null,
+                _request.Mode == StreamDownloadMode.Clip ? _request.ClipEnd : null);
 
             _isCompleted = true;
             IndeterminateProgressBar.Visibility = Visibility.Collapsed;
             DownloadProgressBar.Value = 100;
             PercentText.Text = "100%";
-            StatusText.Text = "Download complete.";
+            StatusText.Text = _request.Mode == StreamDownloadMode.Clip ? "Clip saved." : "Download complete.";
             CancelButton.Content = "Close";
             OpenFolderButton.Visibility = Visibility.Visible;
         }
@@ -84,12 +122,21 @@ public partial class DownloadProgressWindow : Window
             PercentText.Text = "—";
             IndeterminateProgressBar.Visibility = Visibility.Collapsed;
             CancelButton.Content = "Close";
-            MessageBox.Show(ex.Message, "Download Failed", MessageBoxButton.OK, MessageBoxImage.Error);
+            DownloadDebugHelper.ShowError(
+                "Running ffmpeg download",
+                ex,
+                $"Stream URL: {_streamUrl}\nOutput: {_outputPath}\nMode: {_request.Mode}");
         }
     }
 
     private void UpdateProgress(FfmpegDownloadProgress progress)
     {
+        if (!Dispatcher.CheckAccess())
+        {
+            Dispatcher.Invoke(() => UpdateProgress(progress));
+            return;
+        }
+
         StatusText.Text = progress.Status;
 
         if (progress.Percent.HasValue)
