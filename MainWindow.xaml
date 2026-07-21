@@ -16,6 +16,8 @@
         Opacity="1">
     <Window.Resources>
         <local:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+        <local:SelectedMovieVisibilityConverter x:Key="SelectedMovieVisibilityConverter"/>
+        <local:SelectedTvShowVisibilityConverter x:Key="SelectedTvShowVisibilityConverter"/>
         <local:FavoriteIconConverter x:Key="FavoriteIconConverter"/>
         <local:FavoriteColorConverter x:Key="FavoriteColorConverter"/>
         
@@ -535,7 +537,7 @@
                                                 BlurRadius="5"/>
                             </TextBlock.Effect>
                         </TextBlock>
-                        <TextBlock Text="{Binding MovieCount, StringFormat=' ({0} movies)'}"
+                        <TextBlock Text="{Binding CatalogCountText}"
                                  FontSize="14"
                                  Foreground="#B3FFFFFF"
                                  Margin="8,0,0,0"
@@ -555,6 +557,7 @@
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
                     
                     <!-- Search Box -->
@@ -563,9 +566,31 @@
                              Style="{StaticResource SearchBoxStyle}"
                              TextChanged="SearchBox_TextChanged"/>
                     
+                    <!-- Content Type Filter -->
+                    <ComboBox x:Name="ContentTypeFilter"
+                              Grid.Column="1"
+                              Margin="12,0,0,0"
+                              Width="130"
+                              Style="{StaticResource ModernComboBoxStyle}"
+                              SelectionChanged="ContentTypeFilter_SelectionChanged">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Orientation="Horizontal">
+                                    <FontAwesome:FontAwesome Icon="Filter"
+                                                   Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ComboBoxItem}}"
+                                                   Width="12"
+                                                   Height="12"
+                                                   Margin="0,0,8,0"/>
+                                    <TextBlock Text="{Binding}"
+                                             Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ComboBoxItem}}"/>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+                    
                     <!-- Genre Filter -->
                     <ComboBox x:Name="GenreFilter"
-                              Grid.Column="1"
+                              Grid.Column="2"
                               Margin="12,0,0,0"
                               Width="150"
                               Style="{StaticResource ModernComboBoxStyle}"
@@ -587,7 +612,7 @@
                     
                     <!-- Country Filter -->
                     <ComboBox x:Name="CountryFilter"
-                              Grid.Column="2"
+                              Grid.Column="3"
                               Margin="12,0,0,0"
                               Width="150"
                               Style="{StaticResource ModernComboBoxStyle}"
@@ -709,6 +734,10 @@
                                               FontSize="14" 
                                               Foreground="#B3FFFFFF" 
                                               Margin="0,4,0,0"/>
+                                    <TextBlock Text="{Binding ContentTypeLabel}"
+                                              FontSize="12"
+                                              Foreground="#808080"
+                                              Margin="0,2,0,0"/>
                                     
                                     <!-- Genre with icon -->
                                     <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
@@ -790,17 +819,41 @@
                                                    Height="16"/>
                                 </Button>
 
-                                <!-- Trailer Icon -->
+                                <!-- Trailer Icon (movies) -->
                                 <Button Grid.Column="5"
                                         Style="{StaticResource WindowButtonStyle}"
                                         Click="TrailerButton_Click"
                                         Margin="8,0,0,0"
                                         Padding="8"
-                                        ToolTip="Watch trailer"
-                                        Visibility="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListViewItem}, Converter={StaticResource BooleanToVisibilityConverter}, ConverterParameter=Inverse}">
+                                        ToolTip="Watch trailer">
+                                    <Button.Visibility>
+                                        <MultiBinding Converter="{StaticResource SelectedMovieVisibilityConverter}">
+                                            <Binding Path="IsSelected" RelativeSource="{RelativeSource AncestorType=ListViewItem}"/>
+                                            <Binding Path="IsTvShow"/>
+                                        </MultiBinding>
+                                    </Button.Visibility>
                                     <fa:FontAwesome Icon="Film" 
                                                    Foreground="White"
                                                    Width="16" 
+                                                   Height="16"/>
+                                </Button>
+
+                                <!-- Opening Credits Icon (TV shows) -->
+                                <Button Grid.Column="5"
+                                        Style="{StaticResource WindowButtonStyle}"
+                                        Click="OpeningCreditsButton_Click"
+                                        Margin="8,0,0,0"
+                                        Padding="8"
+                                        ToolTip="Play opening credits">
+                                    <Button.Visibility>
+                                        <MultiBinding Converter="{StaticResource SelectedTvShowVisibilityConverter}">
+                                            <Binding Path="IsSelected" RelativeSource="{RelativeSource AncestorType=ListViewItem}"/>
+                                            <Binding Path="IsTvShow"/>
+                                        </MultiBinding>
+                                    </Button.Visibility>
+                                    <fa:FontAwesome Icon="PlayCircle"
+                                                   Foreground="White"
+                                                   Width="16"
                                                    Height="16"/>
                                 </Button>
 
@@ -810,7 +863,7 @@
                                         Margin="8,0,8,0"
                                         Padding="8"
                                         Click="InfoButton_Click"
-                                        ToolTip="View movie details"
+                                        ToolTip="{Binding DetailsToolTip}"
                                         Visibility="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListViewItem}, Converter={StaticResource BooleanToVisibilityConverter}, ConverterParameter=Inverse}">
                                     <fa:FontAwesome Icon="InfoCircle" 
                                                    Foreground="White"

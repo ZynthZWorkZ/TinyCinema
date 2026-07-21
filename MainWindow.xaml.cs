@@ -11,6 +11,7 @@ using System.Windows.Data;
 using System.Windows.Input;
 using System.Text.RegularExpressions;
 using System.Windows.Media.Animation;
+using System.Net;
 using System.Net.Http;
 using System.IO.Compression;
 using System.Windows.Media.Imaging;
@@ -39,8 +40,10 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     private string _lastSearchText = string.Empty;
     private static readonly Dictionary<string, BitmapImage> _imageCache = new();
     private int _movieCount;
+    private int _tvShowCount;
     private string _selectedGenre = string.Empty;
     private string _selectedCountry = string.Empty;
+    private string _selectedContentType = string.Empty;
     private List<Movie> _filteredMovies = new List<Movie>();
     private bool _showFavoritesOnly = false;
     private static readonly string FavoritesFile = Path.Combine(
@@ -56,8 +59,25 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         {
             _movieCount = value;
             OnPropertyChanged(nameof(MovieCount));
+            OnPropertyChanged(nameof(CatalogCountText));
         }
     }
+
+    public int TvShowCount
+    {
+        get => _tvShowCount;
+        private set
+        {
+            _tvShowCount = value;
+            OnPropertyChanged(nameof(TvShowCount));
+            OnPropertyChanged(nameof(CatalogCountText));
+        }
+    }
+
+    public string CatalogCountText =>
+        TvShowCount > 0
+            ? $"({MovieCount} movies · {TvShowCount} TV shows)"
+            : $"({MovieCount} movies)";
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -102,43 +122,72 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             _lastSearchText = string.Empty;
             _selectedGenre = string.Empty;
             _selectedCountry = string.Empty;
+            _selectedContentType = string.Empty;
             _showFavoritesOnly = false;
 
             var settingsWindow = new SettingsWindow();
             var movieLinksLocation = settingsWindow.MovieLinksLocation;
+            var tvShowLinksLocation = settingsWindow.TvShowLinksLocation;
 
-            if (!File.Exists(movieLinksLocation))
+            if (!File.Exists(movieLinksLocation) && !File.Exists(tvShowLinksLocation))
             {
                 MessageBox.Show(
-                    $"Movie links file not found at: {movieLinksLocation}\n\nUse Settings → Fetch Movies from TinyZone to create one.",
+                    $"No catalog files found.\n\nMovies: {movieLinksLocation}\nTV shows: {tvShowLinksLocation}\n\nUse Settings to fetch movies or TV shows.",
                     "Error",
                     MessageBoxButton.OK,
                     MessageBoxImage.Error);
                 return;
             }
 
-            var lines = await File.ReadAllLinesAsync(movieLinksLocation);
-
-            foreach (var line in lines)
+            if (File.Exists(movieLinksLocation))
             {
-                var parts = line.Split('|').Select(p => p.Trim()).ToArray();
-                if (parts.Length >= 7)
+                var lines = await File.ReadAllLinesAsync(movieLinksLocation);
+                foreach (var line in lines)
                 {
-                    _allMovies.Add(new Movie
+                    var parts = line.Split('|').Select(p => p.Trim()).ToArray();
+                    if (parts.Length >= 7)
                     {
-                        Year = parts[0],
-                        Title = parts[1],
-                        Url = parts[2],
-                        ImageUrl = parts[3],
-                        Genre = parts[4],
-                        Duration = parts[5],
-                        Country = parts[6]
-                    });
+                        _allMovies.Add(new Movie
+                        {
+                            Year = parts[0],
+                            Title = parts[1],
+                            Url = parts[2],
+                            ImageUrl = parts[3],
+                            Genre = parts[4],
+                            Duration = parts[5],
+                            Country = parts[6],
+                            ContentType = CatalogContentType.Movie
+                        });
+                    }
+                }
+            }
+
+            if (File.Exists(tvShowLinksLocation))
+            {
+                var tvLines = await File.ReadAllLinesAsync(tvShowLinksLocation);
+                foreach (var line in tvLines)
+                {
+                    var parts = line.Split('|').Select(p => p.Trim()).ToArray();
+                    if (parts.Length >= 7)
+                    {
+                        _allMovies.Add(new Movie
+                        {
+                            Year = parts[0],
+                            Title = parts[1],
+                            Url = parts[2],
+                            ImageUrl = parts[3],
+                            Genre = parts[4],
+                            Duration = parts[5],
+                            Country = parts[6],
+                            ContentType = CatalogContentType.TvShow
+                        });
+                    }
                 }
             }
 
             LoadFavorites();
-            MovieCount = _allMovies.Count;
+            MovieCount = _allMovies.Count(m => m.ContentType == CatalogContentType.Movie);
+            TvShowCount = _allMovies.Count(m => m.ContentType == CatalogContentType.TvShow);
 
             var genres = _allMovies
                 .SelectMany(m => m.Genre.Split(',')
@@ -161,6 +210,10 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             countries.Insert(0, "All Countries");
             CountryFilter.ItemsSource = countries;
             CountryFilter.SelectedIndex = 0;
+
+            var contentTypes = new List<string> { "All Content", "Movies", "TV Shows" };
+            ContentTypeFilter.ItemsSource = contentTypes;
+            ContentTypeFilter.SelectedIndex = 0;
 
             _filteredMovies = _allMovies;
             await LoadNextBatchAsync();
@@ -194,7 +247,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         _isLoading = true;
         await Task.Run(async () =>
         {
-            var sourceList = string.IsNullOrWhiteSpace(_lastSearchText) && string.IsNullOrEmpty(_selectedGenre) && string.IsNullOrEmpty(_selectedCountry) && !_showFavoritesOnly
+            var sourceList = string.IsNullOrWhiteSpace(_lastSearchText) && string.IsNullOrEmpty(_selectedGenre) && string.IsNullOrEmpty(_selectedCountry) && string.IsNullOrEmpty(_selectedContentType) && !_showFavoritesOnly
                 ? _allMovies
                 : _filteredMovies;
 
@@ -251,6 +304,18 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         }
     }
 
+    private void ContentTypeFilter_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (ContentTypeFilter.SelectedItem != null)
+        {
+            _selectedContentType = ContentTypeFilter.SelectedItem.ToString() ?? string.Empty;
+            if (_selectedContentType == "All Content")
+                _selectedContentType = string.Empty;
+
+            ApplyFilters();
+        }
+    }
+
     private void ApplyFilters()
     {
         _currentIndex = 0;
@@ -258,6 +323,9 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
         // Apply filters
         _filteredMovies = _allMovies.Where(m =>
+            (string.IsNullOrEmpty(_selectedContentType) ||
+             (_selectedContentType == "Movies" && m.ContentType == CatalogContentType.Movie) ||
+             (_selectedContentType == "TV Shows" && m.ContentType == CatalogContentType.TvShow)) &&
             (string.IsNullOrEmpty(_selectedGenre) || m.Genre.Split(',').Select(g => g.Trim()).Contains(_selectedGenre)) &&
             (string.IsNullOrEmpty(_selectedCountry) || m.Country.Split(',').Select(c => c.Trim()).Contains(_selectedCountry)) &&
             (string.IsNullOrEmpty(_lastSearchText) || IsMatch(m, _lastSearchText.Split(new[] { ' ', '-', '_', '.', ',' }, StringSplitOptions.RemoveEmptyEntries)
@@ -550,26 +618,27 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
     private async void InfoButton_Click(object sender, RoutedEventArgs e)
     {
-        if (MoviesListView.SelectedItem is Movie selectedMovie)
-        {
-            try
-            {
-                // Create cancellation token source
-                using var cts = new CancellationTokenSource();
+        if (MoviesListView.SelectedItem is not Movie selectedMovie)
+            return;
 
-                // Show loading state
-                var loadingWindow = new Window
-                {
-                    Title = "Loading Movie Info",
-                    Width = 300,
-                    Height = 100,
-                    WindowStartupLocation = WindowStartupLocation.CenterScreen,
-                    WindowStyle = WindowStyle.None,
-                    ResizeMode = ResizeMode.NoResize,
-                    Background = new SolidColorBrush(Color.FromRgb(15, 15, 15)),
-                    Foreground = Brushes.White,
-                    AllowsTransparency = true
-                };
+        var isTvShow = selectedMovie.ContentType == CatalogContentType.TvShow;
+
+        try
+        {
+            using var cts = new CancellationTokenSource();
+
+            var loadingWindow = new Window
+            {
+                Title = isTvShow ? "Loading TV Show Info" : "Loading Movie Info",
+                Width = 300,
+                Height = 100,
+                WindowStartupLocation = WindowStartupLocation.CenterScreen,
+                WindowStyle = WindowStyle.None,
+                ResizeMode = ResizeMode.NoResize,
+                Background = new SolidColorBrush(Color.FromRgb(15, 15, 15)),
+                Foreground = Brushes.White,
+                AllowsTransparency = true
+            };
 
                 // Add event handler for window closing
                 loadingWindow.Closing += (s, args) =>
@@ -601,7 +670,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
                 var loadingTitle = new TextBlock
                 {
-                    Text = "Loading Movie Info",
+                    Text = isTvShow ? "Loading TV Show Info" : "Loading Movie Info",
                     Foreground = Brushes.White,
                     Margin = new Thickness(12, 0, 0, 0),
                     VerticalAlignment = VerticalAlignment.Center
@@ -651,7 +720,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
                 var loadingText = new TextBlock
                 {
-                    Text = "Loading movie information...",
+                    Text = isTvShow ? "Loading TV show information..." : "Loading movie information...",
                     Foreground = Brushes.White,
                     HorizontalAlignment = HorizontalAlignment.Center,
                     VerticalAlignment = VerticalAlignment.Center
@@ -675,44 +744,46 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
                 try
                 {
-                    // Get movie details with HTTP request (no browser needed)
-                    var (description, genre) = await GetMovieDetails(selectedMovie.Url, cts.Token);
+                    string description;
+                    string genre;
 
-                    // Check if operation was cancelled
-                    if (cts.Token.IsCancellationRequested)
+                    if (isTvShow)
                     {
-                        return;
+                        description = await GetTvShowDescriptionAsync(selectedMovie, cts.Token);
+                        genre = BuildTvShowGenreInfo(selectedMovie);
+                    }
+                    else
+                    {
+                        (description, genre) = await GetMovieDetails(selectedMovie.Url, cts.Token);
                     }
 
-                    // Close loading window
+                    if (cts.Token.IsCancellationRequested)
+                        return;
+
                     loadingWindow.Close();
 
-                    // Show movie details using the new DetailsWindow
                     var detailsWindow = new DetailsWindow(
                         selectedMovie.Title,
                         selectedMovie.Year,
                         description,
                         genre,
-                        selectedMovie.ImageUrl
-                    );
+                        selectedMovie.ImageUrl,
+                        isTvShow);
                     detailsWindow.Owner = this;
                     detailsWindow.ShowDialog();
                 }
                 catch (OperationCanceledException)
                 {
-                    // Operation was cancelled, just close the loading window
                     loadingWindow.Close();
                 }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(
-                    $"Error loading movie details: {ex.Message}",
-                    "Error",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Error
-                );
-            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(
+                $"Error loading {(isTvShow ? "TV show" : "movie")} details: {ex.Message}",
+                "Error",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
         }
     }
 
@@ -795,14 +866,66 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         }
     }
 
-    private void RokuButton_Click(object sender, RoutedEventArgs e)
+    private async void OpeningCreditsButton_Click(object sender, RoutedEventArgs e)
     {
-        if (MoviesListView.SelectedItem is not Movie selectedMovie)
+        if (sender is not Button button || button.DataContext is not Movie movie)
             return;
 
+        var apiKey = SettingsWindow.GetTmdbApiKey();
+        if (string.IsNullOrWhiteSpace(apiKey))
+        {
+            MessageBox.Show(
+                "Add your TMDB API key in Settings to play opening credits.\n\nGet a free key at themoviedb.org/settings/api.",
+                "TMDB API Key Required",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
+            return;
+        }
+
+        button.IsEnabled = false;
+        var previousCursor = Cursor;
+        Cursor = Cursors.Wait;
+
+        try
+        {
+            var tmdbId = MovieLairTvDetailsParser.ExtractShowId(movie.Url);
+            var videoKey = await TmdbClient.GetTvOpeningCreditsVideoKeyAsync(tmdbId, movie.Title, movie.Year, apiKey);
+            if (string.IsNullOrWhiteSpace(videoKey))
+            {
+                MessageBox.Show(
+                    $"No opening credits video was found on TMDB for \"{movie.Title}\" ({movie.Year}).\n\nNot all shows have opening credits listed.",
+                    "Opening Credits Not Found",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+                return;
+            }
+
+            var playerWindow = new TrailerWindow(movie.Title, videoKey, "Opening Credits")
+            {
+                Owner = this
+            };
+            playerWindow.Show();
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(
+                $"Error loading opening credits: {ex.Message}",
+                "Opening Credits Error",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+        }
+        finally
+        {
+            button.IsEnabled = true;
+            Cursor = previousCursor;
+        }
+    }
+
+    private void RokuButton_Click(object sender, RoutedEventArgs e)
+    {
         MessageBox.Show(
-            "Roku sideload is not available yet with the new TinyZone browser.\n\nThis feature will return in a future update.",
-            "Roku Unavailable",
+            "Roku sideload is available from the player.\n\n1. Play a movie\n2. Wait for an HLS stream in the Live URLs panel\n3. Click the TV icon on that stream",
+            "Roku Sideload",
             MessageBoxButton.OK,
             MessageBoxImage.Information);
     }
@@ -1116,6 +1239,81 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         ApplyFilters();
     }
 
+    private static string BuildTvShowGenreInfo(Movie show)
+    {
+        var parts = new List<string>();
+
+        if (!string.IsNullOrWhiteSpace(show.Year))
+            parts.Add($"Released: {show.Year}");
+
+        if (!string.IsNullOrWhiteSpace(show.Genre) && !show.Genre.Equals("Unknown", StringComparison.OrdinalIgnoreCase))
+            parts.Add($"Genre: {show.Genre}");
+
+        if (!string.IsNullOrWhiteSpace(show.Duration) && !show.Duration.Equals("Unknown", StringComparison.OrdinalIgnoreCase))
+            parts.Add($"Seasons: {show.Duration}");
+
+        if (!string.IsNullOrWhiteSpace(show.Country) && !show.Country.Equals("Unknown", StringComparison.OrdinalIgnoreCase))
+            parts.Add($"Country: {show.Country}");
+
+        return string.Join("\n\n", parts);
+    }
+
+    private static async Task<string> GetTvShowDescriptionAsync(Movie show, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var apiKey = SettingsWindow.GetTmdbApiKey();
+        var tmdbId = MovieLairTvDetailsParser.ExtractShowId(show.Url);
+        if (!string.IsNullOrWhiteSpace(apiKey) && tmdbId is > 0)
+        {
+            try
+            {
+                var details = await MovieLairTmdbClient.GetTvDetailsAsync(tmdbId.Value, apiKey, cancellationToken);
+                if (details != null)
+                {
+                    var parts = new List<string>();
+                    if (!string.IsNullOrWhiteSpace(details.Tagline))
+                        parts.Add(details.Tagline.Trim());
+                    if (!string.IsNullOrWhiteSpace(details.Overview))
+                        parts.Add(details.Overview.Trim());
+
+                    if (parts.Count > 0)
+                        return string.Join("\n\n", parts);
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Information(ex, "TMDB TV details lookup failed for {Title}", show.Title);
+            }
+        }
+
+        try
+        {
+            using var handler = new HttpClientHandler
+            {
+                CookieContainer = new CookieContainer()
+            };
+            var uri = new Uri(show.Url);
+            handler.CookieContainer.Add(uri, new Cookie("srv", "2", "/", uri.Host));
+
+            using var client = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(30) };
+            client.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0");
+            client.DefaultRequestHeaders.Add("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8");
+            client.DefaultRequestHeaders.Add("Accept-Language", "en-US,en;q=0.9");
+
+            var html = await client.GetStringAsync(show.Url, cancellationToken);
+            var (description, _) = MovieLairTvDetailsParser.ParseDescription(html);
+            if (!string.IsNullOrWhiteSpace(description))
+                return description;
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Error getting TV show description for {Url}", show.Url);
+        }
+
+        return string.Empty;
+    }
+
     private static async Task<(string description, string genre)> GetMovieDetails(string url, CancellationToken cancellationToken)
     {
         try
@@ -1210,6 +1408,10 @@ public class Movie : INotifyPropertyChanged
     public required string Genre { get; set; }
     public required string Duration { get; set; }
     public required string Country { get; set; }
+    public CatalogContentType ContentType { get; set; } = CatalogContentType.Movie;
+    public string ContentTypeLabel => ContentType == CatalogContentType.TvShow ? "TV Show" : "Movie";
+    public bool IsTvShow => ContentType == CatalogContentType.TvShow;
+    public string DetailsToolTip => ContentType == CatalogContentType.TvShow ? "View TV show details" : "View movie details";
     private BitmapImage _cachedImage;
     private bool _isLoading;
     private bool _isFavorite;
@@ -1299,6 +1501,32 @@ public static class ImageCache
         {
             _settingsWindow.Close();
             _settingsWindow = null;
+        }
+    }
+
+    public static string? TryGetCachedFilePath(string imageUrl)
+    {
+        if (string.IsNullOrWhiteSpace(imageUrl))
+            return null;
+
+        try
+        {
+            var settingsWindow = GetSettingsWindow();
+            if (!settingsWindow.IsCachingEnabled)
+                return null;
+
+            var cacheFileName = Convert.ToBase64String(
+                    System.Security.Cryptography.SHA256.Create()
+                        .ComputeHash(System.Text.Encoding.UTF8.GetBytes(imageUrl)))
+                .Replace("/", "_")
+                .Replace("+", "-")
+                .Replace("=", "");
+
+            return Path.Combine(settingsWindow.CacheLocation, cacheFileName + ".jpg");
+        }
+        catch
+        {
+            return null;
         }
     }
 
@@ -1401,6 +1629,38 @@ public class BooleanToVisibilityConverter : IValueConverter
             return visibility == Visibility.Collapsed;
         }
     }
+}
+
+public class SelectedMovieVisibilityConverter : IMultiValueConverter
+{
+    public object Convert(object[] values, Type targetType, object parameter, System.Globalization.CultureInfo culture)
+    {
+        if (values.Length < 2)
+            return Visibility.Collapsed;
+
+        var isSelected = values[0] is bool selected && selected;
+        var isTvShow = values[1] is bool tvShow && tvShow;
+        return isSelected && !isTvShow ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    public object[] ConvertBack(object value, Type[] targetTypes, object parameter, System.Globalization.CultureInfo culture)
+        => throw new NotImplementedException();
+}
+
+public class SelectedTvShowVisibilityConverter : IMultiValueConverter
+{
+    public object Convert(object[] values, Type targetType, object parameter, System.Globalization.CultureInfo culture)
+    {
+        if (values.Length < 2)
+            return Visibility.Collapsed;
+
+        var isSelected = values[0] is bool selected && selected;
+        var isTvShow = values[1] is bool tvShow && tvShow;
+        return isSelected && isTvShow ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    public object[] ConvertBack(object value, Type[] targetTypes, object parameter, System.Globalization.CultureInfo culture)
+        => throw new NotImplementedException();
 }
 
 public class FavoriteIconConverter : IValueConverter

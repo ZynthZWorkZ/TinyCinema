@@ -330,6 +330,54 @@
                         </Grid>
                     </Border>
 
+                    <!-- TV Show Episode Cache Setting -->
+                    <Border Background="#1A1A1A"
+                            CornerRadius="8"
+                            Padding="16"
+                            Margin="0,0,0,16">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <StackPanel Orientation="Horizontal"
+                                      Margin="0,0,0,12">
+                                <fa:FontAwesome Icon="Television"
+                                               Foreground="White"
+                                               Width="16"
+                                               Height="16"
+                                               Margin="0,0,8,0"/>
+                                <TextBlock Text="TV Show Cache Settings"
+                                         Foreground="White"
+                                         FontSize="16"
+                                         FontWeight="SemiBold"/>
+                            </StackPanel>
+
+                            <Grid Grid.Row="1" Margin="0,0,0,16">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <TextBlock Text="Enable TV Show Episode Caching"
+                                         Foreground="White"
+                                         VerticalAlignment="Center"
+                                         TextWrapping="Wrap"/>
+
+                                <ToggleButton Grid.Column="1"
+                                             IsChecked="{Binding IsTvShowCachingEnabled}"
+                                             Style="{StaticResource ModernToggleStyle}"/>
+                            </Grid>
+
+                            <TextBlock Grid.Row="2"
+                                     Text="{Binding TvShowEpisodeCacheLocation}"
+                                     Foreground="#B3FFFFFF"
+                                     TextWrapping="Wrap"/>
+                        </Grid>
+                    </Border>
+
                     <!-- Movie Links File Location Setting -->
                     <Border Background="#1A1A1A"
                             CornerRadius="8"
@@ -388,6 +436,62 @@
                         </Grid>
                     </Border>
 
+                    <!-- TV Show Links File Location Setting -->
+                    <Border Background="#1A1A1A"
+                            CornerRadius="8"
+                            Padding="16"
+                            Margin="0,0,0,16">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <StackPanel Orientation="Horizontal"
+                                      Margin="0,0,0,12">
+                                <fa:FontAwesome Icon="Television"
+                                               Foreground="White"
+                                               Width="16"
+                                               Height="16"
+                                               Margin="0,0,8,0"/>
+                                <TextBlock Text="TV Show Links File Settings"
+                                         Foreground="White"
+                                         FontSize="16"
+                                         FontWeight="SemiBold"/>
+                            </StackPanel>
+
+                            <Grid Grid.Row="1">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <TextBlock Text="{Binding TvShowLinksLocation}"
+                                         Foreground="#B3FFFFFF"
+                                         TextWrapping="Wrap"
+                                         VerticalAlignment="Center"
+                                         Margin="0,0,16,12"/>
+
+                                <Button Grid.Column="1"
+                                        Content="Change Location"
+                                        Click="SelectTvShowLinksLocation_Click"
+                                        Style="{StaticResource ModernButtonStyle}"
+                                        Margin="0,0,0,12"/>
+
+                                <Button Grid.Row="1"
+                                        Grid.ColumnSpan="2"
+                                        Content="Fetch TV Shows from MovieLair"
+                                        Click="FetchTvShows_Click"
+                                        Style="{StaticResource ModernButtonStyle}"
+                                        HorizontalAlignment="Stretch"/>
+                            </Grid>
+                        </Grid>
+                    </Border>
+
                     <!-- Player Settings -->
                     <Border Background="#1A1A1A"
                             CornerRadius="8"
@@ -395,6 +499,7 @@
                             Margin="0,0,0,16">
                         <Grid>
                             <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="Auto"/>
@@ -440,7 +545,22 @@
                                          Style="{StaticResource ModernComboBoxStyle}"/>
                             </Grid>
 
-                            <TextBlock Grid.Row="2"
+                            <Grid Grid.Row="2" Margin="0,0,0,12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <TextBlock Text="Block Popups and Ads"
+                                         Foreground="White"
+                                         VerticalAlignment="Center"/>
+
+                                <ToggleButton Grid.Column="1"
+                                             IsChecked="{Binding IsPopupBlockerEnabled}"
+                                             Style="{StaticResource ModernToggleStyle}"/>
+                            </Grid>
+
+                            <TextBlock Grid.Row="3"
                                        Text="In-App Browser watches on TinyZone. Other players open automatically when an m3u8 stream is captured."
                                        Foreground="#808080"
                                        FontSize="12"

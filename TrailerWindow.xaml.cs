@@ -12,12 +12,12 @@ public partial class TrailerWindow : Window
 
     private readonly string _videoKey;
 
-    public TrailerWindow(string movieTitle, string videoKey)
+    public TrailerWindow(string title, string videoKey, string videoKind = "Trailer")
     {
         InitializeComponent();
         _videoKey = videoKey;
-        Title = $"{movieTitle} - Trailer";
-        TitleText.Text = $"{movieTitle} - Trailer";
+        Title = $"{title} - {videoKind}";
+        TitleText.Text = $"{title} - {videoKind}";
         Loaded += async (_, _) => await InitializeWebViewAsync();
         Closed += (_, _) =>
         {

@@ -15,32 +15,36 @@ namespace TinyCinema;
 
 public partial class DetailsWindow : Window
 {
-    public DetailsWindow(string title, string year, string description, string genre, string imageUrl = null)
+    public DetailsWindow(
+        string title,
+        string year,
+        string description,
+        string genre,
+        string? imageUrl = null,
+        bool isTvShow = false)
     {
         InitializeComponent();
         
-        // Set window title
-        Title = $"{title} - Details";
-        TitleText.Text = Title;
+        Title = isTvShow ? $"{title} - TV Show Details" : $"{title} - Details";
+        TitleText.Text = isTvShow ? "TV Show Details" : "Movie Details";
         
-        // Set movie title
         MovieTitleText.Text = title;
-        
-        // Set year
         YearText.Text = year;
         
-        // Set genre - clean up and format the text
         if (!string.IsNullOrWhiteSpace(genre))
         {
             GenreText.Text = FormatGenreInfo(genre);
             GenreSection.Visibility = Visibility.Visible;
             
-            // Extract and load cast images asynchronously
-            _ = LoadCastImagesAsync(genre);
+            if (!isTvShow)
+                _ = LoadCastImagesAsync(genre);
+            else
+                CastSection.Visibility = Visibility.Collapsed;
         }
         else
         {
             GenreSection.Visibility = Visibility.Collapsed;
+            CastSection.Visibility = Visibility.Collapsed;
         }
         
         // Set description
@@ -104,6 +108,7 @@ public partial class DetailsWindow : Window
             .Replace("Director:", "\n\n• Director:")
             .Replace("Directors:", "\n\n• Directors:")
             .Replace("Duration:", "\n\n• Duration:")
+            .Replace("Seasons:", "\n\n• Seasons:")
             .Replace("Country:", "\n\n• Country:")
             .Replace("Production:", "\n\n• Production:")
             .Replace("Writer:", "\n\n• Writer:")

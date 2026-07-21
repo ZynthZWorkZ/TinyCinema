@@ -12,7 +12,11 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
 {
     private string _cacheLocation;
     private bool _isCachingEnabled;
+    private bool _isTvShowCachingEnabled = true;
+    private bool _isPopupBlockerEnabled = true;
     private string _movieLinksLocation;
+    private string _tvShowLinksLocation;
+    private string _movieLairShowsUrl = "https://movielair.cc/shows/10759/";
     private string _rokuIpAddress = "";
     private string _rokuUsername = "rokudev";
     private string _rokuPassword = "";
@@ -29,6 +33,17 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
     
     private static readonly string VlcPath = @"C:\Program Files\VideoLAN\VLC\vlc.exe";
 
+    public bool IsPopupBlockerEnabled
+    {
+        get => _isPopupBlockerEnabled;
+        set
+        {
+            _isPopupBlockerEnabled = value;
+            OnPropertyChanged(nameof(IsPopupBlockerEnabled));
+            SaveSettings();
+        }
+    }
+
     public string MovieLinksLocation
     {
         get => _movieLinksLocation;
@@ -36,6 +51,28 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
         {
             _movieLinksLocation = value;
             OnPropertyChanged(nameof(MovieLinksLocation));
+            SaveSettings();
+        }
+    }
+
+    public string TvShowLinksLocation
+    {
+        get => _tvShowLinksLocation;
+        set
+        {
+            _tvShowLinksLocation = value;
+            OnPropertyChanged(nameof(TvShowLinksLocation));
+            SaveSettings();
+        }
+    }
+
+    public string MovieLairShowsUrl
+    {
+        get => _movieLairShowsUrl;
+        set
+        {
+            _movieLairShowsUrl = value;
+            OnPropertyChanged(nameof(MovieLairShowsUrl));
             SaveSettings();
         }
     }
@@ -50,6 +87,22 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
             SaveSettings();
         }
     }
+
+    public bool IsTvShowCachingEnabled
+    {
+        get => _isTvShowCachingEnabled;
+        set
+        {
+            _isTvShowCachingEnabled = value;
+            OnPropertyChanged(nameof(IsTvShowCachingEnabled));
+            SaveSettings();
+        }
+    }
+
+    public string TvShowEpisodeCacheLocation { get; } = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+        "TinyCinema",
+        "TvShowEpisodeCache");
 
     public string CacheLocation
     {
@@ -217,9 +270,25 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
                     {
                         IsCachingEnabled = bool.Parse(line.Substring("IsCachingEnabled=".Length).Trim());
                     }
+                    else if (line.StartsWith("IsTvShowCachingEnabled="))
+                    {
+                        IsTvShowCachingEnabled = bool.Parse(line.Substring("IsTvShowCachingEnabled=".Length).Trim());
+                    }
+                    else if (line.StartsWith("IsPopupBlockerEnabled="))
+                    {
+                        IsPopupBlockerEnabled = bool.Parse(line.Substring("IsPopupBlockerEnabled=".Length).Trim());
+                    }
                     else if (line.StartsWith("MovieLinksLocation="))
                     {
                         MovieLinksLocation = line.Substring("MovieLinksLocation=".Length).Trim();
+                    }
+                    else if (line.StartsWith("TvShowLinksLocation="))
+                    {
+                        TvShowLinksLocation = line.Substring("TvShowLinksLocation=".Length).Trim();
+                    }
+                    else if (line.StartsWith("MovieLairShowsUrl="))
+                    {
+                        MovieLairShowsUrl = line.Substring("MovieLairShowsUrl=".Length).Trim();
                     }
                     else if (line.StartsWith("RokuIpAddress="))
                     {
@@ -290,7 +359,11 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
             {
                 $"CacheLocation={CacheLocation}",
                 $"IsCachingEnabled={IsCachingEnabled}",
+                $"IsTvShowCachingEnabled={IsTvShowCachingEnabled}",
+                $"IsPopupBlockerEnabled={IsPopupBlockerEnabled}",
                 $"MovieLinksLocation={MovieLinksLocation}",
+                $"TvShowLinksLocation={TvShowLinksLocation}",
+                $"MovieLairShowsUrl={MovieLairShowsUrl}",
                 $"RokuIpAddress={RokuIpAddress}",
                 $"RokuUsername={RokuUsername}",
                 $"RokuPassword={RokuPassword}",
@@ -328,6 +401,30 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
         }
     }
 
+    public static bool GetIsPopupBlockerEnabled()
+    {
+        try
+        {
+            if (!File.Exists(SettingsFile))
+                return true;
+
+            foreach (var line in File.ReadAllLines(SettingsFile))
+            {
+                if (line.StartsWith("IsPopupBlockerEnabled=", StringComparison.Ordinal) &&
+                    bool.TryParse(line.Substring("IsPopupBlockerEnabled=".Length).Trim(), out var enabled))
+                {
+                    return enabled;
+                }
+            }
+        }
+        catch
+        {
+            // Ignore read errors.
+        }
+
+        return true;
+    }
+
     public static string GetTmdbApiKey()
     {
         try
@@ -347,6 +444,59 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
         }
 
         return "";
+    }
+
+    public static bool GetIsTvShowCachingEnabled()
+    {
+        try
+        {
+            if (!File.Exists(SettingsFile))
+                return true;
+
+            foreach (var line in File.ReadAllLines(SettingsFile))
+            {
+                if (line.StartsWith("IsTvShowCachingEnabled=", StringComparison.Ordinal))
+                    return bool.Parse(line.Substring("IsTvShowCachingEnabled=".Length).Trim());
+            }
+        }
+        catch
+        {
+            // Ignore read errors.
+        }
+
+        return true;
+    }
+
+    public static (string Ip, string Username, string Password) GetRokuCredentials()
+    {
+        var ip = "";
+        var username = "rokudev";
+        var password = "";
+
+        try
+        {
+            if (!File.Exists(SettingsFile))
+                return (ip, username, password);
+
+            foreach (var line in File.ReadAllLines(SettingsFile))
+            {
+                if (line.StartsWith("RokuIpAddress=", StringComparison.Ordinal))
+                    ip = line.Substring("RokuIpAddress=".Length).Trim();
+                else if (line.StartsWith("RokuUsername=", StringComparison.Ordinal))
+                    username = line.Substring("RokuUsername=".Length).Trim();
+                else if (line.StartsWith("RokuPassword=", StringComparison.Ordinal))
+                    password = line.Substring("RokuPassword=".Length).Trim();
+            }
+        }
+        catch
+        {
+            // Ignore read errors.
+        }
+
+        if (string.IsNullOrWhiteSpace(username))
+            username = "rokudev";
+
+        return (ip, username, password);
     }
 
     private void SelectCacheLocation_Click(object sender, RoutedEventArgs e)
@@ -435,6 +585,47 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
         {
             MovieLinksLocation = dialog.OutputPath;
             TinyZoneBaseUrl = dialog.SelectedBaseUrl;
+
+            if (Owner is MainWindow mainWindow)
+                _ = mainWindow.ReloadMoviesAsync();
+        }
+    }
+
+    private void SelectTvShowLinksLocation_Click(object sender, RoutedEventArgs e)
+    {
+        var dialog = new Microsoft.Win32.OpenFileDialog
+        {
+            Title = "Select TV Show Links File",
+            Filter = "Text Files|*.txt|All Files|*.*",
+            CheckFileExists = true,
+            CheckPathExists = true
+        };
+
+        if (dialog.ShowDialog() == true)
+        {
+            try
+            {
+                File.ReadAllLines(dialog.FileName);
+                TvShowLinksLocation = dialog.FileName;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Cannot use selected file: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+    }
+
+    private void FetchTvShows_Click(object sender, RoutedEventArgs e)
+    {
+        var dialog = new FetchTvShowsDialog(MovieLairShowsUrl, TvShowLinksLocation)
+        {
+            Owner = Owner ?? this
+        };
+
+        if (dialog.ShowDialog() == true)
+        {
+            TvShowLinksLocation = dialog.OutputPath;
+            MovieLairShowsUrl = dialog.SelectedCategoryUrl;
 
             if (Owner is MainWindow mainWindow)
                 _ = mainWindow.ReloadMoviesAsync();

@@ -30,6 +30,15 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Include="RokuSideload\**\*" CopyToOutputDirectory="PreserveNewest" LinkBase="RokuSideload" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="Examples\**" />
+    <None Include="Examples\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Serilog" Version="3.1.1" />
     <PackageReference Include="Serilog.Sinks.Console" Version="5.0.1" />
     <PackageReference Include="Serilog.Sinks.File" Version="5.0.0" />
