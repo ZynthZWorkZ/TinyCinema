@@ -23,7 +23,9 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
     private string _selectedPlayer = PlayerNames.InAppBrowser;
     private string _tinyZoneBaseUrl = "https://ww5.tinyzone.org";
     private string _tmdbApiKey = "";
+    private string _selectedAppTheme = "Black";
     private List<string> _availablePlayers;
+    private List<string> _availableThemes = ["Black", "Red", "Midnight Blue"];
 
     private static readonly string SettingsFile = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
@@ -181,6 +183,42 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
         }
     }
 
+    public List<string> AvailableThemes
+    {
+        get => _availableThemes;
+        private set
+        {
+            _availableThemes = value;
+            OnPropertyChanged(nameof(AvailableThemes));
+        }
+    }
+
+    public string SelectedAppTheme
+    {
+        get => _selectedAppTheme;
+        set
+        {
+            var normalized = NormalizeThemeDisplayName(value);
+            if (_selectedAppTheme == normalized)
+                return;
+
+            _selectedAppTheme = normalized;
+            ThemeManager.ApplyTheme(ThemeManager.ParseTheme(normalized));
+            OnPropertyChanged(nameof(SelectedAppTheme));
+            SaveSettings();
+
+            if (Owner is MainWindow mainWindow)
+                mainWindow.RefreshTheme();
+        }
+    }
+
+    private static string NormalizeThemeDisplayName(string? value) => value?.Trim() switch
+    {
+        "Red" => "Red",
+        "MidnightBlue" or "Midnight Blue" => "Midnight Blue",
+        _ => "Black"
+    };
+
     public List<string> AvailablePlayers
     {
         get => _availablePlayers;
@@ -217,6 +255,12 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
             }
             PlayerComboBox.SelectedItem = SelectedPlayer;
         }
+
+        if (ThemeComboBox != null)
+        {
+            ThemeComboBox.ItemsSource = AvailableThemes;
+            ThemeComboBox.SelectedItem = SelectedAppTheme;
+        }
     }
     
     private void DetectAvailablePlayers()
@@ -249,6 +293,14 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
         if (PlayerComboBox?.SelectedItem is string selectedPlayer)
         {
             SelectedPlayer = selectedPlayer;
+        }
+    }
+
+    private void ThemeComboBox_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+    {
+        if (ThemeComboBox?.SelectedItem is string selectedTheme)
+        {
+            SelectedAppTheme = selectedTheme;
         }
     }
 
@@ -319,7 +371,14 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
                     {
                         TmdbApiKey = line.Substring("TmdbApiKey=".Length).Trim();
                     }
+                    else if (line.StartsWith("AppTheme="))
+                    {
+                        _selectedAppTheme = NormalizeThemeDisplayName(line.Substring("AppTheme=".Length).Trim());
+                    }
                 }
+
+                ThemeManager.ApplyTheme(ThemeManager.ParseTheme(_selectedAppTheme));
+                OnPropertyChanged(nameof(SelectedAppTheme));
             }
         }
         catch
@@ -377,7 +436,8 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
                 $"RokuPassword={RokuPassword}",
                 $"SelectedPlayer={SelectedPlayer}",
                 $"TinyZoneBaseUrl={TinyZoneBaseUrl}",
-                $"TmdbApiKey={TmdbApiKey}"
+                $"TmdbApiKey={TmdbApiKey}",
+                $"AppTheme={ThemeManager.ToSettingValue(ThemeManager.ParseTheme(SelectedAppTheme))}"
             };
 
             File.WriteAllLines(SettingsFile, settings);
@@ -431,6 +491,27 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
         }
 
         return true;
+    }
+
+    public static AppTheme GetAppTheme()
+    {
+        try
+        {
+            if (!File.Exists(SettingsFile))
+                return AppTheme.Black;
+
+            foreach (var line in File.ReadAllLines(SettingsFile))
+            {
+                if (line.StartsWith("AppTheme=", StringComparison.Ordinal))
+                    return ThemeManager.ParseTheme(line.Substring("AppTheme=".Length).Trim());
+            }
+        }
+        catch
+        {
+            // Ignore read errors.
+        }
+
+        return AppTheme.Black;
     }
 
     public static string GetTmdbApiKey()

@@ -46,6 +46,10 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     private string _selectedContentType = string.Empty;
     private List<Movie> _filteredMovies = new List<Movie>();
     private bool _showFavoritesOnly = false;
+    private MainNavSection _currentNav = MainNavSection.Explore;
+    private CancellationTokenSource? _heroLoadCts;
+    private CancellationTokenSource? _exploreRefreshCts;
+    private Movie? _heroSubscribedMovie;
     private static readonly string FavoritesFile = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
         "TinyCinema",
@@ -97,7 +101,29 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             _allMovies = new List<Movie>();
             MoviesListView.ItemsSource = _movies;
             DataContext = this;
-            
+
+            HeroPanel.PlayRequested += PlayButton_Click;
+            HeroPanel.ContinueRequested += ContinueButton_Click;
+            HeroPanel.FavoriteRequested += FavoriteButton_Click;
+            HeroPanel.TrailerRequested += TrailerButton_Click;
+            HeroPanel.OpeningCreditsRequested += OpeningCreditsButton_Click;
+            HeroPanel.InfoRequested += InfoButton_Click;
+            HeroPanel.UrlRequested += UrlButton_Click;
+            HeroPanel.RokuRequested += RokuButton_Click;
+
+            ExploreHomePanel.MovieSelected += ExploreHomePanel_MovieSelected;
+
+            PosterScrollViewer.ScrollChanged += async (_, e) =>
+            {
+                if (_isLoading)
+                    return;
+
+                if (e.VerticalOffset >= e.ExtentHeight - e.ViewportHeight - 100)
+                    await LoadNextBatchAsync();
+            };
+            _scrollViewerHooked = true;
+
+            UpdateSidebarVisuals();
             LoadMoviesAsync();
         }
         catch (Exception ex)
@@ -124,6 +150,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             _selectedCountry = string.Empty;
             _selectedContentType = string.Empty;
             _showFavoritesOnly = false;
+            _currentNav = MainNavSection.Explore;
 
             var settingsWindow = new SettingsWindow();
             var movieLinksLocation = settingsWindow.MovieLinksLocation;
@@ -211,27 +238,14 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             CountryFilter.ItemsSource = countries;
             CountryFilter.SelectedIndex = 0;
 
-            var contentTypes = new List<string> { "All Content", "Movies", "TV Shows" };
-            ContentTypeFilter.ItemsSource = contentTypes;
-            ContentTypeFilter.SelectedIndex = 0;
-
+            UpdateSidebarVisuals();
             _filteredMovies = _allMovies;
-            await LoadNextBatchAsync();
-
-            if (!_scrollViewerHooked)
+            if (_currentNav == MainNavSection.Explore)
+                await RefreshExploreAsync();
+            else
             {
-                var scrollViewer = FindVisualChild<ScrollViewer>(MoviesListView);
-                if (scrollViewer != null)
-                {
-                    scrollViewer.ScrollChanged += async (s, e) =>
-                    {
-                        if (_isLoading) return;
-
-                        if (e.VerticalOffset >= e.ExtentHeight - e.ViewportHeight - 100)
-                            await LoadNextBatchAsync();
-                    };
-                    _scrollViewerHooked = true;
-                }
+                await LoadNextBatchAsync();
+                SelectFirstVisibleItem();
             }
         }
         catch (Exception ex)
@@ -271,57 +285,37 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
     private void SearchBox_TextChanged(object sender, TextChangedEventArgs e)
     {
+        SearchPlaceholder.Visibility = string.IsNullOrWhiteSpace(SearchBox.Text)
+            ? Visibility.Visible
+            : Visibility.Collapsed;
+
         var searchText = SearchBox.Text.ToLower().Trim();
         
         // Don't re-search if the text hasn't changed
         if (searchText == _lastSearchText) return;
         _lastSearchText = searchText;
-        
-        ApplyFilters();
+
+        ApplyFiltersAsync();
     }
 
-    private void GenreFilter_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    private async void ApplyFiltersAsync()
     {
-        if (GenreFilter.SelectedItem != null)
+        await ApplyFiltersCoreAsync();
+    }
+
+    private async Task ApplyFiltersCoreAsync()
+    {
+        if (_currentNav == MainNavSection.Explore)
         {
-            _selectedGenre = GenreFilter.SelectedItem.ToString();
-            if (_selectedGenre == "All Genres")
-                _selectedGenre = string.Empty;
-            
-            ApplyFilters();
+            UpdateExploreVisibility(true);
+            await RefreshExploreAsync();
+            return;
         }
-    }
 
-    private void CountryFilter_SelectionChanged(object sender, SelectionChangedEventArgs e)
-    {
-        if (CountryFilter.SelectedItem != null)
-        {
-            _selectedCountry = CountryFilter.SelectedItem.ToString();
-            if (_selectedCountry == "All Countries")
-                _selectedCountry = string.Empty;
-            
-            ApplyFilters();
-        }
-    }
-
-    private void ContentTypeFilter_SelectionChanged(object sender, SelectionChangedEventArgs e)
-    {
-        if (ContentTypeFilter.SelectedItem != null)
-        {
-            _selectedContentType = ContentTypeFilter.SelectedItem.ToString() ?? string.Empty;
-            if (_selectedContentType == "All Content")
-                _selectedContentType = string.Empty;
-
-            ApplyFilters();
-        }
-    }
-
-    private void ApplyFilters()
-    {
+        UpdateExploreVisibility(false);
         _currentIndex = 0;
         _movies.Clear();
 
-        // Apply filters
         _filteredMovies = _allMovies.Where(m =>
             (string.IsNullOrEmpty(_selectedContentType) ||
              (_selectedContentType == "Movies" && m.ContentType == CatalogContentType.Movie) ||
@@ -334,16 +328,218 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             (!_showFavoritesOnly || m.IsFavorite)
         ).ToList();
 
-        // Load initial batch of filtered movies
-        LoadNextBatchAsync();
+        EmptyGridText.Visibility = _filteredMovies.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+        PosterScrollViewer.Visibility = _filteredMovies.Count == 0 ? Visibility.Collapsed : Visibility.Visible;
 
-        // Scroll to top
-        var scrollViewer = FindVisualChild<ScrollViewer>(MoviesListView);
-        if (scrollViewer != null)
+        await LoadNextBatchAsync();
+
+        PosterScrollViewer.ScrollToTop();
+        SelectFirstVisibleItem();
+    }
+
+    private void GenreFilter_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (GenreFilter.SelectedItem != null)
         {
-            scrollViewer.ScrollToTop();
+            _selectedGenre = GenreFilter.SelectedItem.ToString();
+            if (_selectedGenre == "All Genres")
+                _selectedGenre = string.Empty;
+
+            ApplyFiltersAsync();
         }
     }
+
+    private void CountryFilter_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (CountryFilter.SelectedItem != null)
+        {
+            _selectedCountry = CountryFilter.SelectedItem.ToString();
+            if (_selectedCountry == "All Countries")
+                _selectedCountry = string.Empty;
+
+            ApplyFiltersAsync();
+        }
+    }
+
+    private void NavButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button button || button.Tag is not string tag)
+            return;
+
+        if (!Enum.TryParse<MainNavSection>(tag, out var section))
+            return;
+
+        ApplyNavSection(section);
+    }
+
+    private void ApplyNavSection(MainNavSection section)
+    {
+        _currentNav = section;
+        _showFavoritesOnly = section == MainNavSection.Favorites;
+        _selectedContentType = section switch
+        {
+            MainNavSection.Movies => "Movies",
+            MainNavSection.TvShows => "TV Shows",
+            _ => string.Empty
+        };
+
+        UpdateSidebarVisuals();
+        ApplyFiltersAsync();
+    }
+
+    private void UpdateSidebarVisuals()
+    {
+        var activeBrush = Application.Current.Resources["NavActiveBackgroundBrush"] as SolidColorBrush
+            ?? new SolidColorBrush(Color.FromRgb(26, 26, 26));
+        var accentForeground = Application.Current.Resources["AccentBrush"] as SolidColorBrush
+            ?? Brushes.White;
+        var normalForeground = Application.Current.Resources["NavInactiveForegroundBrush"] as SolidColorBrush
+            ?? new SolidColorBrush(Color.FromRgb(163, 163, 163));
+        var transparent = Brushes.Transparent;
+
+        void StyleNav(Button button, bool isActive)
+        {
+            button.Background = isActive ? activeBrush : transparent;
+            button.Foreground = isActive ? accentForeground : normalForeground;
+        }
+
+        StyleNav(NavMoviesButton, _currentNav == MainNavSection.Movies);
+        StyleNav(NavTvShowsButton, _currentNav == MainNavSection.TvShows);
+        StyleNav(NavExploreButton, _currentNav == MainNavSection.Explore);
+        StyleNav(NavFavoritesButton, _currentNav == MainNavSection.Favorites);
+
+        GridSectionTitle.Text = _currentNav switch
+        {
+            MainNavSection.Movies => "Movies",
+            MainNavSection.TvShows => "TV Shows",
+            MainNavSection.Favorites => "Favorites",
+            _ => "For You"
+        };
+    }
+
+    private void UpdateExploreVisibility(bool showExplore)
+    {
+        ExploreHomePanel.Visibility = showExplore ? Visibility.Visible : Visibility.Collapsed;
+        PosterScrollViewer.Visibility = showExplore ? Visibility.Collapsed : Visibility.Visible;
+        EmptyGridText.Visibility = Visibility.Collapsed;
+
+        if (showExplore)
+            MoviesListView.SelectedItem = null;
+    }
+
+    private async Task RefreshExploreAsync()
+    {
+        _exploreRefreshCts?.Cancel();
+        _exploreRefreshCts?.Dispose();
+        _exploreRefreshCts = new CancellationTokenSource();
+        var token = _exploreRefreshCts.Token;
+
+        ExploreHomePanel.SetLoading(true);
+        EmptyGridText.Visibility = Visibility.Collapsed;
+
+        try
+        {
+            var interactions = UserInteractionTracker.GetRecent();
+            var taste = CatalogTasteProfile.Build(interactions, _allMovies);
+            var local = CatalogRecommendationEngine.BuildLocal(_allMovies, taste);
+
+            var usedUrls = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var row in local.Rows)
+            {
+                foreach (var item in row.Items)
+                    usedUrls.Add(item.Url);
+            }
+
+            var tmdbRows = await CatalogRecommendationEngine.BuildTmdbRowsAsync(
+                _allMovies,
+                interactions,
+                usedUrls,
+                token);
+
+            if (token.IsCancellationRequested)
+                return;
+
+            var allRows = local.Rows.ToList();
+            var insertIndex = allRows.FindIndex(row => row.Title == "For You");
+            if (insertIndex < 0)
+                insertIndex = Math.Max(0, allRows.Count - 1);
+
+            allRows.InsertRange(insertIndex + 1, tmdbRows);
+
+            var recommendations = new ExploreRecommendations
+            {
+                Rows = allRows,
+                HintText = local.HintText
+            };
+
+            await Dispatcher.InvokeAsync(() =>
+            {
+                if (token.IsCancellationRequested)
+                    return;
+
+                ExploreHomePanel.SetRecommendations(recommendations);
+
+                if (!allRows.Any(row => row.Items.Count > 0))
+                {
+                    HeroPanel.ShowEmptyState("No recommendations yet. Play and favorite titles to personalize Explore.");
+                }
+            });
+        }
+        catch (OperationCanceledException)
+        {
+            // Navigated away or refreshed again.
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Error refreshing explore recommendations");
+            await Dispatcher.InvokeAsync(() =>
+            {
+                ExploreHomePanel.SetLoading(false);
+                EmptyGridText.Text = "Could not load recommendations.";
+                EmptyGridText.Visibility = Visibility.Visible;
+            });
+        }
+    }
+
+    private void ExploreHomePanel_MovieSelected(object? sender, Movie movie)
+    {
+        if (_heroSubscribedMovie != null)
+        {
+            _heroSubscribedMovie.PropertyChanged -= HeroMovie_PropertyChanged;
+            _heroSubscribedMovie = null;
+        }
+
+        _heroSubscribedMovie = movie;
+        movie.PropertyChanged += HeroMovie_PropertyChanged;
+        HeroPanel.SetMovie(movie);
+        UserInteractionTracker.Record(movie, InteractionEventType.View);
+        _ = LoadHeroDetailsAsync(movie, movie);
+    }
+
+    public void RefreshTheme()
+    {
+        UpdateSidebarVisuals();
+    }
+
+    private void SelectFirstVisibleItem()
+    {
+        if (_movies.Count > 0)
+        {
+            MoviesListView.SelectedIndex = 0;
+            return;
+        }
+
+        MoviesListView.SelectedItem = null;
+        HeroPanel.ShowEmptyState(_showFavoritesOnly
+            ? "No favorites yet. Heart a title to add it here."
+            : "No titles match your filters.");
+    }
+
+    private Movie? GetSelectedMovie() =>
+        _currentNav == MainNavSection.Explore
+            ? ExploreHomePanel.SelectedMovie ?? HeroPanel.CurrentMovie
+            : MoviesListView.SelectedItem as Movie ?? HeroPanel.CurrentMovie;
+
 
     private bool IsMatch(Movie movie, string[] searchTerms)
     {
@@ -498,44 +694,39 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
     private void ScrollViewer_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
     {
-        var scrollViewer = sender as ScrollViewer;
-        if (scrollViewer != null)
+        if (PosterScrollViewer != null)
         {
-            scrollViewer.ScrollToVerticalOffset(scrollViewer.VerticalOffset - e.Delta);
-            CheckAndLoadMoreItems(scrollViewer);
+            PosterScrollViewer.ScrollToVerticalOffset(PosterScrollViewer.VerticalOffset - e.Delta);
+            CheckAndLoadMoreItems(PosterScrollViewer);
             e.Handled = true;
         }
     }
 
     private void MoviesListView_KeyDown(object sender, KeyEventArgs e)
     {
-        var scrollViewer = FindVisualChild<ScrollViewer>(MoviesListView);
-        if (scrollViewer != null)
+        double scrollAmount = 50;
+        switch (e.Key)
         {
-            double scrollAmount = 50; // Adjust this value to control scroll speed
-            switch (e.Key)
-            {
-                case Key.Down:
-                    scrollViewer.ScrollToVerticalOffset(scrollViewer.VerticalOffset + scrollAmount);
-                    break;
-                case Key.Up:
-                    scrollViewer.ScrollToVerticalOffset(scrollViewer.VerticalOffset - scrollAmount);
-                    break;
-                case Key.PageDown:
-                    scrollViewer.ScrollToVerticalOffset(scrollViewer.VerticalOffset + scrollViewer.ViewportHeight);
-                    break;
-                case Key.PageUp:
-                    scrollViewer.ScrollToVerticalOffset(scrollViewer.VerticalOffset - scrollViewer.ViewportHeight);
-                    break;
-                case Key.End:
-                    scrollViewer.ScrollToBottom();
-                    break;
-                case Key.Home:
-                    scrollViewer.ScrollToTop();
-                    break;
-            }
-            CheckAndLoadMoreItems(scrollViewer);
+            case Key.Down:
+                PosterScrollViewer.ScrollToVerticalOffset(PosterScrollViewer.VerticalOffset + scrollAmount);
+                break;
+            case Key.Up:
+                PosterScrollViewer.ScrollToVerticalOffset(PosterScrollViewer.VerticalOffset - scrollAmount);
+                break;
+            case Key.PageDown:
+                PosterScrollViewer.ScrollToVerticalOffset(PosterScrollViewer.VerticalOffset + PosterScrollViewer.ViewportHeight);
+                break;
+            case Key.PageUp:
+                PosterScrollViewer.ScrollToVerticalOffset(PosterScrollViewer.VerticalOffset - PosterScrollViewer.ViewportHeight);
+                break;
+            case Key.End:
+                PosterScrollViewer.ScrollToBottom();
+                break;
+            case Key.Home:
+                PosterScrollViewer.ScrollToTop();
+                break;
         }
+        CheckAndLoadMoreItems(PosterScrollViewer);
     }
 
     private void CheckAndLoadMoreItems(ScrollViewer scrollViewer)
@@ -564,6 +755,8 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
     protected override void OnClosed(EventArgs e)
     {
+        _heroLoadCts?.Cancel();
+        _heroLoadCts?.Dispose();
         base.OnClosed(e);
         ImageCache.Cleanup();
         Application.Current.Shutdown();
@@ -591,34 +784,110 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         var settingsWindow = new SettingsWindow();
         settingsWindow.Owner = this;
         settingsWindow.ShowDialog();
+        RefreshTheme();
     }
 
     private void MoviesListView_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        // Update the visual state of all items
-        foreach (var item in MoviesListView.Items)
+        if (_heroSubscribedMovie != null)
         {
-            var container = MoviesListView.ItemContainerGenerator.ContainerFromItem(item) as ListViewItem;
-            if (container != null)
+            _heroSubscribedMovie.PropertyChanged -= HeroMovie_PropertyChanged;
+            _heroSubscribedMovie = null;
+        }
+
+        if (MoviesListView.SelectedItem is Movie selectedMovie)
+        {
+            _heroSubscribedMovie = selectedMovie;
+            selectedMovie.PropertyChanged += HeroMovie_PropertyChanged;
+            HeroPanel.SetMovie(selectedMovie);
+            UserInteractionTracker.Record(selectedMovie, InteractionEventType.View);
+            _ = LoadHeroDetailsAsync(selectedMovie);
+            return;
+        }
+
+        if (_movies.Count == 0)
+        {
+            HeroPanel.ShowEmptyState(_showFavoritesOnly
+                ? "No favorites yet. Heart a title to add it here."
+                : "No titles match your filters.");
+        }
+        else
+        {
+            HeroPanel.ShowEmptyState("Select a title to see details");
+        }
+    }
+
+    private void HeroMovie_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(Movie.CachedImage) && sender is Movie movie &&
+            IsHeroMovieSelected(movie))
+        {
+            HeroPanel.SetMovie(movie);
+        }
+
+        if (e.PropertyName == nameof(Movie.IsFavorite) && sender is Movie favMovie &&
+            IsHeroMovieSelected(favMovie))
+        {
+            HeroPanel.UpdateFavoriteVisual(favMovie.IsFavorite);
+        }
+    }
+
+    private bool IsHeroMovieSelected(Movie movie) =>
+        _currentNav == MainNavSection.Explore
+            ? ExploreHomePanel.SelectedMovie == movie
+            : MoviesListView.SelectedItem == movie;
+
+    private async Task LoadHeroDetailsAsync(Movie movie, Movie? selectionCheck = null)
+    {
+        _heroLoadCts?.Cancel();
+        _heroLoadCts?.Dispose();
+        _heroLoadCts = new CancellationTokenSource();
+        var token = _heroLoadCts.Token;
+
+        HeroPanel.SetDescriptionLoading(true);
+
+        try
+        {
+            string description;
+            if (movie.IsTvShow)
             {
-                container.IsSelected = item == MoviesListView.SelectedItem;
+                description = await GetTvShowDescriptionAsync(movie, token);
             }
+            else
+            {
+                (description, _) = await GetMovieDetails(movie.Url, token);
+            }
+
+            if (token.IsCancellationRequested || !IsHeroMovieSelected(selectionCheck ?? movie))
+                return;
+
+            HeroPanel.SetDescription(description);
+        }
+        catch (OperationCanceledException)
+        {
+            // Selection changed.
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Error loading hero details for {Title}", movie.Title);
+            if (!token.IsCancellationRequested && IsHeroMovieSelected(selectionCheck ?? movie))
+                HeroPanel.SetDescription("Could not load description.");
         }
     }
 
     private void UrlButton_Click(object sender, RoutedEventArgs e)
     {
-        if (MoviesListView.SelectedItem is Movie selectedMovie)
-        {
-            var urlWindow = new UrlWindow(selectedMovie.Url);
-            urlWindow.Owner = this;
-            urlWindow.ShowDialog();
-        }
+        if (GetSelectedMovie() is not Movie selectedMovie)
+            return;
+
+        var urlWindow = new UrlWindow(selectedMovie.Url);
+        urlWindow.Owner = this;
+        urlWindow.ShowDialog();
     }
 
     private async void InfoButton_Click(object sender, RoutedEventArgs e)
     {
-        if (MoviesListView.SelectedItem is not Movie selectedMovie)
+        if (GetSelectedMovie() is not Movie selectedMovie)
             return;
 
         var isTvShow = selectedMovie.ContentType == CatalogContentType.TvShow;
@@ -790,15 +1059,45 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
     private void PlayButton_Click(object sender, RoutedEventArgs e)
     {
-        if (MoviesListView.SelectedItem is not Movie selectedMovie)
+        if (GetSelectedMovie() is not Movie selectedMovie)
             return;
 
+        UserInteractionTracker.Record(selectedMovie, InteractionEventType.Play);
+        OpenPlayer(selectedMovie);
+
+        if (_currentNav == MainNavSection.Explore)
+            _ = RefreshExploreAsync();
+    }
+
+    private void ContinueButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (GetSelectedMovie() is not Movie selectedMovie || !selectedMovie.IsTvShow)
+            return;
+
+        var history = HeroPanel.ContinueHistory ?? TvShowWatchHistory.TryGet(selectedMovie.Url);
+        if (history == null)
+            return;
+
+        UserInteractionTracker.Record(selectedMovie, InteractionEventType.Continue);
+        OpenPlayer(selectedMovie, history.Season, history.Episode);
+
+        if (_currentNav == MainNavSection.Explore)
+            _ = RefreshExploreAsync();
+    }
+
+    private void OpenPlayer(Movie movie, int? resumeSeason = null, int? resumeEpisode = null)
+    {
         try
         {
             var settingsWindow = new SettingsWindow();
-            var playerWindow = new TinyZonePlayerWindow(selectedMovie, settingsWindow.SelectedPlayer)
+            var playerWindow = new TinyZonePlayerWindow(movie, settingsWindow.SelectedPlayer, resumeSeason, resumeEpisode)
             {
                 Owner = this
+            };
+            playerWindow.Closed += (_, _) =>
+            {
+                if (GetSelectedMovie() is Movie selected && selected.IsTvShow)
+                    HeroPanel.SetContinueState(TvShowWatchHistory.TryGet(selected.Url));
             };
             playerWindow.Show();
         }
@@ -814,7 +1113,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
     private async void TrailerButton_Click(object sender, RoutedEventArgs e)
     {
-        if (sender is not Button button || button.DataContext is not Movie movie)
+        if (GetSelectedMovie() is not Movie movie)
             return;
 
         var apiKey = SettingsWindow.GetTmdbApiKey();
@@ -828,7 +1127,6 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             return;
         }
 
-        button.IsEnabled = false;
         var previousCursor = Cursor;
         Cursor = Cursors.Wait;
 
@@ -861,14 +1159,13 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         }
         finally
         {
-            button.IsEnabled = true;
             Cursor = previousCursor;
         }
     }
 
     private async void OpeningCreditsButton_Click(object sender, RoutedEventArgs e)
     {
-        if (sender is not Button button || button.DataContext is not Movie movie)
+        if (GetSelectedMovie() is not Movie movie)
             return;
 
         var apiKey = SettingsWindow.GetTmdbApiKey();
@@ -882,7 +1179,6 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             return;
         }
 
-        button.IsEnabled = false;
         var previousCursor = Cursor;
         Cursor = Cursors.Wait;
 
@@ -916,7 +1212,6 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         }
         finally
         {
-            button.IsEnabled = true;
             Cursor = previousCursor;
         }
     }
@@ -930,40 +1225,19 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             MessageBoxImage.Information);
     }
 
-    private void ShuffleButton_Click(object sender, RoutedEventArgs e)
+    private async void ShuffleButton_Click(object sender, RoutedEventArgs e)
     {
         try
         {
-            // Create a random number generator
             var random = new Random();
-            
-            // Shuffle the entire list using Fisher-Yates algorithm
+
             for (int i = _allMovies.Count - 1; i > 0; i--)
             {
                 int j = random.Next(i + 1);
                 (_allMovies[i], _allMovies[j]) = (_allMovies[j], _allMovies[i]);
             }
-            
-            // Clear current visible movies
-            _movies.Clear();
-            _currentIndex = 0;
-            
-            // Reload the initial batch of movies
-            var initialBatch = _allMovies.Take(BatchSize).ToList();
-            foreach (var movie in initialBatch)
-            {
-                _movies.Add(movie);
-                // Start loading the image asynchronously
-                _ = movie.LoadImageAsync();
-            }
-            _currentIndex = initialBatch.Count;
-            
-            // Scroll to top
-            var scrollViewer = FindVisualChild<ScrollViewer>(MoviesListView);
-            if (scrollViewer != null)
-            {
-                scrollViewer.ScrollToTop();
-            }
+
+            await ApplyFiltersCoreAsync();
         }
         catch (Exception ex)
         {
@@ -1104,65 +1378,30 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         contextMenu.IsOpen = true;
     }
 
-    private void SortMovies(string sortBy, bool ascending)
+    private async void SortMovies(string sortBy, bool ascending)
     {
         try
         {
-            // Sort the entire list
             switch (sortBy)
             {
                 case "Year":
-                    if (ascending)
-                    {
-                        _allMovies.Sort((a, b) => string.Compare(a.Year, b.Year, StringComparison.Ordinal));
-                    }
-                    else
-                    {
-                        _allMovies.Sort((a, b) => string.Compare(b.Year, a.Year, StringComparison.Ordinal));
-                    }
+                    _allMovies.Sort((a, b) => ascending
+                        ? string.Compare(a.Year, b.Year, StringComparison.Ordinal)
+                        : string.Compare(b.Year, a.Year, StringComparison.Ordinal));
                     break;
                 case "Genre":
-                    if (ascending)
-                    {
-                        _allMovies.Sort((a, b) => string.Compare(a.Genre, b.Genre, StringComparison.Ordinal));
-                    }
-                    else
-                    {
-                        _allMovies.Sort((a, b) => string.Compare(b.Genre, a.Genre, StringComparison.Ordinal));
-                    }
+                    _allMovies.Sort((a, b) => ascending
+                        ? string.Compare(a.Genre, b.Genre, StringComparison.Ordinal)
+                        : string.Compare(b.Genre, a.Genre, StringComparison.Ordinal));
                     break;
                 case "Country":
-                    if (ascending)
-                    {
-                        _allMovies.Sort((a, b) => string.Compare(a.Country, b.Country, StringComparison.Ordinal));
-                    }
-                    else
-                    {
-                        _allMovies.Sort((a, b) => string.Compare(b.Country, a.Country, StringComparison.Ordinal));
-                    }
+                    _allMovies.Sort((a, b) => ascending
+                        ? string.Compare(a.Country, b.Country, StringComparison.Ordinal)
+                        : string.Compare(b.Country, a.Country, StringComparison.Ordinal));
                     break;
             }
 
-            // Clear current visible movies
-            _movies.Clear();
-            _currentIndex = 0;
-
-            // Reload the initial batch of movies
-            var initialBatch = _allMovies.Take(BatchSize).ToList();
-            foreach (var movie in initialBatch)
-            {
-                _movies.Add(movie);
-                // Start loading the image asynchronously
-                _ = movie.LoadImageAsync();
-            }
-            _currentIndex = initialBatch.Count;
-
-            // Scroll to top
-            var scrollViewer = FindVisualChild<ScrollViewer>(MoviesListView);
-            if (scrollViewer != null)
-            {
-                scrollViewer.ScrollToTop();
-            }
+            await ApplyFiltersCoreAsync();
         }
         catch (Exception ex)
         {
@@ -1172,14 +1411,20 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
     private void FavoriteButton_Click(object sender, RoutedEventArgs e)
     {
-        var button = (Button)sender;
-        var movie = (Movie)button.DataContext;
-        
-        // Toggle favorite status
+        if (GetSelectedMovie() is not Movie movie)
+            return;
+
         movie.IsFavorite = !movie.IsFavorite;
-        
-        // Save favorites to file
+        HeroPanel.UpdateFavoriteVisual(movie.IsFavorite);
         SaveFavorites();
+
+        if (movie.IsFavorite)
+            UserInteractionTracker.Record(movie, InteractionEventType.Favorite);
+
+        if (_showFavoritesOnly && !movie.IsFavorite)
+            ApplyFiltersAsync();
+        else if (_currentNav == MainNavSection.Explore)
+            _ = RefreshExploreAsync();
     }
 
     private void LoadFavorites()
@@ -1218,25 +1463,6 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         {
             Log.Error(ex, "Error saving favorites");
         }
-    }
-
-    private void FavoritesButton_Click(object sender, RoutedEventArgs e)
-    {
-        _showFavoritesOnly = !_showFavoritesOnly;
-        
-        // Update button appearance to show active state
-        if (_showFavoritesOnly)
-        {
-            FavoritesIcon.Foreground = new SolidColorBrush(Color.FromRgb(220, 38, 38)); // Red when active
-            FavoritesButton.ToolTip = "Show All Movies";
-        }
-        else
-        {
-            FavoritesIcon.Foreground = new SolidColorBrush(Color.FromRgb(255, 255, 255)); // White when inactive
-            FavoritesButton.ToolTip = "Show Favorites";
-        }
-        
-        ApplyFilters();
     }
 
     private static string BuildTvShowGenreInfo(Movie show)
@@ -1602,7 +1828,7 @@ public class BooleanToVisibilityConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
     {
-        bool boolValue = (bool)value;
+        var boolValue = value is bool b && b;
         bool inverse = parameter?.ToString() == "Inverse";
         
         if (inverse)

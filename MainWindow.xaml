@@ -7,907 +7,321 @@
         xmlns:fa="http://schemas.fontawesome.io/icons/"
         xmlns:FontAwesome="clr-namespace:FontAwesome.WPF;assembly=FontAwesome.WPF"
         mc:Ignorable="d"
-        Title="TinyCinema" Height="720" Width="800"
+        Title="TinyCinema"
+        Height="800"
+        Width="1280"
+        MinHeight="640"
+        MinWidth="960"
         WindowStartupLocation="CenterScreen"
         Background="Transparent"
-        ResizeMode="NoResize"
+        ResizeMode="CanResize"
         WindowStyle="None"
-        AllowsTransparency="True"
-        Opacity="1">
+        AllowsTransparency="True">
     <Window.Resources>
         <local:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
-        <local:SelectedMovieVisibilityConverter x:Key="SelectedMovieVisibilityConverter"/>
-        <local:SelectedTvShowVisibilityConverter x:Key="SelectedTvShowVisibilityConverter"/>
         <local:FavoriteIconConverter x:Key="FavoriteIconConverter"/>
         <local:FavoriteColorConverter x:Key="FavoriteColorConverter"/>
-        
-        <!-- Action Button Style -->
-        <Style x:Key="ActionButtonStyle" TargetType="Button">
-            <Setter Property="Width" Value="46"/>
-            <Setter Property="Height" Value="32"/>
-            <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Foreground" Value="#FFFFFF"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border Background="{TemplateBinding Background}">
-                            <ContentPresenter HorizontalAlignment="Center" 
-                                            VerticalAlignment="Center"/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Background" Value="#2A2A2A"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
-        <!-- Font Resources -->
-        <FontFamily x:Key="AbsoluteXeroFont">pack://application:,,,/Assets/Absolute Xero.otf#Absolute Xero</FontFamily>
-        
-        <!-- Modern Tooltip Style -->
-        <Style TargetType="ToolTip">
-            <Setter Property="Background" Value="#2A2A2A"/>
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Padding" Value="8,4"/>
-            <Setter Property="FontSize" Value="12"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="ToolTip">
-                        <Border Background="{TemplateBinding Background}"
-                                CornerRadius="4"
-                                BorderThickness="1"
-                                BorderBrush="#3A3A3A">
-                            <ContentPresenter Margin="{TemplateBinding Padding}"/>
-                        </Border>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-        
-        <!-- Modern Toggle Style -->
-        <Style x:Key="ModernToggleStyle" TargetType="ToggleButton">
-            <Setter Property="Width" Value="44"/>
-            <Setter Property="Height" Value="24"/>
-            <Setter Property="Background" Value="#2A2A2A"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="ToggleButton">
-                        <Grid>
-                            <Border x:Name="Background"
-                                    Background="{TemplateBinding Background}"
-                                    CornerRadius="12"
-                                    BorderThickness="1"
-                                    BorderBrush="#3A3A3A"/>
-                            <Border x:Name="Thumb"
-                                    Width="20"
-                                    Height="20"
-                                    CornerRadius="10"
-                                    Background="White"
-                                    HorizontalAlignment="Left"
-                                    Margin="2,0,0,0">
-                                <Border.Effect>
-                                    <DropShadowEffect BlurRadius="4" 
-                                                    ShadowDepth="1" 
-                                                    Opacity="0.2" 
-                                                    Color="Black"/>
-                                </Border.Effect>
-                            </Border>
-                        </Grid>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsChecked" Value="True">
-                                <Setter TargetName="Background" Property="Background" Value="#007ACC"/>
-                                <Setter TargetName="Thumb" Property="HorizontalAlignment" Value="Right"/>
-                                <Setter TargetName="Thumb" Property="Margin" Value="0,0,2,0"/>
-                            </Trigger>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Background" Property="BorderBrush" Value="#4A4A4A"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-        
-        <!-- Modern Button Style -->
-        <Style x:Key="ModernButtonStyle" TargetType="Button">
-            <Setter Property="Background" Value="#2A2A2A"/>
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Padding" Value="16,8"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border Background="{TemplateBinding Background}"
-                                CornerRadius="6"
-                                BorderThickness="1"
-                                BorderBrush="#3A3A3A">
-                            <ContentPresenter HorizontalAlignment="Center" 
-                                            VerticalAlignment="Center"/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Background" Value="#3A3A3A"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-        
-        <!-- Window Opacity Animation -->
-        <Storyboard x:Key="FadeOut">
-            <DoubleAnimation 
-                Storyboard.TargetProperty="Opacity"
-                From="1" To="0.7" Duration="0:0:0.1"/>
-        </Storyboard>
-        <Storyboard x:Key="FadeIn">
-            <DoubleAnimation 
-                Storyboard.TargetProperty="Opacity"
-                From="0.7" To="1" Duration="0:0:0.1"/>
-        </Storyboard>
-        
-        <!-- Window Button Style -->
-        <Style x:Key="WindowButtonStyle" TargetType="Button">
-            <Setter Property="Width" Value="46"/>
-            <Setter Property="Height" Value="32"/>
-            <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Foreground" Value="#FFFFFF"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border Background="{TemplateBinding Background}">
-                            <ContentPresenter HorizontalAlignment="Center" 
-                                            VerticalAlignment="Center"/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Background" Value="#2A2A2A"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-        
-        <!-- Close Button Style -->
-        <Style x:Key="CloseButtonStyle" TargetType="Button" BasedOn="{StaticResource WindowButtonStyle}">
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border Background="{TemplateBinding Background}">
-                            <ContentPresenter HorizontalAlignment="Center" 
-                                            VerticalAlignment="Center"/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Background" Value="#E81123"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
-        <!-- Modern Search Box Style -->
-        <Style x:Key="SearchBoxStyle" TargetType="TextBox">
-            <Setter Property="Background" Value="#1A1A1A"/>
-            <Setter Property="Foreground" Value="#FFFFFF"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Padding" Value="40,12"/>
-            <Setter Property="FontSize" Value="14"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="TextBox">
-                        <Border Background="{TemplateBinding Background}"
-                                CornerRadius="12"
-                                BorderThickness="1"
-                                BorderBrush="#2A2A2A">
-                            <Grid>
-                                <!-- Modern Search Icon -->
-                                <fa:FontAwesome Icon="Search" 
-                                               Foreground="#666666"
-                                               Width="16" 
-                                               Height="16"
-                                               HorizontalAlignment="Left"
-                                               Margin="15,0,0,0"/>
-                                
-                                <TextBlock Text="Search movies..."
-                                         Foreground="#666666"
-                                         Margin="40,12,0,0"
-                                         FontSize="14"
-                                         Visibility="{Binding Text.IsEmpty, RelativeSource={RelativeSource TemplatedParent}, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                                <ScrollViewer x:Name="PART_ContentHost" 
-                                            Margin="0" 
-                                            VerticalAlignment="Center"/>
-                            </Grid>
-                        </Border>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
-        <!-- Modern ListView Item Container Style -->
-        <Style TargetType="ListViewItem">
-            <Setter Property="Padding" Value="0"/>
-            <Setter Property="Margin" Value="12,6"/>
-            <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="ListViewItem">
-                        <Border x:Name="Border"
-                                Background="#1A1A1A"
-                                CornerRadius="16"
-                                BorderThickness="1"
-                                BorderBrush="#2A2A2A">
-                            <ContentPresenter/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Border" Property="Background" Value="#252525"/>
-                                <Setter TargetName="Border" Property="BorderBrush" Value="#3A3A3A"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
-        <!-- Modern ScrollBar Style -->
-        <Style x:Key="ModernScrollBarStyle" TargetType="ScrollBar">
-            <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Width" Value="8"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="ScrollBar">
-                        <Track x:Name="PART_Track" 
-                               IsDirectionReversed="True"
-                               Focusable="False">
-                            <Track.Thumb>
-                                <Thumb x:Name="Thumb" 
-                                       Background="#2A2A2A"
-                                       BorderThickness="0">
-                                    <Thumb.Template>
-                                        <ControlTemplate TargetType="Thumb">
-                                            <Border Background="{TemplateBinding Background}"
-                                                    CornerRadius="4"/>
-                                        </ControlTemplate>
-                                    </Thumb.Template>
-                                </Thumb>
-                            </Track.Thumb>
-                        </Track>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Thumb" Property="Background" Value="#3A3A3A"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
-        <!-- Modern ScrollViewer Style -->
-        <Style x:Key="ModernScrollViewerStyle" TargetType="ScrollViewer">
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="ScrollViewer">
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="Auto"/>
-                            </Grid.ColumnDefinitions>
-                            <ScrollContentPresenter Grid.Column="0"/>
-                            <ScrollBar x:Name="PART_VerticalScrollBar"
-                                     Grid.Column="1"
-                                     Style="{StaticResource ModernScrollBarStyle}"
-                                     Orientation="Vertical"
-                                     Value="{TemplateBinding VerticalOffset}"
-                                     Maximum="{TemplateBinding ScrollableHeight}"
-                                     ViewportSize="{TemplateBinding ViewportHeight}"
-                                     Visibility="{TemplateBinding ComputedVerticalScrollBarVisibility}"/>
-                        </Grid>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
-        <!-- Modern ComboBox Style -->
-        <Style x:Key="ModernComboBoxStyle" TargetType="ComboBox">
-            <Setter Property="Background" Value="#1A1A1A"/>
-            <Setter Property="Foreground" Value="#FFFFFF"/>
-            <Setter Property="BorderBrush" Value="#2A2A2A"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Padding" Value="8,8"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="ComboBox">
-                        <Grid>
-                            <ToggleButton x:Name="PART_Button"
-                                          Background="{TemplateBinding Background}"
-                                          BorderBrush="{TemplateBinding BorderBrush}"
-                                          BorderThickness="{TemplateBinding BorderThickness}"
-                                          Focusable="False"
-                                          IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
-                                          ClickMode="Press">
-                                <DockPanel>
-                                    <ContentPresenter x:Name="ContentSite"
-                                                      VerticalAlignment="Center"
-                                                      HorizontalAlignment="Left"
-                                                      Margin="4,0,0,0"
-                                                      RecognizesAccessKey="True"/>
-                                    <Path x:Name="Arrow"
-                                          Width="12" Height="8"
-                                          Margin="8,0,8,0"
-                                          VerticalAlignment="Center"
-                                          HorizontalAlignment="Right"
-                                          Fill="#FFFFFF"
-                                          Data="M 0 0 L 6 8 L 12 0 Z"/>
-                                </DockPanel>
-                            </ToggleButton>
-                            <Popup x:Name="PART_Popup"
-                                   Placement="Bottom"
-                                   IsOpen="{TemplateBinding IsDropDownOpen}"
-                                   AllowsTransparency="True"
-                                   Focusable="False"
-                                   PopupAnimation="Slide">
-                                <Border Background="#1A1A1A"
-                                        BorderBrush="#2A2A2A"
-                                        BorderThickness="1"
-                                        CornerRadius="6">
-                                    <ScrollViewer MaxHeight="300">
-                                        <ItemsPresenter/>
-                                    </ScrollViewer>
-                                </Border>
-                            </Popup>
-                        </Grid>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="PART_Button" Property="Background" Value="#232323"/>
-                                <Setter TargetName="PART_Button" Property="BorderBrush" Value="#3A3A3A"/>
-                            </Trigger>
-                            <Trigger Property="IsKeyboardFocusWithin" Value="True">
-                                <Setter TargetName="PART_Button" Property="Background" Value="#232323"/>
-                                <Setter TargetName="PART_Button" Property="BorderBrush" Value="#3A3A3A"/>
-                            </Trigger>
-                            <Trigger Property="IsEnabled" Value="False">
-                                <Setter Property="Foreground" Value="#555"/>
-                                <Setter TargetName="PART_Button" Property="Background" Value="#181818"/>
-                                <Setter TargetName="PART_Button" Property="BorderBrush" Value="#222"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
-        <!-- Modern ComboBoxItem Style -->
-        <Style TargetType="ComboBoxItem">
-            <Setter Property="Background" Value="#1A1A1A"/>
-            <Setter Property="Foreground" Value="#FFFFFF"/>
-            <Setter Property="Padding" Value="8,8"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="ComboBoxItem">
-                        <Border Background="{TemplateBinding Background}"
-                                BorderThickness="0"
-                                Padding="{TemplateBinding Padding}">
-                            <ContentPresenter/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Background" Value="#2A2A2A"/>
-                                <Setter Property="Foreground" Value="#FFFFFF"/>
-                            </Trigger>
-                            <Trigger Property="IsSelected" Value="True">
-                                <Setter Property="Background" Value="#3A3A3A"/>
-                                <Setter Property="Foreground" Value="#FFFFFF"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
     </Window.Resources>
-    
-    <Border Background="#0F0F0F" 
-            CornerRadius="20"
+
+    <Border Background="{DynamicResource AppBackgroundBrush}"
+            CornerRadius="16"
             BorderThickness="1"
-            BorderBrush="#2A2A2A">
-    <Grid>
-        <Grid.RowDefinitions>
-                <RowDefinition Height="32"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-        </Grid.RowDefinitions>
+            BorderBrush="{DynamicResource BorderBrush}">
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="220"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
 
-            <!-- Custom Title Bar -->
-            <Grid Grid.Row="0" 
-                  Background="#1A1A1A"
-                  MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
-                
-                <!-- Title -->
-                <TextBlock Text="TinyCinema" 
-                          Foreground="White"
-                          FontSize="14"
-                          Margin="12,0,0,0"
-                          VerticalAlignment="Center"/>
-                
-                <!-- Window Controls -->
-                <StackPanel Grid.Column="1" 
-                            Orientation="Horizontal" 
-                            HorizontalAlignment="Right">
-                    <Button x:Name="ShuffleButton" 
-                            Click="ShuffleButton_Click"
-                            Style="{StaticResource ActionButtonStyle}"
-                            ToolTip="Shuffle Movies">
-                        <FontAwesome:FontAwesome Icon="Random" 
-                                               Foreground="White" 
-                                               Width="16" 
-                                               Height="16"/>
-                    </Button>
-                    <Button x:Name="SortButton" 
-                            Click="SortButton_Click"
-                            Style="{StaticResource ActionButtonStyle}"
-                            ToolTip="Sort Movies">
-                        <FontAwesome:FontAwesome Icon="Sort" 
-                                               Foreground="White" 
-                                               Width="16" 
-                                               Height="16"/>
-                    </Button>
-                    <Button x:Name="FavoritesButton" 
-                            Click="FavoritesButton_Click"
-                            Style="{StaticResource ActionButtonStyle}"
-                            ToolTip="Show Favorites">
-                        <FontAwesome:FontAwesome x:Name="FavoritesIcon"
-                                               Icon="Heart" 
-                                               Foreground="White" 
-                                               Width="16" 
-                                               Height="16"/>
-                    </Button>
-                    <Button x:Name="SettingsButton" 
-                            Click="SettingsButton_Click"
-                            Style="{StaticResource ActionButtonStyle}"
-                            ToolTip="Settings">
-                        <FontAwesome:FontAwesome Icon="Cog" 
-                                               Foreground="White" 
-                                               Width="16" 
-                                               Height="16"/>
-                    </Button>
-                    <Button Style="{StaticResource WindowButtonStyle}"
-                            Click="MinimizeButton_Click">
-                        <fa:FontAwesome Icon="WindowMinimize" 
-                                       Foreground="White"
-                                       Width="12" 
-                                       Height="12"/>
-                    </Button>
-                    <Button Style="{StaticResource WindowButtonStyle}"
-                            Click="MaximizeButton_Click">
-                        <fa:FontAwesome Icon="WindowMaximize" 
-                                       Foreground="White"
-                                       Width="12" 
-                                       Height="12"/>
-                    </Button>
-                    <Button Style="{StaticResource CloseButtonStyle}"
-                            Click="CloseButton_Click">
-                        <fa:FontAwesome Icon="Close" 
-                                       Foreground="White"
-                                       Width="12" 
-                                       Height="12"/>
-                    </Button>
-                </StackPanel>
-            </Grid>
-
-            <!-- Modern Gradient Header -->
-            <Border Grid.Row="1">
-                <Border.Background>
-                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
-                        <GradientStop Color="#1A1A1A" Offset="0"/>
-                        <GradientStop Color="#0F0F0F" Offset="1"/>
-                    </LinearGradientBrush>
-                </Border.Background>
-                <Grid Margin="24,16">
-                    <StackPanel Orientation="Horizontal">
-                        <fa:FontAwesome Icon="Film" 
-                                       Foreground="White"
-                                       Width="16" 
-                                       Height="16"
-                                       Margin="0,0,8,0"/>
-            <TextBlock Text="TinyCinema" 
-                                  FontFamily="{StaticResource AbsoluteXeroFont}"
-                                  FontSize="18" 
-                                  FontWeight="Bold" 
-                                  Foreground="White">
-                            <TextBlock.Effect>
-                                <DropShadowEffect ShadowDepth="2" 
-                                                Direction="330" 
-                                                Color="#000000" 
-                                                Opacity="0.4" 
-                                                BlurRadius="5"/>
-                            </TextBlock.Effect>
-                        </TextBlock>
-                        <TextBlock Text="{Binding CatalogCountText}"
-                                 FontSize="14"
-                                 Foreground="#B3FFFFFF"
-                                 Margin="8,0,0,0"
-                                 VerticalAlignment="Center"/>
-                    </StackPanel>
-                </Grid>
-        </Border>
-
-            <!-- Modern Search Bar -->
-            <Border Grid.Row="2" 
-                    Background="#0F0F0F" 
-                    Padding="24,20"
-                    BorderThickness="0,1,0,1"
-                    BorderBrush="#1A1A1A">
+            <!-- Sidebar -->
+            <Border Grid.Column="0"
+                    Background="{DynamicResource SidebarBackgroundBrush}"
+                    CornerRadius="16,0,0,16"
+                    BorderThickness="0,0,1,0"
+                    BorderBrush="{DynamicResource BorderBrush}">
                 <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
-                    
-                    <!-- Search Box -->
-                    <TextBox x:Name="SearchBox"
-                             Grid.Column="0"
-                             Style="{StaticResource SearchBoxStyle}"
-                             TextChanged="SearchBox_TextChanged"/>
-                    
-                    <!-- Content Type Filter -->
-                    <ComboBox x:Name="ContentTypeFilter"
-                              Grid.Column="1"
-                              Margin="12,0,0,0"
-                              Width="130"
-                              Style="{StaticResource ModernComboBoxStyle}"
-                              SelectionChanged="ContentTypeFilter_SelectionChanged">
-                        <ComboBox.ItemTemplate>
-                            <DataTemplate>
-                                <StackPanel Orientation="Horizontal">
-                                    <FontAwesome:FontAwesome Icon="Filter"
-                                                   Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ComboBoxItem}}"
-                                                   Width="12"
-                                                   Height="12"
-                                                   Margin="0,0,8,0"/>
-                                    <TextBlock Text="{Binding}"
-                                             Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ComboBoxItem}}"/>
-                                </StackPanel>
-                            </DataTemplate>
-                        </ComboBox.ItemTemplate>
-                    </ComboBox>
-                    
-                    <!-- Genre Filter -->
-                    <ComboBox x:Name="GenreFilter"
-                              Grid.Column="2"
-                              Margin="12,0,0,0"
-                              Width="150"
-                              Style="{StaticResource ModernComboBoxStyle}"
-                              SelectionChanged="GenreFilter_SelectionChanged">
-                        <ComboBox.ItemTemplate>
-                            <DataTemplate>
-                                <StackPanel Orientation="Horizontal">
-                                    <FontAwesome:FontAwesome Icon="Tag" 
-                                                   Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ComboBoxItem}}"
-                                                   Width="12" 
-                                                   Height="12"
-                                                   Margin="0,0,8,0"/>
-                                    <TextBlock Text="{Binding}" 
-                                             Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ComboBoxItem}}"/>
-                                </StackPanel>
-                            </DataTemplate>
-                        </ComboBox.ItemTemplate>
-                    </ComboBox>
-                    
-                    <!-- Country Filter -->
-                    <ComboBox x:Name="CountryFilter"
-                              Grid.Column="3"
-                              Margin="12,0,0,0"
-                              Width="150"
-                              Style="{StaticResource ModernComboBoxStyle}"
-                              SelectionChanged="CountryFilter_SelectionChanged">
-                        <ComboBox.ItemTemplate>
-                            <DataTemplate>
-                                <StackPanel Orientation="Horizontal">
-                                    <FontAwesome:FontAwesome Icon="MapMarker" 
-                                                   Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ComboBoxItem}}"
-                                                   Width="12" 
-                                                   Height="12"
-                                                   Margin="0,0,8,0"/>
-                                    <TextBlock Text="{Binding}" 
-                                             Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ComboBoxItem}}"/>
-                                </StackPanel>
-                            </DataTemplate>
-                        </ComboBox.ItemTemplate>
-                    </ComboBox>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Brand -->
+                    <StackPanel Grid.Row="0" Margin="20,24,16,24">
+                        <TextBlock Text="TinyCinema"
+                                   FontFamily="{StaticResource AbsoluteXeroFont}"
+                                   FontSize="16"
+                                   FontWeight="Bold"
+                                   Foreground="{DynamicResource AccentBrush}"/>
+                        <TextBlock Text="{Binding CatalogCountText}"
+                                   Foreground="{DynamicResource TextMutedBrush}"
+                                   FontSize="12"
+                                   Margin="0,6,0,0"/>
+                    </StackPanel>
+
+                    <!-- Navigation -->
+                    <StackPanel Grid.Row="1" Margin="0,0,0,8">
+                        <Button x:Name="NavMoviesButton"
+                                Tag="Movies"
+                                Style="{StaticResource SidebarNavButtonStyle}"
+                                Click="NavButton_Click">
+                            <StackPanel Orientation="Horizontal">
+                                <FontAwesome:FontAwesome Icon="Film" Width="16" Height="16" Margin="0,0,12,0"/>
+                                <TextBlock Text="Movies" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                        <Button x:Name="NavTvShowsButton"
+                                Tag="TvShows"
+                                Style="{StaticResource SidebarNavButtonStyle}"
+                                Click="NavButton_Click">
+                            <StackPanel Orientation="Horizontal">
+                                <FontAwesome:FontAwesome Icon="Television" Width="16" Height="16" Margin="0,0,12,0"/>
+                                <TextBlock Text="TV Shows" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                        <Button x:Name="NavExploreButton"
+                                Tag="Explore"
+                                Style="{StaticResource SidebarNavButtonStyle}"
+                                Click="NavButton_Click">
+                            <StackPanel Orientation="Horizontal">
+                                <FontAwesome:FontAwesome Icon="Compass" Width="16" Height="16" Margin="0,0,12,0"/>
+                                <TextBlock Text="Explore" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                        <Button x:Name="NavFavoritesButton"
+                                Tag="Favorites"
+                                Style="{StaticResource SidebarNavButtonStyle}"
+                                Click="NavButton_Click">
+                            <StackPanel Orientation="Horizontal">
+                                <FontAwesome:FontAwesome Icon="Heart" Width="16" Height="16" Margin="0,0,12,0"/>
+                                <TextBlock Text="Favorites" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+
+                    <!-- Settings at bottom -->
+                    <Button Grid.Row="2"
+                            x:Name="NavSettingsButton"
+                            Style="{StaticResource SidebarNavButtonStyle}"
+                            Click="SettingsButton_Click"
+                            Margin="0,0,0,16">
+                        <StackPanel Orientation="Horizontal">
+                            <FontAwesome:FontAwesome Icon="Cog" Width="16" Height="16" Margin="0,0,12,0"/>
+                            <TextBlock Text="Settings" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
                 </Grid>
             </Border>
 
-            <!-- Modern Movie List -->
-            <ScrollViewer Grid.Row="3" 
-                         Style="{StaticResource ModernScrollViewerStyle}"
-                         VerticalScrollBarVisibility="Auto"
-                         HorizontalScrollBarVisibility="Disabled"
-                         PanningMode="VerticalOnly"
-                         IsDeferredScrollingEnabled="True"
-                         CanContentScroll="True"
-                         Background="#0F0F0F"
-                         PreviewMouseWheel="ScrollViewer_PreviewMouseWheel">
-            <ListView x:Name="MoviesListView" 
-                         Grid.Row="1" 
-                         Margin="20,0,20,20"
-                     Background="Transparent"
-                         BorderThickness="0"
-                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                         MouseLeftButtonDown="MoviesListView_MouseLeftButtonDown"
-                         MouseMove="MoviesListView_MouseMove"
-                         MouseLeftButtonUp="MoviesListView_MouseLeftButtonUp"
-                         KeyDown="MoviesListView_KeyDown"
-                         PreviewMouseWheel="ScrollViewer_PreviewMouseWheel"
-                         SelectionMode="Single"
-                         SelectionChanged="MoviesListView_SelectionChanged">
-                <ListView.ItemTemplate>
-                    <DataTemplate>
-                            <Grid Margin="0,8">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="120"/>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
-                                
-                                <!-- Movie Poster -->
-                                <Border Grid.Column="0" 
-                                        Width="120" 
-                                        Height="180" 
-                                        CornerRadius="8"
-                                        Background="#1A1A1A"
-                                        ClipToBounds="True">
-                                    <Grid>
-                                        <!-- Loading Placeholder -->
-                                        <Border Background="#2A2A2A" 
-                                                Visibility="{Binding IsLoading, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                            <fa:FontAwesome Icon="Spinner" 
-                                                           Foreground="#666666"
-                                                           Width="32" 
-                                                           Height="32"
-                                                           HorizontalAlignment="Center"
-                                                           VerticalAlignment="Center">
-                                                <fa:FontAwesome.RenderTransform>
-                                                    <RotateTransform x:Name="SpinnerRotation" Angle="0"/>
-                                                </fa:FontAwesome.RenderTransform>
-                                                <fa:FontAwesome.Triggers>
-                                                    <EventTrigger RoutedEvent="Loaded">
-                                                        <BeginStoryboard>
-                                                            <Storyboard>
-                                                                <DoubleAnimation 
-                                                                    Storyboard.TargetName="SpinnerRotation"
-                                                                    Storyboard.TargetProperty="Angle"
-                                                                    From="0" To="360" Duration="0:0:1"
-                                                                    RepeatBehavior="Forever"/>
-                                                            </Storyboard>
-                                                        </BeginStoryboard>
-                                                    </EventTrigger>
-                                                </fa:FontAwesome.Triggers>
-                                            </fa:FontAwesome>
+            <!-- Main content -->
+            <Grid Grid.Column="1">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="32"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <!-- Title bar -->
+                <Grid Grid.Row="0"
+                      Background="{DynamicResource TitleBarBackgroundBrush}"
+                      MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="1" Orientation="Horizontal">
+                        <Button x:Name="ShuffleButton"
+                                Click="ShuffleButton_Click"
+                                Style="{StaticResource ActionButtonStyle}"
+                                ToolTip="Shuffle">
+                            <FontAwesome:FontAwesome Icon="Random" Foreground="White" Width="14" Height="14"/>
+                        </Button>
+                        <Button x:Name="SortButton"
+                                Click="SortButton_Click"
+                                Style="{StaticResource ActionButtonStyle}"
+                                ToolTip="Sort">
+                            <FontAwesome:FontAwesome Icon="Sort" Foreground="White" Width="14" Height="14"/>
+                        </Button>
+                        <Button Style="{StaticResource WindowButtonStyle}" Click="MinimizeButton_Click">
+                            <fa:FontAwesome Icon="WindowMinimize" Foreground="White" Width="12" Height="12"/>
+                        </Button>
+                        <Button Style="{StaticResource WindowButtonStyle}" Click="MaximizeButton_Click">
+                            <fa:FontAwesome Icon="WindowMaximize" Foreground="White" Width="12" Height="12"/>
+                        </Button>
+                        <Button Style="{StaticResource CloseButtonStyle}" Click="CloseButton_Click">
+                            <fa:FontAwesome Icon="Close" Foreground="White" Width="12" Height="12"/>
+                        </Button>
+                    </StackPanel>
+                </Grid>
+
+                <!-- Search & filters -->
+                <Border Grid.Row="1" Padding="24,16,24,12">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid Grid.Column="0">
+                            <TextBox x:Name="SearchBox"
+                                     Style="{StaticResource SearchBoxStyle}"
+                                     TextChanged="SearchBox_TextChanged"/>
+                            <TextBlock x:Name="SearchPlaceholder"
+                                       Text="Search for movies or TV shows..."
+                                       Foreground="{DynamicResource InputMutedForegroundBrush}"
+                                       Margin="40,0,0,0"
+                                       VerticalAlignment="Center"
+                                       IsHitTestVisible="False"/>
+                        </Grid>
+                        <ComboBox x:Name="GenreFilter"
+                                  Grid.Column="1"
+                                  Margin="12,0,0,0"
+                                  Width="150"
+                                  Style="{StaticResource ModernComboBoxStyle}"
+                                  SelectionChanged="GenreFilter_SelectionChanged"/>
+                        <ComboBox x:Name="CountryFilter"
+                                  Grid.Column="2"
+                                  Margin="12,0,0,0"
+                                  Width="150"
+                                  Style="{StaticResource ModernComboBoxStyle}"
+                                  SelectionChanged="CountryFilter_SelectionChanged"/>
+                    </Grid>
+                </Border>
+
+                <!-- Hero panel -->
+                <local:CatalogHeroPanel x:Name="HeroPanel"
+                                        Grid.Row="2"
+                                        Margin="24,0,24,0"/>
+
+                <!-- Poster grid -->
+                <Grid Grid.Row="3" Margin="24,16,24,20">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <TextBlock x:Name="GridSectionTitle"
+                               Grid.Row="0"
+                               Text="Explore"
+                               Foreground="White"
+                               FontSize="18"
+                               FontWeight="SemiBold"
+                               Margin="0,0,0,12"/>
+
+                    <TextBlock x:Name="EmptyGridText"
+                               Grid.Row="1"
+                               Text="No titles match your filters."
+                               Foreground="{DynamicResource TextMutedBrush}"
+                               FontSize="15"
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Center"
+                               Visibility="Collapsed"/>
+
+                    <ScrollViewer x:Name="PosterScrollViewer"
+                                  Grid.Row="1"
+                                  Style="{StaticResource ModernScrollViewerStyle}"
+                                  VerticalScrollBarVisibility="Auto"
+                                  HorizontalScrollBarVisibility="Disabled"
+                                  PreviewMouseWheel="ScrollViewer_PreviewMouseWheel">
+                        <ListView x:Name="MoviesListView"
+                                  Background="Transparent"
+                                  BorderThickness="0"
+                                  ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                  ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                                  SelectionMode="Single"
+                                  KeyDown="MoviesListView_KeyDown"
+                                  SelectionChanged="MoviesListView_SelectionChanged">
+                            <ListView.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <WrapPanel Orientation="Horizontal"/>
+                                </ItemsPanelTemplate>
+                            </ListView.ItemsPanel>
+                            <ListView.ItemContainerStyle>
+                                <Style TargetType="ListViewItem">
+                                    <Setter Property="Padding" Value="0"/>
+                                    <Setter Property="Margin" Value="0,0,14,14"/>
+                                    <Setter Property="Background" Value="Transparent"/>
+                                    <Setter Property="BorderThickness" Value="0"/>
+                                    <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                                    <Setter Property="VerticalContentAlignment" Value="Stretch"/>
+                                    <Setter Property="Template">
+                                        <Setter.Value>
+                                            <ControlTemplate TargetType="ListViewItem">
+                                                <Border x:Name="CardBorder"
+                                                        Width="150"
+                                                        Height="225"
+                                                        CornerRadius="10"
+                                                        BorderThickness="2"
+                                                        BorderBrush="Transparent"
+                                                        Background="{DynamicResource PanelBackgroundBrush}"
+                                                        ClipToBounds="True"
+                                                        Cursor="Hand">
+                                                    <ContentPresenter/>
+                                                </Border>
+                                                <ControlTemplate.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter TargetName="CardBorder" Property="BorderBrush" Value="#334155"/>
+                                                    </Trigger>
+                                                    <Trigger Property="IsSelected" Value="True">
+                                                        <Setter TargetName="CardBorder" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                                                    </Trigger>
+                                                </ControlTemplate.Triggers>
+                                            </ControlTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                </Style>
+                            </ListView.ItemContainerStyle>
+                            <ListView.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid Width="150" Height="225">
+                                        <!-- Loading -->
+                                        <Border Background="{DynamicResource PanelBackgroundBrush}"
+                                                Visibility="{Binding IsLoading, Converter={StaticResource BooleanToVisibilityConverter}, ConverterParameter=Inverse}">
+                                            <fa:FontAwesome Icon="Spinner"
+                                                            Foreground="{DynamicResource InputMutedForegroundBrush}"
+                                                            Width="28"
+                                                            Height="28"
+                                                            HorizontalAlignment="Center"
+                                                            VerticalAlignment="Center"/>
                                         </Border>
-                                        
-                                        <!-- Movie Poster Image -->
-                                        <Image Source="{Binding CachedImage}" 
+
+                                        <!-- Poster -->
+                                        <Image Source="{Binding CachedImage}"
                                                Stretch="UniformToFill"
-                                               RenderOptions.BitmapScalingMode="HighQuality">
-                                            <Image.Effect>
-                                                <DropShadowEffect BlurRadius="10" 
-                                                                ShadowDepth="2" 
-                                                                Opacity="0.3" 
-                                                                Color="Black"/>
-                                            </Image.Effect>
-                                        </Image>
+                                               RenderOptions.BitmapScalingMode="HighQuality"/>
+
+                                        <!-- Title overlay -->
+                                        <Border VerticalAlignment="Bottom">
+                                            <Border.Background>
+                                                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                                    <GradientStop Color="#00000000" Offset="0"/>
+                                                    <GradientStop Color="#DD0B0F14" Offset="0.35"/>
+                                                    <GradientStop Color="#F00B0F14" Offset="1"/>
+                                                </LinearGradientBrush>
+                                            </Border.Background>
+                                            <TextBlock Text="{Binding Title}"
+                                                       Foreground="White"
+                                                       FontSize="13"
+                                                       FontWeight="SemiBold"
+                                                       TextTrimming="CharacterEllipsis"
+                                                       TextWrapping="Wrap"
+                                                       MaxHeight="40"
+                                                       Margin="10,24,10,10"/>
+                                        </Border>
                                     </Grid>
-                                </Border>
+                                </DataTemplate>
+                            </ListView.ItemTemplate>
+                        </ListView>
+                    </ScrollViewer>
 
-                                <!-- Movie Info -->
-                                <StackPanel Grid.Column="1" 
-                                          Margin="16,0,0,0" 
-                                          VerticalAlignment="Center">
-                                <TextBlock Text="{Binding Title}" 
-                                             FontSize="16" 
-                                             FontWeight="SemiBold" 
-                                          Foreground="White"
-                                          TextWrapping="Wrap"/>
-                                    <TextBlock Text="{Binding Year}" 
-                                              FontSize="14" 
-                                              Foreground="#B3FFFFFF" 
-                                              Margin="0,4,0,0"/>
-                                    <TextBlock Text="{Binding ContentTypeLabel}"
-                                              FontSize="12"
-                                              Foreground="#808080"
-                                              Margin="0,2,0,0"/>
-                                    
-                                    <!-- Genre with icon -->
-                                    <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                                        <FontAwesome:FontAwesome Icon="Tag" 
-                                                       Foreground="#B3FFFFFF"
-                                                       Width="12" 
-                                                       Height="12"
-                                                       Margin="0,0,6,0"/>
-                                        <TextBlock Text="{Binding Genre}" 
-                                                  FontSize="12" 
-                                                  Foreground="#B3FFFFFF"/>
-                                    </StackPanel>
-                                    
-                                    <!-- Duration with icon -->
-                                    <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
-                                        <FontAwesome:FontAwesome Icon="HourglassHalf" 
-                                                       Foreground="#B3FFFFFF"
-                                                       Width="12" 
-                                                       Height="12"
-                                                       Margin="0,0,6,0"/>
-                                        <TextBlock Text="{Binding Duration}" 
-                                                  FontSize="12" 
-                                                  Foreground="#B3FFFFFF"/>
-                                    </StackPanel>
-                                    
-                                    <!-- Country with icon -->
-                                    <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
-                                        <FontAwesome:FontAwesome Icon="MapMarker" 
-                                                       Foreground="#B3FFFFFF"
-                                                       Width="12" 
-                                                       Height="12"
-                                                       Margin="0,0,6,0"/>
-                                        <TextBlock Text="{Binding Country}" 
-                                                  FontSize="12" 
-                                                  Foreground="#B3FFFFFF"/>
-                                    </StackPanel>
-                                </StackPanel>
-
-                                <!-- Favorite Icon -->
-                                <Button Grid.Column="2"
-                                        Style="{StaticResource WindowButtonStyle}"
-                                        Click="FavoriteButton_Click"
-                                        Margin="8,0,0,0"
-                                        Padding="8"
-                                        ToolTip="Add to favorites"
-                                        Visibility="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListViewItem}, Converter={StaticResource BooleanToVisibilityConverter}, ConverterParameter=Inverse}">
-                                    <fa:FontAwesome x:Name="FavoriteIcon"
-                                                   Icon="{Binding IsFavorite, Converter={StaticResource FavoriteIconConverter}}"
-                                                   Foreground="{Binding IsFavorite, Converter={StaticResource FavoriteColorConverter}}"
-                                                   Width="16" 
-                                                   Height="16"/>
-                                </Button>
-
-                                <!-- URL Icon -->
-                                <Button Grid.Column="3"
-                                        Style="{StaticResource WindowButtonStyle}"
-                                        Click="UrlButton_Click"
-                                        Margin="8,0,0,0"
-                                        Padding="8"
-                                        ToolTip="Open movie URL"
-                                        Visibility="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListViewItem}, Converter={StaticResource BooleanToVisibilityConverter}, ConverterParameter=Inverse}">
-                                    <fa:FontAwesome Icon="Link" 
-                                                   Foreground="White"
-                                                   Width="16" 
-                                                   Height="16"/>
-                                </Button>
-
-                                <!-- Play Icon -->
-                                <Button Grid.Column="4"
-                                        Style="{StaticResource WindowButtonStyle}"
-                                        Click="PlayButton_Click"
-                                        Margin="8,0,0,0"
-                                        Padding="8"
-                                        ToolTip="Play movie"
-                                        Visibility="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListViewItem}, Converter={StaticResource BooleanToVisibilityConverter}, ConverterParameter=Inverse}">
-                                    <fa:FontAwesome Icon="Play" 
-                                                   Foreground="White"
-                                                   Width="16" 
-                                                   Height="16"/>
-                                </Button>
-
-                                <!-- Trailer Icon (movies) -->
-                                <Button Grid.Column="5"
-                                        Style="{StaticResource WindowButtonStyle}"
-                                        Click="TrailerButton_Click"
-                                        Margin="8,0,0,0"
-                                        Padding="8"
-                                        ToolTip="Watch trailer">
-                                    <Button.Visibility>
-                                        <MultiBinding Converter="{StaticResource SelectedMovieVisibilityConverter}">
-                                            <Binding Path="IsSelected" RelativeSource="{RelativeSource AncestorType=ListViewItem}"/>
-                                            <Binding Path="IsTvShow"/>
-                                        </MultiBinding>
-                                    </Button.Visibility>
-                                    <fa:FontAwesome Icon="Film" 
-                                                   Foreground="White"
-                                                   Width="16" 
-                                                   Height="16"/>
-                                </Button>
-
-                                <!-- Opening Credits Icon (TV shows) -->
-                                <Button Grid.Column="5"
-                                        Style="{StaticResource WindowButtonStyle}"
-                                        Click="OpeningCreditsButton_Click"
-                                        Margin="8,0,0,0"
-                                        Padding="8"
-                                        ToolTip="Play opening credits">
-                                    <Button.Visibility>
-                                        <MultiBinding Converter="{StaticResource SelectedTvShowVisibilityConverter}">
-                                            <Binding Path="IsSelected" RelativeSource="{RelativeSource AncestorType=ListViewItem}"/>
-                                            <Binding Path="IsTvShow"/>
-                                        </MultiBinding>
-                                    </Button.Visibility>
-                                    <fa:FontAwesome Icon="PlayCircle"
-                                                   Foreground="White"
-                                                   Width="16"
-                                                   Height="16"/>
-                                </Button>
-
-                                <!-- Info Icon -->
-                                <Button Grid.Column="6"
-                                        Style="{StaticResource WindowButtonStyle}"
-                                        Margin="8,0,8,0"
-                                        Padding="8"
-                                        Click="InfoButton_Click"
-                                        ToolTip="{Binding DetailsToolTip}"
-                                        Visibility="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListViewItem}, Converter={StaticResource BooleanToVisibilityConverter}, ConverterParameter=Inverse}">
-                                    <fa:FontAwesome Icon="InfoCircle" 
-                                                   Foreground="White"
-                                                   Width="16" 
-                                                   Height="16"/>
-                                </Button>
-
-                                <!-- Roku Icon -->
-                                <Button Grid.Column="7"
-                                        Style="{StaticResource WindowButtonStyle}"
-                                        Margin="8,0,8,0"
-                                        Padding="8"
-                                        Width="52"
-                                        Height="38"
-                                        Click="RokuButton_Click"
-                                        ToolTip="Play on Roku"
-                                        Visibility="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListViewItem}, Converter={StaticResource BooleanToVisibilityConverter}, ConverterParameter=Inverse}">
-                                    <fa:FontAwesome Icon="Tv" 
-                                                   Foreground="White"
-                                                   Width="16" 
-                                                   Height="16"/>
-                                </Button>
-                            </Grid>
-                    </DataTemplate>
-                </ListView.ItemTemplate>
-                    <ListView.ItemContainerStyle>
-                        <Style TargetType="ListViewItem">
-                            <Setter Property="Background" Value="Transparent"/>
-                            <Setter Property="Padding" Value="0"/>
-                            <Setter Property="Margin" Value="0"/>
-                            <Setter Property="BorderThickness" Value="0"/>
-                            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
-                            <Style.Triggers>
-                                <Trigger Property="IsSelected" Value="True">
-                                    <Setter Property="Background" Value="#1A1A1A"/>
-                                </Trigger>
-                                <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter Property="Background" Value="#1AFFFFFF"/>
-                                </Trigger>
-                            </Style.Triggers>
-                        </Style>
-                    </ListView.ItemContainerStyle>
-            </ListView>
-        </ScrollViewer>
-    </Grid>
+                    <local:ExploreHomePanel x:Name="ExploreHomePanel"
+                                            Grid.Row="1"
+                                            VerticalAlignment="Stretch"
+                                            HorizontalAlignment="Stretch"
+                                            Visibility="Collapsed"/>
+                </Grid>
+            </Grid>
+        </Grid>
     </Border>
 </Window>

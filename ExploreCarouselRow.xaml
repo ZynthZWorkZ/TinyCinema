@@ -1,0 +1,126 @@
+<UserControl x:Class="TinyCinema.ExploreCarouselRow"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:fa="http://schemas.fontawesome.io/icons/"
+             xmlns:local="clr-namespace:TinyCinema"
+             x:Name="RowRoot"
+             Margin="0,0,0,28">
+    <UserControl.Resources>
+        <local:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+    </UserControl.Resources>
+
+    <StackPanel>
+        <TextBlock Text="{Binding Title}"
+                   Foreground="White"
+                   FontSize="17"
+                   FontWeight="SemiBold"
+                   Margin="0,0,0,12"/>
+
+        <Grid MinHeight="{Binding RowViewModel.PosterHeight, RelativeSource={RelativeSource AncestorType=local:ExploreCarouselRow}}">
+            <ScrollViewer x:Name="CarouselScroller"
+                          HorizontalScrollBarVisibility="Hidden"
+                          VerticalScrollBarVisibility="Disabled"
+                          CanContentScroll="False"
+                          PanningMode="HorizontalOnly"
+                          PreviewMouseWheel="CarouselScroller_PreviewMouseWheel"
+                          ScrollChanged="CarouselScroller_ScrollChanged">
+                <ItemsControl ItemsSource="{Binding Items}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel Orientation="Horizontal"/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="{x:Type local:ExplorePosterItem}">
+                            <Border x:Name="PosterCard"
+                                    Width="{Binding RowViewModel.PosterWidth, RelativeSource={RelativeSource AncestorType=local:ExploreCarouselRow}}"
+                                    Height="{Binding RowViewModel.PosterHeight, RelativeSource={RelativeSource AncestorType=local:ExploreCarouselRow}}"
+                                    Margin="0,0,12,0"
+                                    CornerRadius="10"
+                                    BorderThickness="2"
+                                    BorderBrush="Transparent"
+                                    Background="{DynamicResource PanelBackgroundBrush}"
+                                    ClipToBounds="True"
+                                    Cursor="Hand"
+                                    MouseLeftButtonUp="PosterCard_MouseLeftButtonUp">
+                                <Border.Style>
+                                    <Style TargetType="Border">
+                                        <Setter Property="BorderBrush" Value="Transparent"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                                <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                                            </DataTrigger>
+                                            <MultiDataTrigger>
+                                                <MultiDataTrigger.Conditions>
+                                                    <Condition Binding="{Binding IsSelected}" Value="False"/>
+                                                    <Condition Binding="{Binding IsMouseOver, RelativeSource={RelativeSource Self}}" Value="True"/>
+                                                </MultiDataTrigger.Conditions>
+                                                <Setter Property="BorderBrush" Value="#475569"/>
+                                            </MultiDataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Border.Style>
+                                <Grid>
+                                    <Border Background="{DynamicResource PanelBackgroundBrush}"
+                                            Visibility="{Binding Movie.IsLoading, Converter={StaticResource BooleanToVisibilityConverter}, ConverterParameter=Inverse}">
+                                        <fa:FontAwesome Icon="Spinner"
+                                                        Foreground="{DynamicResource InputMutedForegroundBrush}"
+                                                        Width="24"
+                                                        Height="24"
+                                                        HorizontalAlignment="Center"
+                                                        VerticalAlignment="Center"/>
+                                    </Border>
+                                    <Image Source="{Binding Movie.CachedImage}"
+                                           Stretch="UniformToFill"
+                                           RenderOptions.BitmapScalingMode="HighQuality"/>
+                                    <Border VerticalAlignment="Bottom">
+                                        <Border.Background>
+                                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                                <GradientStop Color="#00000000" Offset="0"/>
+                                                <GradientStop Color="#DD0B0F14" Offset="0.35"/>
+                                                <GradientStop Color="#F00B0F14" Offset="1"/>
+                                            </LinearGradientBrush>
+                                        </Border.Background>
+                                        <TextBlock Text="{Binding Movie.Title}"
+                                                   Foreground="White"
+                                                   FontSize="12"
+                                                   FontWeight="SemiBold"
+                                                   TextTrimming="CharacterEllipsis"
+                                                   TextWrapping="Wrap"
+                                                   MaxHeight="36"
+                                                   LineHeight="16"
+                                                   Margin="8,20,8,8"/>
+                                    </Border>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+
+            <Button x:Name="ScrollLeftButton"
+                    Style="{StaticResource ExploreCarouselNavButtonStyle}"
+                    HorizontalAlignment="Left"
+                    VerticalAlignment="Center"
+                    Margin="8,0,0,0"
+                    Panel.ZIndex="2"
+                    Visibility="Collapsed"
+                    Click="ScrollLeftButton_Click"
+                    ToolTip="Scroll left">
+                <fa:FontAwesome Icon="ChevronLeft" Width="12" Height="12"/>
+            </Button>
+
+            <Button x:Name="ScrollRightButton"
+                    Style="{StaticResource ExploreCarouselNavButtonStyle}"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Center"
+                    Margin="0,0,8,0"
+                    Panel.ZIndex="2"
+                    Visibility="Collapsed"
+                    Click="ScrollRightButton_Click"
+                    ToolTip="Scroll right">
+                <fa:FontAwesome Icon="ChevronRight" Width="12" Height="12"/>
+            </Button>
+        </Grid>
+    </StackPanel>
+</UserControl>

@@ -9,28 +9,6 @@ A movie player application .
 
 ## 📺 What's Inside
 
-TinyCinema comes pre-loaded with 25k movies.
-
- From classic films to modern movies.
-
-## ✨ Features
-
-### Movie Management
-- Browse through a collection of 25k movies
-- Search functionality to quickly find your favorite films
-- Shuffle feature to discover movies randomly
-- Sort movies by year
-
-
-
-
-### Playback Options
-- Play movies directly in the application (ffplay, VLC, or TinyPlayer)
-- Stream to Roku devices (developer mode needs to be enabled)
-- Open movie URLs in your preferred browser (chrome preferred)
-- View detailed movie information
-
-
 
 ## 🎯 How to Use
 
@@ -54,6 +32,7 @@ TinyCinema comes pre-loaded with 25k movies.
 
 
 3. **Movie Information**
+   - Select Any Movie or TV Show 
    - Click the info button to view detailed movie information
    - See movie titles, years, and other relevant details
 
@@ -65,12 +44,13 @@ TinyCinema comes pre-loaded with 25k movies.
    - Use the shuffle button to randomize the movie list
    - Sort movies using the sort button
    - Access settings through the gear icon
+   - Use Explore to help discover new films 
 
 
 
 ## 🎥 Movie Collection
 
-The application includes 25k movies in URL formats, each with:
+The application includes 27k movies in URL formats, each with:
 - High-quality poster images
 - Title and year information
 - Direct playback options

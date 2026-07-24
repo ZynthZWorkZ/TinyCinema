@@ -1,0 +1,86 @@
+<UserControl x:Class="TinyCinema.ExploreHomePanel"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:fa="http://schemas.fontawesome.io/icons/"
+             xmlns:local="clr-namespace:TinyCinema"
+             VerticalAlignment="Stretch"
+             HorizontalAlignment="Stretch">
+    <Grid>
+        <ScrollViewer x:Name="MainScrollViewer"
+                      Style="{StaticResource ModernScrollViewerStyle}"
+                      VerticalScrollBarVisibility="Auto"
+                      HorizontalScrollBarVisibility="Disabled"
+                      PreviewMouseWheel="MainScrollViewer_PreviewMouseWheel">
+            <StackPanel x:Name="ContentPanel" Margin="0,0,4,12">
+                <Border x:Name="HintBanner"
+                        Background="{DynamicResource PanelBackgroundBrush}"
+                        BorderBrush="{DynamicResource BorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="10"
+                        Padding="14,12"
+                        Margin="0,0,0,20"
+                        Visibility="Collapsed">
+                    <StackPanel Orientation="Horizontal">
+                        <fa:FontAwesome Icon="InfoCircle"
+                                        Foreground="{DynamicResource AccentBrush}"
+                                        Width="16"
+                                        Height="16"
+                                        Margin="0,2,12,0"
+                                        VerticalAlignment="Top"/>
+                        <TextBlock x:Name="HintTextBlock"
+                                   Foreground="{DynamicResource TextMutedBrush}"
+                                   FontSize="13"
+                                   TextWrapping="Wrap"
+                                   LineHeight="20"/>
+                    </StackPanel>
+                </Border>
+
+                <ItemsControl x:Name="RowsItemsControl">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="{x:Type local:ExploreRowViewModel}">
+                            <local:ExploreCarouselRow RowViewModel="{Binding}"
+                                                      MovieClicked="ExploreCarouselRow_MovieClicked"/>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+        </ScrollViewer>
+
+        <Border x:Name="LoadingOverlay"
+                Background="#CC0B0F14"
+                Visibility="Collapsed">
+            <StackPanel HorizontalAlignment="Center"
+                        VerticalAlignment="Center">
+                <fa:FontAwesome Icon="Spinner"
+                                Foreground="{DynamicResource AccentBrush}"
+                                Width="28"
+                                Height="28"
+                                HorizontalAlignment="Center"/>
+                <TextBlock Text="Personalizing your picks..."
+                           Foreground="{DynamicResource TextMutedBrush}"
+                           FontSize="15"
+                           Margin="0,14,0,0"
+                           HorizontalAlignment="Center"/>
+            </StackPanel>
+        </Border>
+
+        <StackPanel x:Name="EmptyStatePanel"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    Visibility="Collapsed">
+            <fa:FontAwesome Icon="Compass"
+                            Foreground="#475569"
+                            Width="42"
+                            Height="42"
+                            HorizontalAlignment="Center"
+                            Margin="0,0,0,14"/>
+            <TextBlock x:Name="EmptyStateText"
+                       Text="No recommendations yet. Add titles to your catalog to get started."
+                       Foreground="{DynamicResource TextMutedBrush}"
+                       FontSize="15"
+                       TextWrapping="Wrap"
+                       TextAlignment="Center"
+                       MaxWidth="420"/>
+        </StackPanel>
+    </Grid>
+</UserControl>

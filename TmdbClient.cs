@@ -14,6 +14,105 @@ public static class TmdbClient
 
     private static readonly Dictionary<string, string?> TrailerCache = new(StringComparer.OrdinalIgnoreCase);
     private static readonly Dictionary<string, string?> OpeningCreditsCache = new(StringComparer.OrdinalIgnoreCase);
+    private static readonly Dictionary<string, List<TmdbSimilarItem>> SimilarMoviesCache = new(StringComparer.OrdinalIgnoreCase);
+    private static readonly Dictionary<string, List<TmdbSimilarItem>> SimilarTvCache = new(StringComparer.OrdinalIgnoreCase);
+
+    public static async Task<IReadOnlyList<TmdbSimilarItem>> GetSimilarMovieItemsAsync(
+        string title,
+        string year,
+        string apiKey,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(title) || string.IsNullOrWhiteSpace(apiKey))
+            return [];
+
+        var movieId = await SearchMovieIdAsync(title, year, apiKey, cancellationToken);
+        if (movieId == null)
+            return [];
+
+        return await GetSimilarMovieItemsByIdAsync(movieId.Value, apiKey, cancellationToken);
+    }
+
+    public static async Task<IReadOnlyList<TmdbSimilarItem>> GetSimilarTvItemsAsync(
+        string title,
+        string year,
+        int? tmdbId,
+        string apiKey,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(apiKey))
+            return [];
+
+        var showId = tmdbId is > 0 ? tmdbId : await SearchTvIdAsync(title, year, apiKey, cancellationToken);
+        if (showId == null)
+            return [];
+
+        return await GetSimilarTvItemsByIdAsync(showId.Value, apiKey, cancellationToken);
+    }
+
+    private static async Task<IReadOnlyList<TmdbSimilarItem>> GetSimilarMovieItemsByIdAsync(
+        int movieId,
+        string apiKey,
+        CancellationToken cancellationToken)
+    {
+        var cacheKey = $"movie|{movieId}";
+        if (SimilarMoviesCache.TryGetValue(cacheKey, out var cached))
+            return cached;
+
+        var url = $"movie/{movieId}/similar?api_key={Uri.EscapeDataString(apiKey)}&language=en-US&page=1";
+        using var response = await Http.GetAsync(url, cancellationToken);
+        response.EnsureSuccessStatusCode();
+
+        await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
+        var payload = await JsonSerializer.DeserializeAsync<TmdbSearchResponse>(stream, JsonOptions, cancellationToken);
+        var items = payload?.Results?
+            .Select(result => new TmdbSimilarItem
+            {
+                Title = result.Title,
+                Year = ExtractYear(result.ReleaseDate)
+            })
+            .Where(item => !string.IsNullOrWhiteSpace(item.Title))
+            .ToList() ?? [];
+
+        SimilarMoviesCache[cacheKey] = items;
+        return items;
+    }
+
+    private static async Task<IReadOnlyList<TmdbSimilarItem>> GetSimilarTvItemsByIdAsync(
+        int tvId,
+        string apiKey,
+        CancellationToken cancellationToken)
+    {
+        var cacheKey = $"tv|{tvId}";
+        if (SimilarTvCache.TryGetValue(cacheKey, out var cached))
+            return cached;
+
+        var url = $"tv/{tvId}/similar?api_key={Uri.EscapeDataString(apiKey)}&language=en-US&page=1";
+        using var response = await Http.GetAsync(url, cancellationToken);
+        response.EnsureSuccessStatusCode();
+
+        await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
+        var payload = await JsonSerializer.DeserializeAsync<TmdbTvSearchResponse>(stream, JsonOptions, cancellationToken);
+        var items = payload?.Results?
+            .Select(result => new TmdbSimilarItem
+            {
+                Title = result.Name,
+                Year = ExtractYear(result.FirstAirDate)
+            })
+            .Where(item => !string.IsNullOrWhiteSpace(item.Title))
+            .ToList() ?? [];
+
+        SimilarTvCache[cacheKey] = items;
+        return items;
+    }
+
+    private static string? ExtractYear(string? dateValue)
+    {
+        if (string.IsNullOrWhiteSpace(dateValue) || dateValue.Length < 4)
+            return null;
+
+        return dateValue[..4];
+    }
 
     public static async Task<string?> GetTrailerVideoKeyAsync(
         string title,

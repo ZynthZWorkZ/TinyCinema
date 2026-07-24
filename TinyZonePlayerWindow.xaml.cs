@@ -52,8 +52,10 @@ public partial class TinyZonePlayerWindow : Window
     private bool _suppressEpisodeSelection;
     private bool _tvNavigationScrapeActive;
     private int _selectedSeasonFilter;
+    private readonly int? _resumeSeason;
+    private readonly int? _resumeEpisode;
 
-    public TinyZonePlayerWindow(Movie movie, string selectedPlayer)
+    public TinyZonePlayerWindow(Movie movie, string selectedPlayer, int? resumeSeason = null, int? resumeEpisode = null)
     {
         InitializeComponent();
         _selectedPlayer = selectedPlayer;
@@ -61,6 +63,8 @@ public partial class TinyZonePlayerWindow : Window
         _pageUrl = movie.Url;
         _posterImageUrl = movie.ImageUrl;
         _isTvShow = movie.ContentType == CatalogContentType.TvShow;
+        _resumeSeason = resumeSeason;
+        _resumeEpisode = resumeEpisode;
         _cinemaModeEnabled = !_isTvShow;
         TitleText.Text = movie.Title;
         Title = movie.Title;
@@ -333,8 +337,23 @@ public partial class TinyZonePlayerWindow : Window
         ApplySeasonFilter();
         UpdateEpisodeCountText();
 
-        var firstEpisode = _allTvEpisodes[0];
-        await PlayTvEpisodeAsync(firstEpisode);
+        var startEpisode = ResolveStartEpisode();
+        await PlayTvEpisodeAsync(startEpisode);
+    }
+
+    private TvEpisodeEntry ResolveStartEpisode()
+    {
+        if (_resumeSeason.HasValue && _resumeEpisode.HasValue)
+        {
+            var resumeEpisode = _allTvEpisodes.FirstOrDefault(episode =>
+                episode.Season == _resumeSeason.Value &&
+                episode.Episode == _resumeEpisode.Value);
+
+            if (resumeEpisode != null)
+                return resumeEpisode;
+        }
+
+        return _allTvEpisodes[0];
     }
 
     private async Task<List<TvEpisodeEntry>> ScrapeEpisodesAsync()
@@ -575,6 +594,9 @@ public partial class TinyZonePlayerWindow : Window
 
         _currentTvEpisode = episode;
         episode.IsCurrent = true;
+
+        if (_isTvShow)
+            TvShowWatchHistory.Save(_pageUrl, _movieTitle, episode);
 
         _suppressEpisodeSelection = true;
         EpisodesListBox.SelectedItem = episode;
