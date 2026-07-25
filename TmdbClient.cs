@@ -264,6 +264,13 @@ public static class TmdbClient
             : openingCredits.Key;
     }
 
+    public static Task<int?> ResolveMovieIdAsync(
+        string title,
+        string year,
+        string apiKey,
+        CancellationToken cancellationToken = default) =>
+        SearchMovieIdAsync(title, year, apiKey, cancellationToken);
+
     private static async Task<int?> SearchMovieIdAsync(
         string title,
         string year,

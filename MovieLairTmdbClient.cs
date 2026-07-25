@@ -36,6 +36,21 @@ public static class MovieLairTmdbClient
 
     public static string BuildWatchUrl(int tmdbId) => $"{MovieLairBaseUrl}/watch-tv/{tmdbId}/";
 
+    public static string BuildMovieWatchUrl(int tmdbId) => $"{MovieLairBaseUrl}/watch-movie/{tmdbId}/";
+
+    public static async Task<string?> ResolveMovieWatchUrlAsync(
+        string title,
+        string year,
+        string apiKey,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(title) || string.IsNullOrWhiteSpace(apiKey))
+            return null;
+
+        var movieId = await TmdbClient.ResolveMovieIdAsync(title, year, apiKey, cancellationToken);
+        return movieId is > 0 ? BuildMovieWatchUrl(movieId.Value) : null;
+    }
+
     public static async Task<TmdbDiscoverTvPage> DiscoverTvAsync(
         int genreId,
         int page,

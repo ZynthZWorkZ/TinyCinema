@@ -70,6 +70,103 @@
             </Setter>
         </Style>
 
+        <DataTemplate x:Key="SeasonItemTemplate">
+            <TextBlock Text="{Binding StringFormat=Season {0}}"
+                       Foreground="#E5E5E5"
+                       FontSize="13"/>
+        </DataTemplate>
+
+        <Style x:Key="PlayerComboBoxItemStyle" TargetType="ComboBoxItem">
+            <Setter Property="Background" Value="#1A1A1A"/>
+            <Setter Property="Foreground" Value="#E5E5E5"/>
+            <Setter Property="Padding" Value="10,8"/>
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBoxItem">
+                        <Border x:Name="ItemBorder"
+                                Background="{TemplateBinding Background}"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="ItemBorder" Property="Background" Value="#2A2A2A"/>
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="ItemBorder" Property="Background" Value="#243047"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="PlayerSeasonComboBoxStyle" TargetType="ComboBox">
+            <Setter Property="Background" Value="#1A1A1A"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#3A3A3A"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="10,8"/>
+            <Setter Property="MinHeight" Value="36"/>
+            <Setter Property="ItemContainerStyle" Value="{StaticResource PlayerComboBoxItemStyle}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBox">
+                        <Grid>
+                            <ToggleButton x:Name="ToggleButton"
+                                          Background="{TemplateBinding Background}"
+                                          BorderBrush="{TemplateBinding BorderBrush}"
+                                          BorderThickness="{TemplateBinding BorderThickness}"
+                                          Focusable="False"
+                                          IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
+                                          ClickMode="Press">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="20"/>
+                                    </Grid.ColumnDefinitions>
+                                    <ContentPresenter Grid.Column="0"
+                                                      Margin="10,0,4,0"
+                                                      VerticalAlignment="Center"
+                                                      HorizontalAlignment="Left"
+                                                      Content="{TemplateBinding SelectionBoxItem}"
+                                                      ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                                                      ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}"/>
+                                    <Path Grid.Column="1"
+                                          Width="10"
+                                          Height="6"
+                                          Margin="0,0,10,0"
+                                          VerticalAlignment="Center"
+                                          HorizontalAlignment="Right"
+                                          Fill="#A3A3A3"
+                                          Data="M 0 0 L 5 6 L 10 0 Z"/>
+                                </Grid>
+                            </ToggleButton>
+                            <Popup Placement="Bottom"
+                                   IsOpen="{TemplateBinding IsDropDownOpen}"
+                                   AllowsTransparency="True"
+                                   Focusable="False"
+                                   PopupAnimation="Slide">
+                                <Border MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}"
+                                        Background="#141414"
+                                        BorderBrush="#3A3A3A"
+                                        BorderThickness="1"
+                                        CornerRadius="8"
+                                        Margin="0,4,0,0"
+                                        Padding="0,4">
+                                    <ScrollViewer MaxHeight="260"
+                                                  VerticalScrollBarVisibility="Auto">
+                                        <ItemsPresenter KeyboardNavigation.DirectionalNavigation="Contained"/>
+                                    </ScrollViewer>
+                                </Border>
+                            </Popup>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <Style x:Key="CloseButtonStyle" TargetType="Button">
             <Setter Property="Width" Value="46"/>
             <Setter Property="Height" Value="32"/>
@@ -126,11 +223,35 @@
                                VerticalAlignment="Center"/>
                 </StackPanel>
 
-                <Button Grid.Column="1"
-                        Style="{StaticResource CloseButtonStyle}"
-                        Click="CloseButton_Click">
-                    <fa:FontAwesome Icon="Close" Foreground="White" Width="12" Height="12"/>
-                </Button>
+                <StackPanel Grid.Column="1"
+                            Orientation="Horizontal">
+                    <Button x:Name="ProbeSnapshotButton"
+                            Style="{StaticResource ActionButtonStyle}"
+                            Width="32"
+                            Height="28"
+                            Padding="0"
+                            Margin="0,0,4,0"
+                            Visibility="Collapsed"
+                            Click="ProbeSnapshotButton_Click"
+                            ToolTip="Probe snapshot">
+                        <fa:FontAwesome Icon="Bug" Width="12" Height="12"/>
+                    </Button>
+                    <Button x:Name="ProbeOpenFolderButton"
+                            Style="{StaticResource ActionButtonStyle}"
+                            Width="32"
+                            Height="28"
+                            Padding="0"
+                            Margin="0,0,4,0"
+                            Visibility="Collapsed"
+                            Click="ProbeOpenFolderButton_Click"
+                            ToolTip="Open probe log folder">
+                        <fa:FontAwesome Icon="FolderOpen" Width="12" Height="12"/>
+                    </Button>
+                    <Button Style="{StaticResource CloseButtonStyle}"
+                            Click="CloseButton_Click">
+                        <fa:FontAwesome Icon="Close" Foreground="White" Width="12" Height="12"/>
+                    </Button>
+                </StackPanel>
             </Grid>
 
             <Grid Grid.Row="1" Background="#000000">
@@ -279,11 +400,9 @@
                                 BorderBrush="#2A2A2A"
                                 BorderThickness="0,0,0,1">
                             <ComboBox x:Name="SeasonFilterComboBox"
-                                      Background="#1A1A1A"
-                                      Foreground="White"
-                                      BorderBrush="#3A3A3A"
-                                      BorderThickness="1"
-                                      Padding="8,6"
+                                      Style="{StaticResource PlayerSeasonComboBoxStyle}"
+                                      ItemTemplate="{StaticResource SeasonItemTemplate}"
+                                      HorizontalAlignment="Stretch"
                                       SelectionChanged="SeasonFilterComboBox_SelectionChanged"/>
                         </Border>
 
@@ -313,8 +432,8 @@
                             <ListBox.ItemTemplate>
                                 <DataTemplate>
                                     <TextBlock Text="{Binding DisplayLabel}"
-                                               Foreground="#D9D9D9"
-                                               FontSize="12"
+                                               Foreground="#F0F0F0"
+                                               FontSize="13"
                                                TextWrapping="Wrap"/>
                                 </DataTemplate>
                             </ListBox.ItemTemplate>
@@ -636,6 +755,15 @@
                                VerticalAlignment="Center"/>
 
                     <StackPanel Grid.Column="1" Orientation="Horizontal">
+                        <ComboBox x:Name="MovieSourceComboBox"
+                                  Style="{StaticResource PlayerSeasonComboBoxStyle}"
+                                  Width="132"
+                                  Margin="0,0,8,0"
+                                  Visibility="Collapsed"
+                                  SelectionChanged="MovieSourceComboBox_SelectionChanged">
+                            <ComboBoxItem Content="TinyZone"/>
+                            <ComboBoxItem Content="MovieLair"/>
+                        </ComboBox>
                         <ToggleButton x:Name="CinemaModeToggle"
                                       Click="CinemaModeToggle_Click"
                                       IsChecked="True"

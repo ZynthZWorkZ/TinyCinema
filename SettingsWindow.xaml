@@ -567,6 +567,7 @@
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
                             </Grid.RowDefinitions>
                             
                             <!-- Setting Title -->
@@ -624,7 +625,29 @@
                                              Style="{StaticResource ModernToggleStyle}"/>
                             </Grid>
 
-                            <TextBlock Grid.Row="3"
+                            <Grid Grid.Row="3" Margin="0,0,0,12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <StackPanel VerticalAlignment="Center">
+                                    <TextBlock Text="MovieLair Probe Logging"
+                                               Foreground="White"/>
+                                    <TextBlock Text="Logs iframe JS, storage, and video state to %TEMP%\\TinyCinema\\ProbeLogs"
+                                               Foreground="#808080"
+                                               FontSize="11"
+                                               Margin="0,4,0,0"
+                                               TextWrapping="Wrap"/>
+                                </StackPanel>
+
+                                <ToggleButton Grid.Column="1"
+                                              VerticalAlignment="Center"
+                                              IsChecked="{Binding IsMovieLairProbeEnabled}"
+                                              Style="{StaticResource ModernToggleStyle}"/>
+                            </Grid>
+
+                            <TextBlock Grid.Row="4"
                                        Text="In-App Browser watches on TinyZone. Other players open automatically when an m3u8 stream is captured."
                                        Foreground="#808080"
                                        FontSize="12"

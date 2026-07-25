@@ -1,0 +1,20 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <SolidColorBrush x:Key="AppBackgroundBrush" Color="#0F060A"/>
+    <SolidColorBrush x:Key="SidebarBackgroundBrush" Color="#14080E"/>
+    <SolidColorBrush x:Key="PanelBackgroundBrush" Color="#1A0C14"/>
+    <SolidColorBrush x:Key="BorderBrush" Color="#4A2030"/>
+    <SolidColorBrush x:Key="AccentBrush" Color="#F43F5E"/>
+    <SolidColorBrush x:Key="AccentHoverBrush" Color="#E11D48"/>
+    <SolidColorBrush x:Key="NavActiveBackgroundBrush" Color="#2A1420"/>
+    <SolidColorBrush x:Key="NavHoverBackgroundBrush" Color="#201018"/>
+    <SolidColorBrush x:Key="TextMutedBrush" Color="#C4909E"/>
+    <SolidColorBrush x:Key="TitleBarBackgroundBrush" Color="#14080E"/>
+    <SolidColorBrush x:Key="HeroPrimaryForegroundBrush" Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="ScrollThumbBrush" Color="#4A2030"/>
+    <SolidColorBrush x:Key="NavInactiveForegroundBrush" Color="#D4A8B4"/>
+    <SolidColorBrush x:Key="InputMutedForegroundBrush" Color="#8A5060"/>
+    <SolidColorBrush x:Key="ComboBoxSelectedBrush" Color="#4A2030"/>
+
+</ResourceDictionary>

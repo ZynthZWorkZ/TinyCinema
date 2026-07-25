@@ -4,5 +4,17 @@ public enum AppTheme
 {
     Black,
     Red,
-    MidnightBlue
+    MidnightBlue,
+    Emerald,
+    Purple,
+    Orange,
+    Teal,
+    Rose,
+    Slate,
+    Forest,
+    Gold,
+    Ocean,
+    Wine,
+    Graphite,
+    Neon
 }

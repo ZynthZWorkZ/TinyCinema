@@ -6,6 +6,9 @@ public static class TinyZoneCinemaMode
 {
     public const string EarlyHideScript = """
         (() => {
+            if (/movielair\.cc/i.test(location.hostname))
+                return;
+
             const root = document.documentElement;
             root.classList.add('tiny-cinema-pending');
             root.classList.remove('tiny-cinema-ready');
@@ -49,6 +52,9 @@ public static class TinyZoneCinemaMode
 
     public const string BootstrapScript = """
         (() => {
+            if (/movielair\.cc/i.test(location.hostname))
+                return;
+
             window.__tinyCinemaBootstrap = true;
 
             const HIDE_SELECTORS = [

@@ -14,6 +14,7 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
     private bool _isCachingEnabled;
     private bool _isTvShowCachingEnabled = true;
     private bool _isPopupBlockerEnabled = true;
+    private bool _isMovieLairProbeEnabled;
     private string _movieLinksLocation;
     private string _tvShowLinksLocation;
     private string _movieLairShowsUrl = "https://movielair.cc/shows/10759/";
@@ -25,7 +26,7 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
     private string _tmdbApiKey = "";
     private string _selectedAppTheme = "Black";
     private List<string> _availablePlayers;
-    private List<string> _availableThemes = ["Black", "Red", "Midnight Blue"];
+    private List<string> _availableThemes = ThemeManager.GetAvailableDisplayNames().ToList();
 
     private static readonly string SettingsFile = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
@@ -42,6 +43,17 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
         {
             _isPopupBlockerEnabled = value;
             OnPropertyChanged(nameof(IsPopupBlockerEnabled));
+            SaveSettings();
+        }
+    }
+
+    public bool IsMovieLairProbeEnabled
+    {
+        get => _isMovieLairProbeEnabled;
+        set
+        {
+            _isMovieLairProbeEnabled = value;
+            OnPropertyChanged(nameof(IsMovieLairProbeEnabled));
             SaveSettings();
         }
     }
@@ -212,12 +224,8 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
         }
     }
 
-    private static string NormalizeThemeDisplayName(string? value) => value?.Trim() switch
-    {
-        "Red" => "Red",
-        "MidnightBlue" or "Midnight Blue" => "Midnight Blue",
-        _ => "Black"
-    };
+    private static string NormalizeThemeDisplayName(string? value) =>
+        ThemeManager.GetDisplayName(ThemeManager.ParseTheme(value));
 
     public List<string> AvailablePlayers
     {
@@ -330,6 +338,10 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
                     {
                         IsPopupBlockerEnabled = bool.Parse(line.Substring("IsPopupBlockerEnabled=".Length).Trim());
                     }
+                    else if (line.StartsWith("IsMovieLairProbeEnabled="))
+                    {
+                        IsMovieLairProbeEnabled = bool.Parse(line.Substring("IsMovieLairProbeEnabled=".Length).Trim());
+                    }
                     else if (line.StartsWith("MovieLinksLocation="))
                     {
                         MovieLinksLocation = line.Substring("MovieLinksLocation=".Length).Trim();
@@ -428,6 +440,7 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
                 $"IsCachingEnabled={IsCachingEnabled}",
                 $"IsTvShowCachingEnabled={IsTvShowCachingEnabled}",
                 $"IsPopupBlockerEnabled={IsPopupBlockerEnabled}",
+                $"IsMovieLairProbeEnabled={IsMovieLairProbeEnabled}",
                 $"MovieLinksLocation={MovieLinksLocation}",
                 $"TvShowLinksLocation={TvShowLinksLocation}",
                 $"MovieLairShowsUrl={MovieLairShowsUrl}",
@@ -491,6 +504,30 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
         }
 
         return true;
+    }
+
+    public static bool GetIsMovieLairProbeEnabled()
+    {
+        try
+        {
+            if (!File.Exists(SettingsFile))
+                return false;
+
+            foreach (var line in File.ReadAllLines(SettingsFile))
+            {
+                if (line.StartsWith("IsMovieLairProbeEnabled=", StringComparison.Ordinal) &&
+                    bool.TryParse(line.Substring("IsMovieLairProbeEnabled=".Length).Trim(), out var enabled))
+                {
+                    return enabled;
+                }
+            }
+        }
+        catch
+        {
+            // Ignore read errors.
+        }
+
+        return false;
     }
 
     public static AppTheme GetAppTheme()
