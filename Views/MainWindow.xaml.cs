@@ -112,6 +112,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             HeroPanel.RokuRequested += RokuButton_Click;
 
             ExploreHomePanel.MovieSelected += ExploreHomePanel_MovieSelected;
+            IptvHomePanel.ChannelPlayRequested += IptvHomePanel_ChannelPlayRequested;
 
             PosterScrollViewer.ScrollChanged += async (_, e) =>
             {
@@ -307,12 +308,20 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     {
         if (_currentNav == MainNavSection.Explore)
         {
-            UpdateExploreVisibility(true);
+            UpdateContentVisibility();
             await RefreshExploreAsync();
             return;
         }
 
-        UpdateExploreVisibility(false);
+        if (_currentNav == MainNavSection.Iptv)
+        {
+            UpdateContentVisibility();
+            IptvHomePanel.ApplySearch(_lastSearchText);
+            EmptyGridText.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        UpdateContentVisibility();
         _currentIndex = 0;
         _movies.Clear();
 
@@ -407,24 +416,41 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         StyleNav(NavTvShowsButton, _currentNav == MainNavSection.TvShows);
         StyleNav(NavExploreButton, _currentNav == MainNavSection.Explore);
         StyleNav(NavFavoritesButton, _currentNav == MainNavSection.Favorites);
+        StyleNav(NavIptvButton, _currentNav == MainNavSection.Iptv);
 
         GridSectionTitle.Text = _currentNav switch
         {
             MainNavSection.Movies => "Movies",
             MainNavSection.TvShows => "TV Shows",
             MainNavSection.Favorites => "Favorites",
+            MainNavSection.Iptv => "Live TV",
             _ => "For You"
         };
     }
 
-    private void UpdateExploreVisibility(bool showExplore)
+    private void UpdateContentVisibility()
     {
+        var showExplore = _currentNav == MainNavSection.Explore;
+        var showIptv = _currentNav == MainNavSection.Iptv;
+
         ExploreHomePanel.Visibility = showExplore ? Visibility.Visible : Visibility.Collapsed;
-        PosterScrollViewer.Visibility = showExplore ? Visibility.Collapsed : Visibility.Visible;
+        IptvHomePanel.Visibility = showIptv ? Visibility.Visible : Visibility.Collapsed;
+        PosterScrollViewer.Visibility = showExplore || showIptv ? Visibility.Collapsed : Visibility.Visible;
+        HeroPanel.Visibility = showIptv ? Visibility.Collapsed : Visibility.Visible;
+        GenreFilter.IsEnabled = !showIptv;
+        CountryFilter.IsEnabled = !showIptv;
         EmptyGridText.Visibility = Visibility.Collapsed;
 
         if (showExplore)
             MoviesListView.SelectedItem = null;
+
+        if (!showIptv)
+            IptvHomePanel.ShowCategories();
+    }
+
+    private void IptvHomePanel_ChannelPlayRequested(object? sender, IptvChannel channel)
+    {
+        IptvPlaybackLauncher.Play(channel);
     }
 
     private async Task RefreshExploreAsync()

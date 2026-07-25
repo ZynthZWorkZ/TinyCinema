@@ -149,7 +149,8 @@ public partial class TinyZonePlayerWindow : Window
         try
         {
             PlayerWebView.DefaultBackgroundColor = System.Drawing.Color.FromArgb(255, 7, 7, 7);
-            await PlayerWebView.EnsureCoreWebView2Async();
+            var environment = await WebView2UserDataManager.CreatePlayerEnvironmentAsync();
+            await PlayerWebView.EnsureCoreWebView2Async(environment);
             _isInitialized = true;
 
             var core = PlayerWebView.CoreWebView2;
@@ -1672,6 +1673,9 @@ public partial class TinyZonePlayerWindow : Window
 
         _probeSession?.Dispose();
         _probeSession = null;
+
+        if (SettingsWindow.GetIsClearPlayerBrowserDataOnClose())
+            WebView2UserDataManager.TryClearPlayerUserData();
 
         base.OnClosed(e);
     }

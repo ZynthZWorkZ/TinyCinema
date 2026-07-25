@@ -568,6 +568,7 @@
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
                             </Grid.RowDefinitions>
                             
                             <!-- Setting Title -->
@@ -632,6 +633,28 @@
                                 </Grid.ColumnDefinitions>
 
                                 <StackPanel VerticalAlignment="Center">
+                                    <TextBlock Text="Clear Player Browser Data on Close"
+                                               Foreground="White"/>
+                                    <TextBlock Text="Deletes the in-app browser cache and site data when you close the player. Saves disk space, but sites may load slower next time and saved playback preferences may be lost."
+                                               Foreground="#808080"
+                                               FontSize="11"
+                                               Margin="0,4,0,0"
+                                               TextWrapping="Wrap"/>
+                                </StackPanel>
+
+                                <ToggleButton Grid.Column="1"
+                                              VerticalAlignment="Center"
+                                              IsChecked="{Binding IsClearPlayerBrowserDataOnClose}"
+                                              Style="{StaticResource ModernToggleStyle}"/>
+                            </Grid>
+
+                            <Grid Grid.Row="4" Margin="0,0,0,12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <StackPanel VerticalAlignment="Center">
                                     <TextBlock Text="MovieLair Probe Logging"
                                                Foreground="White"/>
                                     <TextBlock Text="Logs iframe JS, storage, and video state to %TEMP%\\TinyCinema\\ProbeLogs"
@@ -647,7 +670,7 @@
                                               Style="{StaticResource ModernToggleStyle}"/>
                             </Grid>
 
-                            <TextBlock Grid.Row="4"
+                            <TextBlock Grid.Row="5"
                                        Text="In-App Browser watches on TinyZone. Other players open automatically when an m3u8 stream is captured."
                                        Foreground="#808080"
                                        FontSize="12"

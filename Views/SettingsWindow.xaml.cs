@@ -14,6 +14,7 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
     private bool _isCachingEnabled;
     private bool _isTvShowCachingEnabled = true;
     private bool _isPopupBlockerEnabled = true;
+    private bool _isClearPlayerBrowserDataOnClose;
     private bool _isMovieLairProbeEnabled;
     private string _movieLinksLocation;
     private string _tvShowLinksLocation;
@@ -43,6 +44,17 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
         {
             _isPopupBlockerEnabled = value;
             OnPropertyChanged(nameof(IsPopupBlockerEnabled));
+            SaveSettings();
+        }
+    }
+
+    public bool IsClearPlayerBrowserDataOnClose
+    {
+        get => _isClearPlayerBrowserDataOnClose;
+        set
+        {
+            _isClearPlayerBrowserDataOnClose = value;
+            OnPropertyChanged(nameof(IsClearPlayerBrowserDataOnClose));
             SaveSettings();
         }
     }
@@ -338,6 +350,10 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
                     {
                         IsPopupBlockerEnabled = bool.Parse(line.Substring("IsPopupBlockerEnabled=".Length).Trim());
                     }
+                    else if (line.StartsWith("IsClearPlayerBrowserDataOnClose="))
+                    {
+                        IsClearPlayerBrowserDataOnClose = bool.Parse(line.Substring("IsClearPlayerBrowserDataOnClose=".Length).Trim());
+                    }
                     else if (line.StartsWith("IsMovieLairProbeEnabled="))
                     {
                         IsMovieLairProbeEnabled = bool.Parse(line.Substring("IsMovieLairProbeEnabled=".Length).Trim());
@@ -440,6 +456,7 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
                 $"IsCachingEnabled={IsCachingEnabled}",
                 $"IsTvShowCachingEnabled={IsTvShowCachingEnabled}",
                 $"IsPopupBlockerEnabled={IsPopupBlockerEnabled}",
+                $"IsClearPlayerBrowserDataOnClose={IsClearPlayerBrowserDataOnClose}",
                 $"IsMovieLairProbeEnabled={IsMovieLairProbeEnabled}",
                 $"MovieLinksLocation={MovieLinksLocation}",
                 $"TvShowLinksLocation={TvShowLinksLocation}",
@@ -504,6 +521,30 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
         }
 
         return true;
+    }
+
+    public static bool GetIsClearPlayerBrowserDataOnClose()
+    {
+        try
+        {
+            if (!File.Exists(SettingsFile))
+                return false;
+
+            foreach (var line in File.ReadAllLines(SettingsFile))
+            {
+                if (line.StartsWith("IsClearPlayerBrowserDataOnClose=", StringComparison.Ordinal) &&
+                    bool.TryParse(line.Substring("IsClearPlayerBrowserDataOnClose=".Length).Trim(), out var enabled))
+                {
+                    return enabled;
+                }
+            }
+        }
+        catch
+        {
+            // Ignore read errors.
+        }
+
+        return false;
     }
 
     public static bool GetIsMovieLairProbeEnabled()

@@ -5,5 +5,6 @@ public enum MainNavSection
     Movies,
     TvShows,
     Explore,
-    Favorites
+    Favorites,
+    Iptv
 }

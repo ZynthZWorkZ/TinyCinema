@@ -97,6 +97,15 @@
                                 <TextBlock Text="Favorites" VerticalAlignment="Center"/>
                             </StackPanel>
                         </Button>
+                        <Button x:Name="NavIptvButton"
+                                Tag="Iptv"
+                                Style="{StaticResource SidebarNavButtonStyle}"
+                                Click="NavButton_Click">
+                            <StackPanel Orientation="Horizontal">
+                                <FontAwesome:FontAwesome Icon="PlayCircle" Width="16" Height="16" Margin="0,0,12,0"/>
+                                <TextBlock Text="IPTV" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
                     </StackPanel>
 
                     <!-- Settings at bottom -->
@@ -320,6 +329,12 @@
                                             VerticalAlignment="Stretch"
                                             HorizontalAlignment="Stretch"
                                             Visibility="Collapsed"/>
+
+                    <local:IptvHomePanel x:Name="IptvHomePanel"
+                                         Grid.Row="1"
+                                         VerticalAlignment="Stretch"
+                                         HorizontalAlignment="Stretch"
+                                         Visibility="Collapsed"/>
                 </Grid>
             </Grid>
         </Grid>
