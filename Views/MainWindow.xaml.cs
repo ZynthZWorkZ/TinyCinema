@@ -157,40 +157,24 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             _currentNav = MainNavSection.Explore;
 
             var settingsWindow = new SettingsWindow();
-            var movieLinksLocation = settingsWindow.MovieLinksLocation;
+            var movieCatalogLocation = settingsWindow.MovieCatalogLocation;
             var tvShowLinksLocation = settingsWindow.TvShowLinksLocation;
 
-            if (!File.Exists(movieLinksLocation) && !File.Exists(tvShowLinksLocation))
+            if (!File.Exists(movieCatalogLocation) && !File.Exists(tvShowLinksLocation))
             {
                 MessageBox.Show(
-                    $"No catalog files found.\n\nMovies: {movieLinksLocation}\nTV shows: {tvShowLinksLocation}\n\nUse Settings to fetch movies or TV shows.",
+                    $"No catalog files found.\n\nMovies: {movieCatalogLocation}\nTV shows: {tvShowLinksLocation}\n\nUse Settings to fetch movies or TV shows.",
                     "Error",
                     MessageBoxButton.OK,
                     MessageBoxImage.Error);
                 return;
             }
 
-            if (File.Exists(movieLinksLocation))
+            if (File.Exists(movieCatalogLocation))
             {
-                var lines = await File.ReadAllLinesAsync(movieLinksLocation);
-                foreach (var line in lines)
-                {
-                    var parts = line.Split('|').Select(p => p.Trim()).ToArray();
-                    if (parts.Length >= 7)
-                    {
-                        _allMovies.Add(new Movie
-                        {
-                            Year = parts[0],
-                            Title = parts[1],
-                            Url = parts[2],
-                            ImageUrl = parts[3],
-                            Genre = parts[4],
-                            Duration = parts[5],
-                            Country = parts[6],
-                            ContentType = CatalogContentType.Movie
-                        });
-                    }
-                }
+                var movies = await MovieCatalogStore.LoadMoviesAsync(movieCatalogLocation);
+                foreach (var movie in movies)
+                    _allMovies.Add(movie);
             }
 
             if (File.Exists(tvShowLinksLocation))
@@ -919,6 +903,13 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         _heroLoadCts = new CancellationTokenSource();
         var token = _heroLoadCts.Token;
 
+        if (!movie.IsTvShow && !string.IsNullOrWhiteSpace(movie.Description))
+        {
+            if (!token.IsCancellationRequested && IsHeroMovieSelected(selectionCheck ?? movie))
+                HeroPanel.SetDescription(movie.Description);
+            return;
+        }
+
         HeroPanel.SetDescriptionLoading(true);
 
         try
@@ -927,6 +918,10 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             if (movie.IsTvShow)
             {
                 description = await GetTvShowDescriptionAsync(movie, token);
+            }
+            else if (!string.IsNullOrWhiteSpace(movie.Description))
+            {
+                description = movie.Description;
             }
             else
             {
@@ -966,6 +961,12 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             return;
 
         var isTvShow = selectedMovie.ContentType == CatalogContentType.TvShow;
+
+        if (!isTvShow && HasLocalMovieDetails(selectedMovie))
+        {
+            OpenMovieDetailsWindow(selectedMovie);
+            return;
+        }
 
         try
         {
@@ -1096,6 +1097,11 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                         description = await GetTvShowDescriptionAsync(selectedMovie, cts.Token);
                         genre = BuildTvShowGenreInfo(selectedMovie);
                     }
+                    else if (!string.IsNullOrWhiteSpace(selectedMovie.Description))
+                    {
+                        description = selectedMovie.Description;
+                        genre = BuildMovieDetailsInfo(selectedMovie);
+                    }
                     else
                     {
                         (description, genre) = await GetMovieDetails(selectedMovie.Url, cts.Token);
@@ -1106,11 +1112,13 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
                     loadingWindow.Close();
 
+                    var scrapedCast = !isTvShow ? ExtractCastNamesFromDetailsText(genre) : [];
                     var detailsWindow = new DetailsWindow(
                         selectedMovie.Title,
                         selectedMovie.Year,
                         description,
                         genre,
+                        scrapedCast,
                         selectedMovie.ImageUrl,
                         isTvShow);
                     detailsWindow.Owner = this;
@@ -1570,6 +1578,66 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         }
     }
 
+    private static string BuildMovieDetailsInfo(Movie movie)
+    {
+        var parts = new List<string>();
+
+        if (!string.IsNullOrWhiteSpace(movie.Year) && !movie.Year.Equals("Unknown", StringComparison.OrdinalIgnoreCase))
+            parts.Add($"Released: {movie.Year}");
+
+        if (!string.IsNullOrWhiteSpace(movie.Genre) && !movie.Genre.Equals("Unknown", StringComparison.OrdinalIgnoreCase))
+            parts.Add($"Genre: {movie.Genre}");
+
+        if (!string.IsNullOrWhiteSpace(movie.Duration) && !movie.Duration.Equals("Unknown", StringComparison.OrdinalIgnoreCase))
+            parts.Add($"Duration: {movie.Duration}");
+
+        if (!string.IsNullOrWhiteSpace(movie.Country) && !movie.Country.Equals("Unknown", StringComparison.OrdinalIgnoreCase))
+            parts.Add($"Country: {movie.Country}");
+
+        if (!string.IsNullOrWhiteSpace(movie.Director))
+            parts.Add($"Director: {movie.Director}");
+
+        return string.Join('\n', parts);
+    }
+
+    private static bool HasLocalMovieDetails(Movie movie) =>
+        !string.IsNullOrWhiteSpace(movie.Description) ||
+        !string.IsNullOrWhiteSpace(movie.Director) ||
+        movie.Cast.Count > 0 ||
+        !string.IsNullOrWhiteSpace(movie.Genre) ||
+        !string.IsNullOrWhiteSpace(movie.Duration) ||
+        !string.IsNullOrWhiteSpace(movie.Country);
+
+    private void OpenMovieDetailsWindow(Movie movie)
+    {
+        var detailsWindow = new DetailsWindow(
+            movie.Title,
+            movie.Year,
+            movie.Description,
+            BuildMovieDetailsInfo(movie),
+            movie.Cast,
+            movie.ImageUrl,
+            isTvShow: false);
+        detailsWindow.Owner = this;
+        detailsWindow.ShowDialog();
+    }
+
+    private static List<string> ExtractCastNamesFromDetailsText(string detailsText)
+    {
+        if (string.IsNullOrWhiteSpace(detailsText))
+            return [];
+
+        var castMatch = Regex.Match(detailsText, @"Casts?:\s*([^\n]+)", RegexOptions.IgnoreCase);
+        if (!castMatch.Success)
+            return [];
+
+        return castMatch.Groups[1].Value
+            .Split([',', '،'], StringSplitOptions.RemoveEmptyEntries)
+            .Select(name => name.Trim())
+            .Where(name => !string.IsNullOrWhiteSpace(name))
+            .ToList();
+    }
+
     private static string BuildTvShowGenreInfo(Movie show)
     {
         var parts = new List<string>();
@@ -1739,6 +1807,9 @@ public class Movie : INotifyPropertyChanged
     public required string Genre { get; set; }
     public required string Duration { get; set; }
     public required string Country { get; set; }
+    public string Description { get; set; } = string.Empty;
+    public string Director { get; set; } = string.Empty;
+    public List<string> Cast { get; set; } = [];
     public CatalogContentType ContentType { get; set; } = CatalogContentType.Movie;
     public string ContentTypeLabel => ContentType == CatalogContentType.TvShow ? "TV Show" : "Movie";
     public bool IsTvShow => ContentType == CatalogContentType.TvShow;

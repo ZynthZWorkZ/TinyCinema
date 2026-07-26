@@ -32,7 +32,7 @@ public static class ManualCatalogAdder
         if (string.IsNullOrWhiteSpace(slug))
             throw new ArgumentException("Could not read the movie slug from that URL.");
 
-        if (MovieAlreadyExists(outputPath, slug))
+        if (MovieCatalogStore.MovieExists(outputPath, slug))
         {
             return new ManualCatalogAddResult
             {
@@ -54,7 +54,15 @@ public static class ManualCatalogAdder
         entry.Year = string.IsNullOrWhiteSpace(entry.Year) ? "Unknown" : entry.Year;
         entry.ImageUrl ??= string.Empty;
 
-        AppendLine(outputPath, entry.ToFileLine());
+        var added = await MovieCatalogStore.AddMovieAsync(outputPath, entry.ToRecord(), cancellationToken);
+        if (!added)
+        {
+            return new ManualCatalogAddResult
+            {
+                AlreadyExists = true,
+                OutputPath = outputPath
+            };
+        }
 
         return new ManualCatalogAddResult
         {
@@ -136,22 +144,6 @@ public static class ManualCatalogAdder
             return trimmed;
 
         return absolute.GetLeftPart(UriPartial.Path).TrimEnd('/') + "/";
-    }
-
-    private static bool MovieAlreadyExists(string outputPath, string slug)
-    {
-        if (!File.Exists(outputPath))
-            return false;
-
-        foreach (var line in File.ReadAllLines(outputPath))
-        {
-            var entry = MovieCatalogEntry.FromFileLine(line);
-            if (entry != null &&
-                string.Equals(entry.Slug, slug, StringComparison.OrdinalIgnoreCase))
-                return true;
-        }
-
-        return false;
     }
 
     private static bool TvShowAlreadyExists(string outputPath, int showId)

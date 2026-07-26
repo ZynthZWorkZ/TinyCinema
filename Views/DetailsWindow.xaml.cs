@@ -19,7 +19,8 @@ public partial class DetailsWindow : Window
         string title,
         string year,
         string description,
-        string genre,
+        string detailsInfo,
+        IReadOnlyList<string>? cast = null,
         string? imageUrl = null,
         bool isTvShow = false)
     {
@@ -31,23 +32,34 @@ public partial class DetailsWindow : Window
         MovieTitleText.Text = title;
         YearText.Text = year;
         
-        if (!string.IsNullOrWhiteSpace(genre))
+        if (!string.IsNullOrWhiteSpace(detailsInfo))
         {
-            GenreText.Text = FormatGenreInfo(genre);
+            GenreText.Text = FormatDetailsInfo(detailsInfo);
             GenreSection.Visibility = Visibility.Visible;
-            
-            if (!isTvShow)
-                _ = LoadCastImagesAsync(genre);
+        }
+        else
+        {
+            GenreSection.Visibility = Visibility.Collapsed;
+        }
+
+        if (!isTvShow)
+        {
+            var castNames = cast?
+                .Where(name => !string.IsNullOrWhiteSpace(name))
+                .Select(name => name.Trim())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList() ?? [];
+
+            if (castNames.Count > 0)
+                _ = LoadCastImagesAsync(castNames);
             else
                 CastSection.Visibility = Visibility.Collapsed;
         }
         else
         {
-            GenreSection.Visibility = Visibility.Collapsed;
             CastSection.Visibility = Visibility.Collapsed;
         }
         
-        // Set description
         if (!string.IsNullOrWhiteSpace(description))
         {
             DescriptionText.Text = description;
@@ -59,7 +71,6 @@ public partial class DetailsWindow : Window
             DescriptionSection.Visibility = Visibility.Visible;
         }
 
-        // Load poster and background image if provided
         if (!string.IsNullOrEmpty(imageUrl))
         {
             try
@@ -70,11 +81,9 @@ public partial class DetailsWindow : Window
                 posterImage.CacheOption = BitmapCacheOption.OnLoad;
                 posterImage.EndInit();
                 
-                // Set poster
                 PosterImage.Source = posterImage;
                 PosterPlaceholder.Visibility = Visibility.Collapsed;
                 
-                // Set background (blurred effect will come from the poster)
                 var backgroundImage = new BitmapImage();
                 backgroundImage.BeginInit();
                 backgroundImage.UriSource = new Uri(imageUrl);
@@ -84,7 +93,6 @@ public partial class DetailsWindow : Window
             }
             catch (Exception)
             {
-                // If image loading fails, show placeholder
                 PosterPlaceholder.Visibility = Visibility.Visible;
             }
         }
@@ -94,32 +102,26 @@ public partial class DetailsWindow : Window
         }
     }
 
-    private string FormatGenreInfo(string rawText)
+    private static string FormatDetailsInfo(string rawText)
     {
         if (string.IsNullOrWhiteSpace(rawText))
             return string.Empty;
 
-        // Split by common patterns and format with line breaks
         var text = rawText
             .Replace("Released:", "\n• Released:")
             .Replace("Genre:", "\n\n• Genre:")
-            .Replace("Casts:", "\n\n• Casts:")
-            .Replace("Cast:", "\n\n• Cast:")
-            .Replace("Director:", "\n\n• Director:")
-            .Replace("Directors:", "\n\n• Directors:")
             .Replace("Duration:", "\n\n• Duration:")
             .Replace("Seasons:", "\n\n• Seasons:")
             .Replace("Country:", "\n\n• Country:")
+            .Replace("Director:", "\n\n• Director:")
+            .Replace("Directors:", "\n\n• Directors:")
             .Replace("Production:", "\n\n• Production:")
             .Replace("Writer:", "\n\n• Writer:")
             .Replace("Quality:", "\n\n• Quality:")
             .Trim();
 
-        // Remove extra newlines at the start
-        while (text.StartsWith("\n"))
-        {
-            text = text.Substring(1);
-        }
+        while (text.StartsWith('\n'))
+            text = text[1..];
 
         return text;
     }
@@ -127,59 +129,42 @@ public partial class DetailsWindow : Window
     private void TitleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
         if (e.ChangedButton == MouseButton.Left)
-        {
             DragMove();
-        }
     }
 
-    private void CloseButton_Click(object sender, RoutedEventArgs e)
-    {
-        Close();
-    }
+    private void CloseButton_Click(object sender, RoutedEventArgs e) => Close();
 
-    private async Task LoadCastImagesAsync(string genreInfo)
+    private async Task LoadCastImagesAsync(IReadOnlyList<string> castNames)
     {
         try
         {
-            // Extract cast names from the genre info
-            var castNames = ExtractCastNames(genreInfo);
             if (castNames.Count == 0)
             {
                 CastSection.Visibility = Visibility.Collapsed;
                 return;
             }
 
-            // Show cast section
             CastSection.Visibility = Visibility.Visible;
             CastImagesPanel.Children.Clear();
 
-            // Load images and details for each cast member (limit to first 6 for performance)
             var tasks = castNames.Take(6).Select(async name =>
             {
                 var (imageUrl, details) = await FetchCastImageAndDetailsAsync(name);
-                if (!string.IsNullOrEmpty(imageUrl))
-                {
-                    return (name, imageUrl, details);
-                }
-                return (name, (string)null, (CastDetails)null);
+                return !string.IsNullOrEmpty(imageUrl)
+                    ? (name, imageUrl, details)
+                    : (name, (string?)null, (CastDetails?)null);
             });
 
             var detailResults = await Task.WhenAll(tasks);
 
-            // Add images to UI on the UI thread
             foreach (var (name, imageUrl, details) in detailResults)
             {
                 if (!string.IsNullOrEmpty(imageUrl))
-                {
                     AddCastMemberToUI(name, imageUrl, details);
-                }
             }
 
-            // Hide cast section if no images were found
             if (CastImagesPanel.Children.Count == 0)
-            {
                 CastSection.Visibility = Visibility.Collapsed;
-            }
         }
         catch (Exception)
         {
@@ -187,36 +172,10 @@ public partial class DetailsWindow : Window
         }
     }
 
-    private List<string> ExtractCastNames(string genreInfo)
-    {
-        var names = new List<string>();
-        try
-        {
-            // Look for "Cast:" or "Casts:" pattern
-            var castMatch = System.Text.RegularExpressions.Regex.Match(genreInfo, @"Casts?:\s*([^\n]+)", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
-            if (castMatch.Success)
-            {
-                var castString = castMatch.Groups[1].Value;
-                // Split by comma and clean up names
-                names = castString
-                    .Split(new[] { ',', '،' }, StringSplitOptions.RemoveEmptyEntries)
-                    .Select(n => n.Trim())
-                    .Where(n => !string.IsNullOrWhiteSpace(n))
-                    .ToList();
-            }
-        }
-        catch
-        {
-            // Return empty list on error
-        }
-        return names;
-    }
-
-    private async Task<(string imageUrl, CastDetails details)> FetchCastImageAndDetailsAsync(string actorName)
+    private async Task<(string? imageUrl, CastDetails? details)> FetchCastImageAndDetailsAsync(string actorName)
     {
         try
         {
-            // Format name as "first-last" for URL
             var formattedName = FormatActorNameForUrl(actorName);
             if (string.IsNullOrEmpty(formattedName))
                 return (null, null);
@@ -225,8 +184,6 @@ public partial class DetailsWindow : Window
 
             using var client = new HttpClient();
             client.Timeout = TimeSpan.FromSeconds(10);
-
-            // Set headers to mimic browser request
             client.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0");
             client.DefaultRequestHeaders.Add("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8");
             client.DefaultRequestHeaders.Add("Accept-Language", "en-US,en;q=0.9");
@@ -239,21 +196,16 @@ public partial class DetailsWindow : Window
 
             var response = await client.GetStringAsync(url);
 
-            // Parse HTML
             var htmlDoc = new HtmlDocument();
             htmlDoc.LoadHtml(response);
 
-            string imageUrl = null;
+            string? imageUrl = null;
             var details = new CastDetails();
 
-            // Find the image in the carousel
             var imgNode = htmlDoc.DocumentNode.SelectSingleNode("//div[contains(@class, 'profile-pictures-carousel__slide')]//img");
             if (imgNode != null)
-            {
                 imageUrl = imgNode.GetAttributeValue("src", null);
-            }
 
-            // Extract bio attributes
             var bioModule = htmlDoc.DocumentNode.SelectSingleNode("//div[@class='bio-module__person-attributes']");
             if (bioModule != null)
             {
@@ -265,29 +217,26 @@ public partial class DetailsWindow : Window
                         var label = p.SelectSingleNode(".//span[@class='type-16-18']")?.InnerText.Trim();
                         var valueNode = p.SelectNodes(".//span")?[1];
                         
-                        if (label != null && valueNode != null)
-                        {
-                            var value = WebUtility.HtmlDecode(valueNode.InnerText.Trim());
-                            
-                            if (label.Contains("Birthday"))
-                                details.Birthday = value;
-                            else if (label.Contains("Birth Sign"))
-                                details.BirthSign = value;
-                            else if (label.Contains("Birthplace"))
-                                details.Birthplace = value;
-                            else if (label.Contains("Age"))
-                                details.Age = value;
-                        }
+                        if (label == null || valueNode == null)
+                            continue;
+
+                        var value = WebUtility.HtmlDecode(valueNode.InnerText.Trim());
+                        
+                        if (label.Contains("Birthday"))
+                            details.Birthday = value;
+                        else if (label.Contains("Birth Sign"))
+                            details.BirthSign = value;
+                        else if (label.Contains("Birthplace"))
+                            details.Birthplace = value;
+                        else if (label.Contains("Age"))
+                            details.Age = value;
                     }
                 }
             }
 
-            // Extract About section
             var aboutNode = htmlDoc.DocumentNode.SelectSingleNode("//h2[contains(text(), 'About')]/following-sibling::p[1]");
             if (aboutNode != null)
-            {
                 details.About = WebUtility.HtmlDecode(aboutNode.InnerText.Trim());
-            }
 
             return (imageUrl, details);
         }
@@ -297,21 +246,18 @@ public partial class DetailsWindow : Window
         }
     }
 
-    private string FormatActorNameForUrl(string actorName)
+    private static string? FormatActorNameForUrl(string actorName)
     {
         try
         {
-            // Remove any extra info in parentheses
             actorName = System.Text.RegularExpressions.Regex.Replace(actorName, @"\([^)]*\)", "").Trim();
 
-            // Split into parts and take only first and last name
-            var parts = actorName.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+            var parts = actorName.Split([' '], StringSplitOptions.RemoveEmptyEntries);
             if (parts.Length < 2)
                 return null;
 
-            // Use first and last name only
-            var firstName = parts[0].ToLower();
-            var lastName = parts[parts.Length - 1].ToLower();
+            var firstName = parts[0].ToLowerInvariant();
+            var lastName = parts[^1].ToLowerInvariant();
 
             return $"{firstName}-{lastName}";
         }
@@ -321,7 +267,7 @@ public partial class DetailsWindow : Window
         }
     }
 
-    private void AddCastMemberToUI(string name, string imageUrl, CastDetails details)
+    private void AddCastMemberToUI(string name, string imageUrl, CastDetails? details)
     {
         try
         {
@@ -338,30 +284,24 @@ public partial class DetailsWindow : Window
             };
 
             var grid = new Grid();
-
             grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(100) });
             grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
 
-            // Cast image
             var imageBorder = new Border
             {
                 CornerRadius = new CornerRadius(8, 8, 0, 0),
-                ClipToBounds = true
+                ClipToBounds = true,
+                Child = new Image
+                {
+                    Stretch = Stretch.UniformToFill,
+                    Source = new BitmapImage(new Uri(imageUrl))
+                }
             };
-
-            var image = new Image
-            {
-                Stretch = Stretch.UniformToFill,
-                Source = new BitmapImage(new Uri(imageUrl))
-            };
-
-            imageBorder.Child = image;
             Grid.SetRow(imageBorder, 0);
 
-            // Cast name
             var nameText = new TextBlock
             {
-                Text = name.Split(' ')[0], // Show only first name
+                Text = name.Split(' ')[0],
                 FontSize = 11,
                 Foreground = new SolidColorBrush(Color.FromRgb(204, 204, 204)),
                 TextAlignment = TextAlignment.Center,
@@ -375,18 +315,14 @@ public partial class DetailsWindow : Window
             grid.Children.Add(nameText);
             castItem.Child = grid;
 
-            // Add tooltip with cast details
             if (details != null)
-            {
-                var tooltip = CreateCastTooltip(name, details);
-                castItem.ToolTip = tooltip;
-            }
+                castItem.ToolTip = CreateCastTooltip(name, details);
 
             CastImagesPanel.Children.Add(castItem);
         }
         catch
         {
-            // Skip this cast member if there's an error
+            // Skip cast member on render error.
         }
     }
 
@@ -409,78 +345,52 @@ public partial class DetailsWindow : Window
         };
 
         var stackPanel = new StackPanel();
-
-        // Name header
-        var nameHeader = new TextBlock
+        stackPanel.Children.Add(new TextBlock
         {
             Text = name,
             FontSize = 16,
             FontWeight = FontWeights.Bold,
             Foreground = new SolidColorBrush(Colors.White),
             Margin = new Thickness(0, 0, 0, 12)
-        };
-        stackPanel.Children.Add(nameHeader);
+        });
 
-        // Birthday
         if (!string.IsNullOrEmpty(details.Birthday))
-        {
-            AddDetailRow(stackPanel, "🎂 Birthday:", details.Birthday);
-        }
-
-        // Birth Sign
+            AddDetailRow(stackPanel, "Birthday:", details.Birthday);
         if (!string.IsNullOrEmpty(details.BirthSign))
-        {
-            AddDetailRow(stackPanel, "♈ Birth Sign:", details.BirthSign);
-        }
-
-        // Birthplace
+            AddDetailRow(stackPanel, "Birth Sign:", details.BirthSign);
         if (!string.IsNullOrEmpty(details.Birthplace))
-        {
-            AddDetailRow(stackPanel, "📍 Birthplace:", details.Birthplace);
-        }
-
-        // Age
+            AddDetailRow(stackPanel, "Birthplace:", details.Birthplace);
         if (!string.IsNullOrEmpty(details.Age))
-        {
-            AddDetailRow(stackPanel, "👤 Age:", details.Age);
-        }
+            AddDetailRow(stackPanel, "Age:", details.Age);
 
-        // About section
         if (!string.IsNullOrEmpty(details.About))
         {
-            var aboutHeader = new TextBlock
+            stackPanel.Children.Add(new TextBlock
             {
                 Text = "About",
                 FontSize = 14,
                 FontWeight = FontWeights.SemiBold,
                 Foreground = new SolidColorBrush(Colors.White),
                 Margin = new Thickness(0, 12, 0, 8)
-            };
-            stackPanel.Children.Add(aboutHeader);
-
-            var aboutText = new TextBlock
+            });
+            stackPanel.Children.Add(new TextBlock
             {
                 Text = details.About,
                 FontSize = 12,
                 Foreground = new SolidColorBrush(Color.FromRgb(204, 204, 204)),
                 TextWrapping = TextWrapping.Wrap,
                 LineHeight = 18
-            };
-            stackPanel.Children.Add(aboutText);
+            });
         }
 
         border.Child = stackPanel;
         tooltip.Content = border;
-
         return tooltip;
     }
 
-    private void AddDetailRow(StackPanel parent, string label, string value)
+    private static void AddDetailRow(StackPanel parent, string label, string value)
     {
-        var grid = new Grid
-        {
-            Margin = new Thickness(0, 0, 0, 8)
-        };
+        var grid = new Grid { Margin = new Thickness(0, 0, 0, 8) };
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(110) });
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
 
@@ -510,9 +420,9 @@ public partial class DetailsWindow : Window
 
 public class CastDetails
 {
-    public string Birthday { get; set; }
-    public string BirthSign { get; set; }
-    public string Birthplace { get; set; }
-    public string Age { get; set; }
-    public string About { get; set; }
-} 
+    public string Birthday { get; set; } = string.Empty;
+    public string BirthSign { get; set; } = string.Empty;
+    public string Birthplace { get; set; } = string.Empty;
+    public string Age { get; set; } = string.Empty;
+    public string About { get; set; } = string.Empty;
+}

@@ -137,9 +137,19 @@ public static class TinyZoneHtmlParser
                 entry.Title = title;
         }
 
-        var description = doc.DocumentNode.SelectSingleNode("//div[contains(@class,'description')]");
-        if (description == null)
-            description = doc.DocumentNode.SelectSingleNode("//div[@class='description']");
+        var descriptionNode = doc.DocumentNode.SelectSingleNode("//div[contains(@class,'description')]");
+        if (descriptionNode == null)
+            descriptionNode = doc.DocumentNode.SelectSingleNode("//div[@class='description']");
+
+        if (descriptionNode != null)
+        {
+            var description = HtmlEntity.DeEntitize(descriptionNode.InnerText).Trim();
+            if (!string.IsNullOrWhiteSpace(description))
+            {
+                entry.Description = description;
+                entry.DescriptionFetchedAt = DateTime.UtcNow;
+            }
+        }
 
         entry.Genre = GetRowLineValue(doc, "Genre:");
         entry.Country = GetRowLineValue(doc, "Country:");
@@ -162,6 +172,26 @@ public static class TinyZoneHtmlParser
             if (!string.IsNullOrWhiteSpace(posterUrl))
                 entry.ImageUrl = MakeAbsoluteUrl(entry.Url, posterUrl);
         }
+
+        var director = GetRowLineValue(doc, "Director:");
+        if (!string.IsNullOrWhiteSpace(director))
+            entry.Director = director;
+
+        var castText = GetRowLineValue(doc, "Cast:");
+        if (string.IsNullOrWhiteSpace(castText))
+            castText = GetRowLineValue(doc, "Casts:");
+
+        if (!string.IsNullOrWhiteSpace(castText))
+        {
+            entry.Cast = castText
+                .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                .Select(name => name.Trim())
+                .Where(name => !string.IsNullOrWhiteSpace(name))
+                .ToList();
+        }
+
+        if (!string.IsNullOrWhiteSpace(entry.Director) || entry.Cast.Count > 0)
+            entry.DirectorCastFetchedAt = DateTime.UtcNow;
     }
 
     private static string GetRowLineValue(HtmlDocument doc, string label)

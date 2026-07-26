@@ -443,7 +443,7 @@
                                                Width="16" 
                                                Height="16"
                                                Margin="0,0,8,0"/>
-                                <TextBlock Text="Movie Links File Settings" 
+                                <TextBlock Text="Movie Catalog Settings" 
                                          Foreground="White"
                                          FontSize="16"
                                          FontWeight="SemiBold"/>
@@ -461,7 +461,7 @@
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
                                 
-                                <TextBlock Text="{Binding MovieLinksLocation}"
+                                <TextBlock Text="{Binding MovieCatalogLocation}"
                                          Foreground="#B3FFFFFF"
                                          TextWrapping="Wrap"
                                          VerticalAlignment="Center"
@@ -469,7 +469,7 @@
                                 
                                 <Button Grid.Column="1"
                                         Content="Change Location"
-                                        Click="SelectMovieLinksLocation_Click"
+                                        Click="SelectMovieCatalogLocation_Click"
                                         Style="{StaticResource ModernButtonStyle}"
                                         Margin="0,0,0,12"/>
 

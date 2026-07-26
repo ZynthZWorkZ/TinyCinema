@@ -68,9 +68,10 @@ public partial class FetchMoviesDialog : Window
     {
         var dialog = new Microsoft.Win32.SaveFileDialog
         {
-            Title = "Save Movie Links File",
-            Filter = "Text Files|*.txt|All Files|*.*",
+            Title = "Save Movie Catalog",
+            Filter = "JSON Files|*.json|All Files|*.*",
             FileName = Path.GetFileName(_outputPath),
+            DefaultExt = ".json",
             InitialDirectory = Path.GetDirectoryName(_outputPath) ?? AppDomain.CurrentDomain.BaseDirectory,
             OverwritePrompt = false
         };
@@ -120,7 +121,7 @@ public partial class FetchMoviesDialog : Window
 
         if (string.IsNullOrWhiteSpace(_outputPath))
         {
-            MessageBox.Show("Choose where to save movie_links.txt.", "Invalid Input",
+            MessageBox.Show("Choose where to save the movie catalog JSON file.", "Invalid Input",
                 MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }

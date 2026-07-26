@@ -36,6 +36,8 @@
   <ItemGroup>
     <Compile Remove="Examples\**" />
     <None Include="Examples\**" />
+    <Compile Remove="Scripts\**" />
+    <None Include="Scripts\**" />
   </ItemGroup>
 
   <ItemGroup>

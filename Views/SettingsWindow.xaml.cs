@@ -16,7 +16,7 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
     private bool _isPopupBlockerEnabled = true;
     private bool _isClearPlayerBrowserDataOnClose;
     private bool _isMovieLairProbeEnabled;
-    private string _movieLinksLocation;
+    private string _movieCatalogLocation;
     private string _tvShowLinksLocation;
     private string _movieLairShowsUrl = "https://movielair.cc/shows/10759/";
     private string _rokuIpAddress = "";
@@ -70,13 +70,13 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
         }
     }
 
-    public string MovieLinksLocation
+    public string MovieCatalogLocation
     {
-        get => _movieLinksLocation;
+        get => _movieCatalogLocation;
         set
         {
-            _movieLinksLocation = value;
-            OnPropertyChanged(nameof(MovieLinksLocation));
+            _movieCatalogLocation = value;
+            OnPropertyChanged(nameof(MovieCatalogLocation));
             SaveSettings();
         }
     }
@@ -358,9 +358,13 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
                     {
                         IsMovieLairProbeEnabled = bool.Parse(line.Substring("IsMovieLairProbeEnabled=".Length).Trim());
                     }
+                    else if (line.StartsWith("MovieCatalogLocation="))
+                    {
+                        MovieCatalogLocation = line.Substring("MovieCatalogLocation=".Length).Trim();
+                    }
                     else if (line.StartsWith("MovieLinksLocation="))
                     {
-                        MovieLinksLocation = line.Substring("MovieLinksLocation=".Length).Trim();
+                        MovieCatalogLocation = line.Substring("MovieLinksLocation=".Length).Trim();
                     }
                     else if (line.StartsWith("TvShowLinksLocation="))
                     {
@@ -423,13 +427,7 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
             );
         }
 
-        if (string.IsNullOrEmpty(MovieLinksLocation))
-        {
-            MovieLinksLocation = Path.Combine(
-                AppDomain.CurrentDomain.BaseDirectory,
-                "movie_links.txt"
-            );
-        }
+        MovieCatalogLocation = NormalizeMovieCatalogLocation(MovieCatalogLocation);
 
         if (string.IsNullOrEmpty(TvShowLinksLocation))
         {
@@ -458,7 +456,7 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
                 $"IsPopupBlockerEnabled={IsPopupBlockerEnabled}",
                 $"IsClearPlayerBrowserDataOnClose={IsClearPlayerBrowserDataOnClose}",
                 $"IsMovieLairProbeEnabled={IsMovieLairProbeEnabled}",
-                $"MovieLinksLocation={MovieLinksLocation}",
+                $"MovieCatalogLocation={MovieCatalogLocation}",
                 $"TvShowLinksLocation={TvShowLinksLocation}",
                 $"MovieLairShowsUrl={MovieLairShowsUrl}",
                 $"RokuIpAddress={RokuIpAddress}",
@@ -701,12 +699,35 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
         }
     }
 
-    private void SelectMovieLinksLocation_Click(object sender, RoutedEventArgs e)
+    private static string NormalizeMovieCatalogLocation(string? configuredPath)
+    {
+        var defaultPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Movies.json");
+
+        if (string.IsNullOrWhiteSpace(configuredPath))
+            return defaultPath;
+
+        if (configuredPath.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
+            return configuredPath;
+
+        if (configuredPath.EndsWith(".txt", StringComparison.OrdinalIgnoreCase))
+        {
+            var jsonSibling = Path.Combine(
+                Path.GetDirectoryName(configuredPath) ?? AppDomain.CurrentDomain.BaseDirectory,
+                "Movies.json");
+
+            if (File.Exists(jsonSibling))
+                return jsonSibling;
+        }
+
+        return configuredPath;
+    }
+
+    private void SelectMovieCatalogLocation_Click(object sender, RoutedEventArgs e)
     {
         var dialog = new Microsoft.Win32.OpenFileDialog
         {
-            Title = "Select Movie Links File",
-            Filter = "Text Files|*.txt|All Files|*.*",
+            Title = "Select Movie Catalog File",
+            Filter = "JSON Files|*.json|All Files|*.*",
             CheckFileExists = true,
             CheckPathExists = true
         };
@@ -715,11 +736,8 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
         {
             try
             {
-                // Test if we can read the file
-                File.ReadAllLines(dialog.FileName);
-                
-                // If successful, update movie links location
-                MovieLinksLocation = dialog.FileName;
+                _ = MovieCatalogStore.LoadAsync(dialog.FileName).GetAwaiter().GetResult();
+                MovieCatalogLocation = dialog.FileName;
             }
             catch (Exception ex)
             {
@@ -743,14 +761,14 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
 
     private void FetchMovies_Click(object sender, RoutedEventArgs e)
     {
-        var dialog = new FetchMoviesDialog(TinyZoneBaseUrl, MovieLinksLocation)
+        var dialog = new FetchMoviesDialog(TinyZoneBaseUrl, MovieCatalogLocation)
         {
             Owner = Owner ?? this
         };
 
         if (dialog.ShowDialog() == true)
         {
-            MovieLinksLocation = dialog.OutputPath;
+            MovieCatalogLocation = dialog.OutputPath;
             TinyZoneBaseUrl = dialog.SelectedBaseUrl;
 
             if (Owner is MainWindow mainWindow)
@@ -760,7 +778,7 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
 
     private void AddMovieByUrl_Click(object sender, RoutedEventArgs e)
     {
-        var dialog = new AddCatalogItemDialog(CatalogContentType.Movie, MovieLinksLocation)
+        var dialog = new AddCatalogItemDialog(CatalogContentType.Movie, MovieCatalogLocation)
         {
             Owner = Owner ?? this
         };

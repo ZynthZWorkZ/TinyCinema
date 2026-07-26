@@ -108,7 +108,7 @@ public class MovieCatalogFetcher
         }
 
         var existingSlugs = saveMode == MovieCatalogSaveMode.MergeWithExisting
-            ? LoadExistingSlugs(outputPath)
+            ? MovieCatalogStore.LoadExistingSlugs(outputPath)
             : new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var moviesToFetch = saveMode == MovieCatalogSaveMode.MergeWithExisting
             ? discovered
@@ -156,7 +156,11 @@ public class MovieCatalogFetcher
                 await Task.Delay(RequestDelayMs, cancellationToken);
         }
 
-        var added = SaveMovies(outputPath, moviesToWrite, saveMode);
+        var added = await MovieCatalogStore.MergeMoviesAsync(
+            outputPath,
+            moviesToWrite.Select(movie => movie.ToRecord()).ToList(),
+            saveMode,
+            cancellationToken);
         var skipped = discovered.Count - moviesToFetch.Count;
 
         return new MovieCatalogFetchResult
@@ -228,52 +232,5 @@ public class MovieCatalogFetcher
         }
 
         throw new InvalidOperationException($"Failed to download {url}", lastError);
-    }
-
-    private static HashSet<string> LoadExistingSlugs(string outputPath)
-    {
-        var slugs = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        if (!File.Exists(outputPath))
-            return slugs;
-
-        foreach (var line in File.ReadAllLines(outputPath))
-        {
-            var entry = MovieCatalogEntry.FromFileLine(line);
-            if (entry == null)
-                continue;
-
-            var slug = entry.Slug;
-            if (!string.IsNullOrWhiteSpace(slug))
-                slugs.Add(slug);
-        }
-
-        return slugs;
-    }
-
-    private static int SaveMovies(string outputPath, IReadOnlyList<MovieCatalogEntry> movies, MovieCatalogSaveMode saveMode)
-    {
-        if (movies.Count == 0)
-            return 0;
-
-        var directory = Path.GetDirectoryName(outputPath);
-        if (!string.IsNullOrWhiteSpace(directory) && !Directory.Exists(directory))
-            Directory.CreateDirectory(directory);
-
-        var newLines = movies.Select(movie => movie.ToFileLine()).ToList();
-
-        if (saveMode == MovieCatalogSaveMode.Overwrite || !File.Exists(outputPath))
-        {
-            File.WriteAllLines(outputPath, newLines);
-            return movies.Count;
-        }
-
-        var existingLines = File.ReadAllLines(outputPath)
-            .Where(line => !string.IsNullOrWhiteSpace(line))
-            .ToList();
-
-        var mergedLines = newLines.Concat(existingLines).ToList();
-        File.WriteAllLines(outputPath, mergedLines);
-
-        return movies.Count;
     }
 }
