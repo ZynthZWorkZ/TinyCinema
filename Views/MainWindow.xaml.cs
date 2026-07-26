@@ -105,6 +105,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             HeroPanel.PlayRequested += PlayButton_Click;
             HeroPanel.ContinueRequested += ContinueButton_Click;
             HeroPanel.FavoriteRequested += FavoriteButton_Click;
+            HeroPanel.WatchedRequested += WatchedButton_Click;
             HeroPanel.TrailerRequested += TrailerButton_Click;
             HeroPanel.OpeningCreditsRequested += OpeningCreditsButton_Click;
             HeroPanel.InfoRequested += InfoButton_Click;
@@ -112,6 +113,8 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             HeroPanel.RokuRequested += RokuButton_Click;
 
             ExploreHomePanel.MovieSelected += ExploreHomePanel_MovieSelected;
+            WatchedHomePanel.MovieSelected += WatchedHomePanel_MovieSelected;
+            WatchedHomePanel.WatchedToggleRequested += WatchedHomePanel_WatchedToggleRequested;
             IptvHomePanel.ChannelPlayRequested += IptvHomePanel_ChannelPlayRequested;
 
             PosterScrollViewer.ScrollChanged += async (_, e) =>
@@ -214,6 +217,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             }
 
             LoadFavorites();
+            LoadWatched();
             MovieCount = _allMovies.Count(m => m.ContentType == CatalogContentType.Movie);
             TvShowCount = _allMovies.Count(m => m.ContentType == CatalogContentType.TvShow);
 
@@ -321,6 +325,16 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             return;
         }
 
+        if (_currentNav == MainNavSection.Watched)
+        {
+            UpdateContentVisibility();
+            WatchedHomePanel.Refresh(_allMovies, _lastSearchText);
+            EmptyGridText.Visibility = Visibility.Collapsed;
+            if (WatchedHomePanel.SelectedMovie == null)
+                HeroPanel.ShowEmptyState("Nothing watched yet. Mark titles with the eye icon to build your history.");
+            return;
+        }
+
         UpdateContentVisibility();
         _currentIndex = 0;
         _movies.Clear();
@@ -416,6 +430,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         StyleNav(NavTvShowsButton, _currentNav == MainNavSection.TvShows);
         StyleNav(NavExploreButton, _currentNav == MainNavSection.Explore);
         StyleNav(NavFavoritesButton, _currentNav == MainNavSection.Favorites);
+        StyleNav(NavWatchedButton, _currentNav == MainNavSection.Watched);
         StyleNav(NavIptvButton, _currentNav == MainNavSection.Iptv);
 
         GridSectionTitle.Text = _currentNav switch
@@ -423,6 +438,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             MainNavSection.Movies => "Movies",
             MainNavSection.TvShows => "TV Shows",
             MainNavSection.Favorites => "Favorites",
+            MainNavSection.Watched => "Watched",
             MainNavSection.Iptv => "Live TV",
             _ => "For You"
         };
@@ -432,14 +448,19 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     {
         var showExplore = _currentNav == MainNavSection.Explore;
         var showIptv = _currentNav == MainNavSection.Iptv;
+        var showWatched = _currentNav == MainNavSection.Watched;
 
         ExploreHomePanel.Visibility = showExplore ? Visibility.Visible : Visibility.Collapsed;
         IptvHomePanel.Visibility = showIptv ? Visibility.Visible : Visibility.Collapsed;
-        PosterScrollViewer.Visibility = showExplore || showIptv ? Visibility.Collapsed : Visibility.Visible;
+        WatchedHomePanel.Visibility = showWatched ? Visibility.Visible : Visibility.Collapsed;
+        PosterScrollViewer.Visibility = showExplore || showIptv || showWatched ? Visibility.Collapsed : Visibility.Visible;
         HeroPanel.Visibility = showIptv ? Visibility.Collapsed : Visibility.Visible;
-        GenreFilter.IsEnabled = !showIptv;
-        CountryFilter.IsEnabled = !showIptv;
+        GenreFilter.IsEnabled = !showIptv && !showWatched;
+        CountryFilter.IsEnabled = !showIptv && !showWatched;
         EmptyGridText.Visibility = Visibility.Collapsed;
+        GridSectionTitle.Visibility = showExplore || showIptv || showWatched
+            ? Visibility.Collapsed
+            : Visibility.Visible;
 
         if (showExplore)
             MoviesListView.SelectedItem = null;
@@ -529,6 +550,21 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
     private void ExploreHomePanel_MovieSelected(object? sender, Movie movie)
     {
+        SelectHeroMovie(movie);
+    }
+
+    private void WatchedHomePanel_MovieSelected(object? sender, Movie movie)
+    {
+        SelectHeroMovie(movie);
+    }
+
+    private void WatchedHomePanel_WatchedToggleRequested(object? sender, Movie movie)
+    {
+        ToggleWatched(movie);
+    }
+
+    private void SelectHeroMovie(Movie movie)
+    {
         if (_heroSubscribedMovie != null)
         {
             _heroSubscribedMovie.PropertyChanged -= HeroMovie_PropertyChanged;
@@ -556,15 +592,22 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         }
 
         MoviesListView.SelectedItem = null;
-        HeroPanel.ShowEmptyState(_showFavoritesOnly
-            ? "No favorites yet. Heart a title to add it here."
-            : "No titles match your filters.");
+        HeroPanel.ShowEmptyState(GetEmptyHeroMessage());
     }
+
+    private string GetEmptyHeroMessage() => _currentNav switch
+    {
+        MainNavSection.Favorites => "No favorites yet. Heart a title to add it here.",
+        MainNavSection.Watched => "Nothing watched yet. Mark titles with the eye icon to build your history.",
+        _ => "No titles match your filters."
+    };
 
     private Movie? GetSelectedMovie() =>
         _currentNav == MainNavSection.Explore
             ? ExploreHomePanel.SelectedMovie ?? HeroPanel.CurrentMovie
-            : MoviesListView.SelectedItem as Movie ?? HeroPanel.CurrentMovie;
+            : _currentNav == MainNavSection.Watched
+                ? WatchedHomePanel.SelectedMovie ?? HeroPanel.CurrentMovie
+                : MoviesListView.SelectedItem as Movie ?? HeroPanel.CurrentMovie;
 
 
     private bool IsMatch(Movie movie, string[] searchTerms)
@@ -833,9 +876,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
         if (_movies.Count == 0)
         {
-            HeroPanel.ShowEmptyState(_showFavoritesOnly
-                ? "No favorites yet. Heart a title to add it here."
-                : "No titles match your filters.");
+            HeroPanel.ShowEmptyState(GetEmptyHeroMessage());
         }
         else
         {
@@ -856,12 +897,20 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         {
             HeroPanel.UpdateFavoriteVisual(favMovie.IsFavorite);
         }
+
+        if (e.PropertyName == nameof(Movie.IsWatched) && sender is Movie watchedMovie &&
+            IsHeroMovieSelected(watchedMovie))
+        {
+            HeroPanel.UpdateWatchedVisual(watchedMovie.IsWatched);
+        }
     }
 
     private bool IsHeroMovieSelected(Movie movie) =>
         _currentNav == MainNavSection.Explore
             ? ExploreHomePanel.SelectedMovie == movie
-            : MoviesListView.SelectedItem == movie;
+            : _currentNav == MainNavSection.Watched
+                ? WatchedHomePanel.SelectedMovie == movie
+                : MoviesListView.SelectedItem == movie;
 
     private async Task LoadHeroDetailsAsync(Movie movie, Movie? selectionCheck = null)
     {
@@ -1453,6 +1502,36 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             _ = RefreshExploreAsync();
     }
 
+    private void WatchedButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (GetSelectedMovie() is not Movie movie)
+            return;
+
+        ToggleWatched(movie);
+    }
+
+    private void ToggleWatched(Movie movie)
+    {
+        var isWatched = !movie.IsWatched;
+        WatchedStore.SetWatched(movie, isWatched);
+        HeroPanel.UpdateWatchedVisual(movie.IsWatched);
+
+        if (_currentNav == MainNavSection.Watched)
+            WatchedHomePanel.NotifyWatchedChanged(movie);
+    }
+
+    private void LoadWatched()
+    {
+        try
+        {
+            WatchedStore.ApplyToMovies(_allMovies);
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Error loading watched titles");
+        }
+    }
+
     private void LoadFavorites()
     {
         try
@@ -1667,6 +1746,8 @@ public class Movie : INotifyPropertyChanged
     private BitmapImage _cachedImage;
     private bool _isLoading;
     private bool _isFavorite;
+    private bool _isWatched;
+    private DateTime? _watchedAtUtc;
 
     public bool IsFavorite
     {
@@ -1675,6 +1756,26 @@ public class Movie : INotifyPropertyChanged
         {
             _isFavorite = value;
             OnPropertyChanged(nameof(IsFavorite));
+        }
+    }
+
+    public bool IsWatched
+    {
+        get => _isWatched;
+        set
+        {
+            _isWatched = value;
+            OnPropertyChanged(nameof(IsWatched));
+        }
+    }
+
+    public DateTime? WatchedAtUtc
+    {
+        get => _watchedAtUtc;
+        set
+        {
+            _watchedAtUtc = value;
+            OnPropertyChanged(nameof(WatchedAtUtc));
         }
     }
 

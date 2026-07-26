@@ -13,6 +13,7 @@ public partial class CatalogHeroPanel : UserControl
     public event RoutedEventHandler? PlayRequested;
     public event RoutedEventHandler? ContinueRequested;
     public event RoutedEventHandler? FavoriteRequested;
+    public event RoutedEventHandler? WatchedRequested;
     public event RoutedEventHandler? TrailerRequested;
     public event RoutedEventHandler? OpeningCreditsRequested;
     public event RoutedEventHandler? InfoRequested;
@@ -53,6 +54,7 @@ public partial class CatalogHeroPanel : UserControl
         OpeningCreditsButton.Visibility = movie.IsTvShow ? Visibility.Visible : Visibility.Collapsed;
 
         UpdateFavoriteVisual(movie.IsFavorite);
+        UpdateWatchedVisual(movie.IsWatched);
         SetContinueState(movie.IsTvShow ? TvShowWatchHistory.TryGet(movie.Url) : null);
         UpdateBackdrop(movie);
     }
@@ -124,6 +126,15 @@ public partial class CatalogHeroPanel : UserControl
         FavoriteLabel.Text = isFavorite ? "Favorited" : "Favorite";
     }
 
+    public void UpdateWatchedVisual(bool isWatched)
+    {
+        WatchedIcon.Icon = isWatched ? FontAwesomeIcon.Eye : FontAwesomeIcon.EyeSlash;
+        WatchedIcon.Foreground = new SolidColorBrush(
+            isWatched ? Color.FromRgb(16, 185, 129) : Colors.White);
+        WatchedLabel.Text = isWatched ? "Watched" : "Mark Watched";
+        WatchedButton.ToolTip = isWatched ? "Mark as unwatched" : "Mark as watched";
+    }
+
     private void UpdateBackdrop(Movie movie)
     {
         if (movie.CachedImage != null)
@@ -182,6 +193,7 @@ public partial class CatalogHeroPanel : UserControl
     private void PlayButton_Click(object sender, RoutedEventArgs e) => PlayRequested?.Invoke(this, e);
     private void ContinueButton_Click(object sender, RoutedEventArgs e) => ContinueRequested?.Invoke(this, e);
     private void FavoriteButton_Click(object sender, RoutedEventArgs e) => FavoriteRequested?.Invoke(this, e);
+    private void WatchedButton_Click(object sender, RoutedEventArgs e) => WatchedRequested?.Invoke(this, e);
     private void TrailerButton_Click(object sender, RoutedEventArgs e) => TrailerRequested?.Invoke(this, e);
     private void OpeningCreditsButton_Click(object sender, RoutedEventArgs e) => OpeningCreditsRequested?.Invoke(this, e);
     private void InfoButton_Click(object sender, RoutedEventArgs e) => InfoRequested?.Invoke(this, e);

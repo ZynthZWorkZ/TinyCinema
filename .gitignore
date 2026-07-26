@@ -12,4 +12,9 @@ TinyPlayer/
 .cursor/
 TinyScrapev2.exe
 TinyScrapev2.pdb
-Examples/
+Examples/ 
+movie_descriptions.json
+scripts/
+movie_descriptions.json.bak
+movie_descriptions.json.tmp
+movie_links.txt

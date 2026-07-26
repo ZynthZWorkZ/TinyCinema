@@ -21,6 +21,8 @@
         <local:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
         <local:FavoriteIconConverter x:Key="FavoriteIconConverter"/>
         <local:FavoriteColorConverter x:Key="FavoriteColorConverter"/>
+        <local:WatchedIconConverter x:Key="WatchedIconConverter"/>
+        <local:WatchedColorConverter x:Key="WatchedColorConverter"/>
     </Window.Resources>
 
     <Border Background="{DynamicResource AppBackgroundBrush}"
@@ -95,6 +97,15 @@
                             <StackPanel Orientation="Horizontal">
                                 <FontAwesome:FontAwesome Icon="Heart" Width="16" Height="16" Margin="0,0,12,0"/>
                                 <TextBlock Text="Favorites" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                        <Button x:Name="NavWatchedButton"
+                                Tag="Watched"
+                                Style="{StaticResource SidebarNavButtonStyle}"
+                                Click="NavButton_Click">
+                            <StackPanel Orientation="Horizontal">
+                                <FontAwesome:FontAwesome Icon="Eye" Width="16" Height="16" Margin="0,0,12,0"/>
+                                <TextBlock Text="Watched" VerticalAlignment="Center"/>
                             </StackPanel>
                         </Button>
                         <Button x:Name="NavIptvButton"
@@ -300,6 +311,22 @@
                                                Stretch="UniformToFill"
                                                RenderOptions.BitmapScalingMode="HighQuality"/>
 
+                                        <!-- Watched badge -->
+                                        <Border VerticalAlignment="Top"
+                                                HorizontalAlignment="Right"
+                                                Margin="8"
+                                                Background="#CC0B0F14"
+                                                BorderBrush="#334155"
+                                                BorderThickness="1"
+                                                CornerRadius="6"
+                                                Padding="6,4"
+                                                Visibility="{Binding IsWatched, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                            <FontAwesome:FontAwesome Icon="Eye"
+                                                                     Foreground="#10B981"
+                                                                     Width="12"
+                                                                     Height="12"/>
+                                        </Border>
+
                                         <!-- Title overlay -->
                                         <Border VerticalAlignment="Bottom">
                                             <Border.Background>
@@ -335,6 +362,12 @@
                                          VerticalAlignment="Stretch"
                                          HorizontalAlignment="Stretch"
                                          Visibility="Collapsed"/>
+
+                    <local:WatchedHomePanel x:Name="WatchedHomePanel"
+                                            Grid.Row="1"
+                                            VerticalAlignment="Stretch"
+                                            HorizontalAlignment="Stretch"
+                                            Visibility="Collapsed"/>
                 </Grid>
             </Grid>
         </Grid>
