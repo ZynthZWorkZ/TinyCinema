@@ -276,6 +276,9 @@
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
                             </Grid.RowDefinitions>
 
                             <StackPanel Grid.Row="0"
@@ -309,6 +312,54 @@
                                           SelectedItem="{Binding SelectedAppTheme}"
                                           SelectionChanged="ThemeComboBox_SelectionChanged"
                                           Style="{StaticResource ModernComboBoxStyle}"/>
+                            </Grid>
+
+                            <Grid Grid.Row="2" Margin="0,14,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+
+                                <TextBlock Text="Window size:"
+                                           Foreground="White"
+                                           VerticalAlignment="Center"
+                                           Margin="0,0,12,0"/>
+
+                                <ComboBox x:Name="WindowSizeComboBox"
+                                          Grid.Column="1"
+                                          ItemsSource="{Binding AvailableWindowSizes}"
+                                          SelectedItem="{Binding SelectedWindowSize}"
+                                          SelectionChanged="WindowSizeComboBox_SelectionChanged"
+                                          Style="{StaticResource ModernComboBoxStyle}"/>
+                            </Grid>
+
+                            <TextBlock Grid.Row="3"
+                                       Text="{Binding WindowSizeDescription}"
+                                       Foreground="#94A3B8"
+                                       FontSize="11"
+                                       TextWrapping="Wrap"
+                                       Margin="0,8,0,0"/>
+
+                            <Grid Grid.Row="4" Margin="0,14,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                    <TextBlock Text="Start centered on screen"
+                                               Foreground="White"/>
+                                    <TextBlock Text="When enabled, TinyCinema opens in the middle of your display."
+                                               Foreground="#94A3B8"
+                                               FontSize="11"
+                                               TextWrapping="Wrap"
+                                               Margin="0,4,0,0"/>
+                                </StackPanel>
+
+                                <ToggleButton Grid.Column="1"
+                                              VerticalAlignment="Center"
+                                              IsChecked="{Binding IsStartCentered}"
+                                              Style="{StaticResource ModernToggleStyle}"/>
                             </Grid>
                         </Grid>
                     </Border>

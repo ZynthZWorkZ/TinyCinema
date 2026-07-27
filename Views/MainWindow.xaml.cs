@@ -92,12 +92,15 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     }
 
     private bool _scrollViewerHooked;
+    private bool _startupCenterPending;
 
     public MainWindow()
     {
         try
         {
             InitializeComponent();
+            _startupCenterPending = SettingsWindow.GetStartCentered();
+            WindowStartupLocation = WindowStartupLocation.Manual;
             _movies = new ObservableCollection<Movie>();
             _allMovies = new List<Movie>();
             MoviesListView.ItemsSource = _movies;
@@ -130,12 +133,52 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
             UpdateSidebarVisuals();
             SmartSearchCoordinator.IndexReady += SmartSearchCoordinator_IndexReady;
+            AppLayoutManager.LayoutChanged += AppLayoutManager_LayoutChanged;
+            Loaded += MainWindow_Loaded;
+            ContentRendered += MainWindow_ContentRendered;
             LoadMoviesAsync();
         }
         catch (Exception ex)
         {
             MessageBox.Show($"Error in constructor: {ex.Message}\n\nStack Trace:\n{ex.StackTrace}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
         }
+    }
+
+    private void MainWindow_Loaded(object sender, RoutedEventArgs e)
+    {
+        ApplyWindowLayout();
+        ApplyStartupCenterIfEnabled();
+    }
+
+    private void MainWindow_ContentRendered(object sender, EventArgs e)
+    {
+        if (!_startupCenterPending)
+            return;
+
+        _startupCenterPending = false;
+        ApplyStartupCenterIfEnabled();
+    }
+
+    private void ApplyStartupCenterIfEnabled()
+    {
+        if (!SettingsWindow.GetStartCentered())
+            return;
+
+        WindowPlacementHelper.CenterOnWorkingArea(this);
+    }
+
+    private void AppLayoutManager_LayoutChanged()
+    {
+        Dispatcher.Invoke(ApplyWindowLayout);
+    }
+
+    private void ApplyWindowLayout()
+    {
+        AppLayoutManager.LoadFromSettings();
+        AppLayoutManager.ApplyTo(this, LayoutScaleTransform);
+
+        if (SettingsWindow.GetStartCentered() && WindowState != WindowState.Maximized)
+            WindowPlacementHelper.CenterOnWorkingArea(this);
     }
 
     private async void LoadMoviesAsync()
@@ -868,6 +911,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         settingsWindow.Owner = this;
         settingsWindow.ShowDialog();
         RefreshTheme();
+        ApplyWindowLayout();
     }
 
     private void MoviesListView_SelectionChanged(object sender, SelectionChangedEventArgs e)

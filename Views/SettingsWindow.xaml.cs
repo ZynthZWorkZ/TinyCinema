@@ -16,6 +16,7 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
     private bool _isPopupBlockerEnabled = true;
     private bool _isClearPlayerBrowserDataOnClose;
     private bool _isMovieLairProbeEnabled;
+    private bool _isStartCentered = true;
     private string _movieCatalogLocation;
     private string _tvShowLinksLocation;
     private string _movieLairShowsUrl = "https://movielair.cc/shows/10759/";
@@ -26,14 +27,18 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
     private string _tinyZoneBaseUrl = "https://ww5.tinyzone.org";
     private string _tmdbApiKey = "";
     private string _selectedAppTheme = "Black";
+    private AppWindowSize _selectedWindowSize = AppWindowSize.Standard;
     private List<string> _availablePlayers;
     private List<string> _availableThemes = ThemeManager.GetAvailableDisplayNames().ToList();
+    private List<string> _availableWindowSizes = AppLayoutManager.AvailableDisplayNames.ToList();
 
-    private static readonly string SettingsFile = Path.Combine(
+    public static readonly string SettingsFilePath = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
         "TinyCinema",
         "settings.json"
     );
+
+    private static readonly string SettingsFile = SettingsFilePath;
     
     private static readonly string VlcPath = @"C:\Program Files\VideoLAN\VLC\vlc.exe";
 
@@ -66,6 +71,17 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
         {
             _isMovieLairProbeEnabled = value;
             OnPropertyChanged(nameof(IsMovieLairProbeEnabled));
+            SaveSettings();
+        }
+    }
+
+    public bool IsStartCentered
+    {
+        get => _isStartCentered;
+        set
+        {
+            _isStartCentered = value;
+            OnPropertyChanged(nameof(IsStartCentered));
             SaveSettings();
         }
     }
@@ -239,6 +255,37 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
     private static string NormalizeThemeDisplayName(string? value) =>
         ThemeManager.GetDisplayName(ThemeManager.ParseTheme(value));
 
+    public List<string> AvailableWindowSizes
+    {
+        get => _availableWindowSizes;
+        private set
+        {
+            _availableWindowSizes = value;
+            OnPropertyChanged(nameof(AvailableWindowSizes));
+        }
+    }
+
+    public string SelectedWindowSize
+    {
+        get => AppLayoutManager.GetDisplayName(_selectedWindowSize);
+        set
+        {
+            var parsed = AppLayoutManager.ParseDisplayName(value);
+            if (_selectedWindowSize == parsed)
+                return;
+
+            _selectedWindowSize = parsed;
+            OnPropertyChanged(nameof(SelectedWindowSize));
+            OnPropertyChanged(nameof(WindowSizeDescription));
+            SaveSettings();
+            AppLayoutManager.SetSize(parsed, persist: false);
+        }
+    }
+
+    public string WindowSizeDescription =>
+        AppLayoutManager.GetProfile(_selectedWindowSize).Description +
+        $" ({Math.Round(AppLayoutManager.GetProfile(_selectedWindowSize).WindowWidth)}×{Math.Round(AppLayoutManager.GetProfile(_selectedWindowSize).WindowHeight)})";
+
     public List<string> AvailablePlayers
     {
         get => _availablePlayers;
@@ -280,6 +327,12 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
         {
             ThemeComboBox.ItemsSource = AvailableThemes;
             ThemeComboBox.SelectedItem = SelectedAppTheme;
+        }
+
+        if (WindowSizeComboBox != null)
+        {
+            WindowSizeComboBox.ItemsSource = AvailableWindowSizes;
+            WindowSizeComboBox.SelectedItem = SelectedWindowSize;
         }
 
         UpdateSmartSearchStatus();
@@ -331,6 +384,14 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
         if (ThemeComboBox?.SelectedItem is string selectedTheme)
         {
             SelectedAppTheme = selectedTheme;
+        }
+    }
+
+    private void WindowSizeComboBox_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+    {
+        if (WindowSizeComboBox?.SelectedItem is string selectedSize)
+        {
+            SelectedWindowSize = selectedSize;
         }
     }
 
@@ -417,10 +478,22 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
                     {
                         _selectedAppTheme = NormalizeThemeDisplayName(line.Substring("AppTheme=".Length).Trim());
                     }
+                    else if (line.StartsWith("WindowSize="))
+                    {
+                        _selectedWindowSize = AppLayoutManager.ParseSize(line.Substring("WindowSize=".Length).Trim());
+                    }
+                    else if (line.StartsWith("StartCentered="))
+                    {
+                        _isStartCentered = bool.Parse(line.Substring("StartCentered=".Length).Trim());
+                    }
                 }
 
                 ThemeManager.ApplyTheme(ThemeManager.ParseTheme(_selectedAppTheme));
                 OnPropertyChanged(nameof(SelectedAppTheme));
+                OnPropertyChanged(nameof(SelectedWindowSize));
+                OnPropertyChanged(nameof(WindowSizeDescription));
+                OnPropertyChanged(nameof(IsStartCentered));
+                AppLayoutManager.LoadFromSettings();
             }
         }
         catch
@@ -475,7 +548,9 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
                 $"SelectedPlayer={SelectedPlayer}",
                 $"TinyZoneBaseUrl={TinyZoneBaseUrl}",
                 $"TmdbApiKey={TmdbApiKey}",
-                $"AppTheme={ThemeManager.ToSettingValue(ThemeManager.ParseTheme(SelectedAppTheme))}"
+                $"AppTheme={ThemeManager.ToSettingValue(ThemeManager.ParseTheme(SelectedAppTheme))}",
+                $"WindowSize={AppLayoutManager.ToSettingValue(_selectedWindowSize)}",
+                $"StartCentered={IsStartCentered}"
             };
 
             File.WriteAllLines(SettingsFile, settings);
@@ -601,6 +676,59 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
         }
 
         return NormalizeMovieCatalogLocation(null);
+    }
+
+    public static AppWindowSize GetWindowSize() => AppLayoutManager.ReadFromSettings();
+
+    public static bool GetStartCentered()
+    {
+        try
+        {
+            if (!File.Exists(SettingsFilePath))
+                return true;
+
+            foreach (var line in File.ReadAllLines(SettingsFilePath))
+            {
+                if (line.StartsWith("StartCentered=", StringComparison.Ordinal) &&
+                    bool.TryParse(line.Substring("StartCentered=".Length).Trim(), out var centered))
+                {
+                    return centered;
+                }
+            }
+        }
+        catch
+        {
+            // Ignore read errors.
+        }
+
+        return true;
+    }
+
+    public static void UpdateWindowSizeSetting(AppWindowSize size)
+    {
+        try
+        {
+            var directory = Path.GetDirectoryName(SettingsFilePath);
+            if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
+                Directory.CreateDirectory(directory);
+
+            var lines = File.Exists(SettingsFilePath)
+                ? File.ReadAllLines(SettingsFilePath).ToList()
+                : [];
+
+            var settingLine = $"WindowSize={AppLayoutManager.ToSettingValue(size)}";
+            var index = lines.FindIndex(line => line.StartsWith("WindowSize=", StringComparison.Ordinal));
+            if (index >= 0)
+                lines[index] = settingLine;
+            else
+                lines.Add(settingLine);
+
+            File.WriteAllLines(SettingsFilePath, lines);
+        }
+        catch
+        {
+            // Ignore write errors.
+        }
     }
 
     public static AppTheme GetAppTheme()
