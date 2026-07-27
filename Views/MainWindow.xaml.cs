@@ -38,6 +38,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     private Point _lastMousePosition;
     private bool _isDragging;
     private string _lastSearchText = string.Empty;
+    private CancellationTokenSource? _searchDebounceCts;
     private static readonly Dictionary<string, BitmapImage> _imageCache = new();
     private int _movieCount;
     private int _tvShowCount;
@@ -128,6 +129,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             _scrollViewerHooked = true;
 
             UpdateSidebarVisuals();
+            SmartSearchCoordinator.IndexReady += SmartSearchCoordinator_IndexReady;
             LoadMoviesAsync();
         }
         catch (Exception ex)
@@ -236,11 +238,24 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                 await LoadNextBatchAsync();
                 SelectFirstVisibleItem();
             }
+
+            SmartSearchCoordinator.QueueRebuildIfStale(movieCatalogLocation);
         }
         catch (Exception ex)
         {
             MessageBox.Show($"Error loading movies: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
         }
+    }
+
+    private void SmartSearchCoordinator_IndexReady()
+    {
+        Dispatcher.InvokeAsync(async () =>
+        {
+            if (string.IsNullOrWhiteSpace(_lastSearchText))
+                return;
+
+            await ApplyFiltersCoreAsync();
+        });
     }
 
     private async Task LoadNextBatchAsync()
@@ -279,12 +294,29 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             : Visibility.Collapsed;
 
         var searchText = SearchBox.Text.ToLower().Trim();
-        
-        // Don't re-search if the text hasn't changed
-        if (searchText == _lastSearchText) return;
+
+        if (searchText == _lastSearchText)
+            return;
+
         _lastSearchText = searchText;
 
-        ApplyFiltersAsync();
+        _searchDebounceCts?.Cancel();
+        _searchDebounceCts = new CancellationTokenSource();
+        var token = _searchDebounceCts.Token;
+        _ = DebouncedApplyFiltersAsync(token);
+    }
+
+    private async Task DebouncedApplyFiltersAsync(CancellationToken token)
+    {
+        try
+        {
+            await Task.Delay(250, token);
+            await ApplyFiltersCoreAsync();
+        }
+        catch (OperationCanceledException)
+        {
+            // Ignore debounce cancellation.
+        }
     }
 
     private async void ApplyFiltersAsync()
@@ -323,17 +355,15 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         _currentIndex = 0;
         _movies.Clear();
 
-        _filteredMovies = _allMovies.Where(m =>
-            (string.IsNullOrEmpty(_selectedContentType) ||
-             (_selectedContentType == "Movies" && m.ContentType == CatalogContentType.Movie) ||
-             (_selectedContentType == "TV Shows" && m.ContentType == CatalogContentType.TvShow)) &&
-            (string.IsNullOrEmpty(_selectedGenre) || m.Genre.Split(',').Select(g => g.Trim()).Contains(_selectedGenre)) &&
-            (string.IsNullOrEmpty(_selectedCountry) || m.Country.Split(',').Select(c => c.Trim()).Contains(_selectedCountry)) &&
-            (string.IsNullOrEmpty(_lastSearchText) || IsMatch(m, _lastSearchText.Split(new[] { ' ', '-', '_', '.', ',' }, StringSplitOptions.RemoveEmptyEntries)
-                .Where(term => term.Length >= 2)
-                .ToArray())) &&
-            (!_showFavoritesOnly || m.IsFavorite)
-        ).ToList();
+        _filteredMovies = HybridSearchService.FilterAndRank(
+            _allMovies,
+            _lastSearchText,
+            SmartSearchCoordinator.GetIndex(),
+            SmartSearchCoordinator.GetEmbeddingModel(),
+            _selectedContentType,
+            _selectedGenre,
+            _selectedCountry,
+            _showFavoritesOnly);
 
         EmptyGridText.Visibility = _filteredMovies.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
         PosterScrollViewer.Visibility = _filteredMovies.Count == 0 ? Visibility.Collapsed : Visibility.Visible;

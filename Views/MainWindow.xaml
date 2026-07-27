@@ -188,7 +188,7 @@
                                      Style="{StaticResource SearchBoxStyle}"
                                      TextChanged="SearchBox_TextChanged"/>
                             <TextBlock x:Name="SearchPlaceholder"
-                                       Text="Search for movies or TV shows..."
+                                       Text="Search by title, plot, cast, or director..."
                                        Foreground="{DynamicResource InputMutedForegroundBrush}"
                                        Margin="40,0,0,0"
                                        VerticalAlignment="Center"

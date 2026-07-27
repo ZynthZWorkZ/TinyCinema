@@ -281,6 +281,16 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
             ThemeComboBox.ItemsSource = AvailableThemes;
             ThemeComboBox.SelectedItem = SelectedAppTheme;
         }
+
+        UpdateSmartSearchStatus();
+    }
+
+    private void UpdateSmartSearchStatus()
+    {
+        if (SmartSearchStatusText == null)
+            return;
+
+        SmartSearchStatusText.Text = SmartSearchCoordinator.GetStatusText(MovieCatalogLocation);
     }
     
     private void DetectAvailablePlayers()
@@ -569,6 +579,30 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
         return false;
     }
 
+    public static string GetMovieCatalogLocation()
+    {
+        try
+        {
+            if (!File.Exists(SettingsFile))
+                return NormalizeMovieCatalogLocation(null);
+
+            foreach (var line in File.ReadAllLines(SettingsFile))
+            {
+                if (line.StartsWith("MovieCatalogLocation=", StringComparison.Ordinal))
+                    return NormalizeMovieCatalogLocation(line.Substring("MovieCatalogLocation=".Length).Trim());
+
+                if (line.StartsWith("MovieLinksLocation=", StringComparison.Ordinal))
+                    return NormalizeMovieCatalogLocation(line.Substring("MovieLinksLocation=".Length).Trim());
+            }
+        }
+        catch
+        {
+            // Ignore read errors.
+        }
+
+        return NormalizeMovieCatalogLocation(null);
+    }
+
     public static AppTheme GetAppTheme()
     {
         try
@@ -770,6 +804,8 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
         {
             MovieCatalogLocation = dialog.OutputPath;
             TinyZoneBaseUrl = dialog.SelectedBaseUrl;
+            SmartSearchCoordinator.QueueRebuildIfStale(MovieCatalogLocation);
+            UpdateSmartSearchStatus();
 
             if (Owner is MainWindow mainWindow)
                 _ = mainWindow.ReloadMoviesAsync();
@@ -783,8 +819,30 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
             Owner = Owner ?? this
         };
 
-        if (dialog.ShowDialog() == true && dialog.CatalogUpdated && Owner is MainWindow mainWindow)
-            _ = mainWindow.ReloadMoviesAsync();
+        if (dialog.ShowDialog() == true && dialog.CatalogUpdated)
+        {
+            SmartSearchCoordinator.QueueRebuildIfStale(MovieCatalogLocation);
+            UpdateSmartSearchStatus();
+
+            if (Owner is MainWindow mainWindow)
+                _ = mainWindow.ReloadMoviesAsync();
+        }
+    }
+
+    private void BuildSearchIndex_Click(object sender, RoutedEventArgs e)
+    {
+        var dialog = new BuildSearchIndexDialog(MovieCatalogLocation)
+        {
+            Owner = Owner ?? this
+        };
+
+        if (dialog.ShowDialog() == true)
+        {
+            UpdateSmartSearchStatus();
+
+            if (Owner is MainWindow mainWindow)
+                _ = mainWindow.ReloadMoviesAsync();
+        }
     }
 
     private void SelectTvShowLinksLocation_Click(object sender, RoutedEventArgs e)

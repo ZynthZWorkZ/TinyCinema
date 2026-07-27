@@ -87,22 +87,8 @@ public partial class WatchedHomePanel : UserControl
         _ => true
     };
 
-    private bool MatchesSearch(Movie movie)
-    {
-        if (string.IsNullOrWhiteSpace(_searchText))
-            return true;
-
-        var terms = _searchText
-            .Split([' ', '-', '_', '.', ','], StringSplitOptions.RemoveEmptyEntries)
-            .Where(term => term.Length >= 2)
-            .ToArray();
-
-        if (terms.Length == 0)
-            return true;
-
-        var haystack = $"{movie.Title} {movie.Year} {movie.Genre} {movie.Country}".ToLowerInvariant();
-        return terms.All(term => haystack.Contains(term, StringComparison.Ordinal));
-    }
+    private bool MatchesSearch(Movie movie) =>
+        HybridSearchService.MatchesExtended(movie, _searchText);
 
     public void SelectMovie(Movie movie, bool notify = false)
     {

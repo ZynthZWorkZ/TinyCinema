@@ -455,6 +455,8 @@
                                     <RowDefinition Height="Auto"/>
                                     <RowDefinition Height="Auto"/>
                                     <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
                                 </Grid.RowDefinitions>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
@@ -486,7 +488,23 @@
                                         Content="Add Movie by URL"
                                         Click="AddMovieByUrl_Click"
                                         Style="{StaticResource ModernButtonStyle}"
-                                        HorizontalAlignment="Stretch"/>
+                                        HorizontalAlignment="Stretch"
+                                        Margin="0,0,0,8"/>
+
+                                <Button Grid.Row="3"
+                                        Grid.ColumnSpan="2"
+                                        Content="Build Smart Search Index"
+                                        Click="BuildSearchIndex_Click"
+                                        Style="{StaticResource ModernButtonStyle}"
+                                        HorizontalAlignment="Stretch"
+                                        Margin="0,0,0,8"/>
+
+                                <TextBlock Grid.Row="4"
+                                           Grid.ColumnSpan="2"
+                                           x:Name="SmartSearchStatusText"
+                                           Text="Smart search uses your local e5-small-v2 model to search plots, cast, and director."
+                                           Foreground="#99FFFFFF"
+                                           TextWrapping="Wrap"/>
                             </Grid>
                         </Grid>
                     </Border>

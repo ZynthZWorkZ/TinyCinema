@@ -176,6 +176,8 @@ public partial class FetchMoviesDialog : Window
 
             DialogResult = true;
             Close();
+
+            SmartSearchCoordinator.QueueRebuildIfStale(_outputPath);
         }
         catch (OperationCanceledException)
         {
