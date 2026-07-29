@@ -1362,7 +1362,11 @@ public partial class TinyZonePlayerWindow : Window
 
         try
         {
-            var result = await RokuSideloadService.SideloadAsync(_movieTitle, url, rokuIp, _posterImageUrl);
+            var rokuTitle = _isTvShow && _currentTvEpisode != null
+                ? $"{_movieTitle} - {_currentTvEpisode.DisplayLabel}"
+                : _movieTitle;
+
+            var result = await RokuSideloadService.SideloadAsync(rokuTitle, url, rokuIp, _posterImageUrl);
 
             if (result.Success)
             {
