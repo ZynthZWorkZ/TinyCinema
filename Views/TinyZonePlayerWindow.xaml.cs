@@ -72,6 +72,8 @@ public partial class TinyZonePlayerWindow : Window
     private string? _resolvedMovieLairUrl;
     private CancellationTokenSource? _movieEmbedResolveCts;
     private bool _suppressMovieSourceSelection;
+    private int _selectedTvServerIndex = 1;
+    private bool _suppressTvServerSelection;
     private MovieLairProbeSession? _probeSession;
     private bool _probeEnabled;
 
@@ -96,9 +98,11 @@ public partial class TinyZonePlayerWindow : Window
         {
             EpisodesTabButton.Visibility = Visibility.Visible;
             CinemaModeToggle.Visibility = Visibility.Collapsed;
+            TvServerComboBox.Visibility = Visibility.Visible;
             EpisodesListBox.ItemsSource = _filteredTvEpisodes;
             LoadingHintText.Text = "Finding episodes...";
             StatusText.Text = "Loading TV show catalog...";
+            PopulateDefaultTvServers();
         }
         else
         {
@@ -524,15 +528,7 @@ public partial class TinyZonePlayerWindow : Window
             }
             else if (_tvPhase == TvPlayerPhase.ResolvingEpisode)
             {
-                await TryCompleteEmbedResolveFromDomAsync();
-
-                var source = PlayerWebView.CoreWebView2.Source;
-                if (_embedResolveTcs != null &&
-                    !_embedResolveTcs.Task.IsCompleted &&
-                    TvEmbedResolver.IsEmbedPageUrl(source))
-                {
-                    _embedResolveTcs.TrySetResult(NormalizeEmbedUrl(source));
-                }
+                await SelectTvServerAndResolveEmbedAsync();
             }
             else if (_tvPhase == TvPlayerPhase.ShowingEmbed)
             {
@@ -885,6 +881,106 @@ public partial class TinyZonePlayerWindow : Window
 
         PlayerWebView.CoreWebView2.Navigate(movieLairUrl);
         return await _embedResolveTcs.Task;
+    }
+
+    private void PopulateDefaultTvServers()
+    {
+        _suppressTvServerSelection = true;
+        TvServerComboBox.Items.Clear();
+        for (var i = 1; i <= 5; i++)
+            TvServerComboBox.Items.Add(new ComboBoxItem { Content = $"Server {i}", Tag = i });
+
+        TvServerComboBox.SelectedIndex = 0;
+        _selectedTvServerIndex = 1;
+        _suppressTvServerSelection = false;
+    }
+
+    private async Task WaitForTvServerButtonsAsync(CancellationToken cancellationToken)
+    {
+        for (var attempt = 0; attempt < 30; attempt++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var raw = await PlayerWebView.CoreWebView2.ExecuteScriptAsync(MovieLairTvServerSelector.HasServerButtonsScript);
+            if (raw.Contains("true", StringComparison.OrdinalIgnoreCase))
+                return;
+
+            await Task.Delay(200, cancellationToken);
+        }
+    }
+
+    private async Task UpdateTvServerComboBoxFromPageAsync()
+    {
+        var raw = await PlayerWebView.CoreWebView2.ExecuteScriptAsync(MovieLairTvServerSelector.ListServersScript);
+        var servers = MovieLairTvServerSelector.ParseServerList(raw);
+        if (servers.Count == 0)
+            return;
+
+        _suppressTvServerSelection = true;
+        TvServerComboBox.Items.Clear();
+        foreach (var server in servers)
+        {
+            TvServerComboBox.Items.Add(new ComboBoxItem
+            {
+                Content = string.IsNullOrWhiteSpace(server.Label) ? $"Server {server.Index}" : server.Label,
+                Tag = server.Index
+            });
+        }
+
+        var selectedIndex = Math.Clamp(_selectedTvServerIndex - 1, 0, servers.Count - 1);
+        TvServerComboBox.SelectedIndex = selectedIndex;
+        _selectedTvServerIndex = servers[selectedIndex].Index;
+        _suppressTvServerSelection = false;
+    }
+
+    private async Task SelectTvServerAndResolveEmbedAsync()
+    {
+        var cancellationToken = _episodeResolveCts?.Token ?? CancellationToken.None;
+
+        try
+        {
+            await WaitForTvServerButtonsAsync(cancellationToken);
+            await UpdateTvServerComboBoxFromPageAsync();
+
+            LoadingHintText.Text = $"Selecting Server {_selectedTvServerIndex}...";
+            await PlayerWebView.CoreWebView2.ExecuteScriptAsync(
+                MovieLairTvServerSelector.BuildSelectServerScript(_selectedTvServerIndex));
+            await Task.Delay(400, cancellationToken);
+
+            await TryCompleteEmbedResolveFromDomAsync();
+
+            var source = PlayerWebView.CoreWebView2.Source;
+            if (_embedResolveTcs != null &&
+                !_embedResolveTcs.Task.IsCompleted &&
+                TvEmbedResolver.IsEmbedPageUrl(source))
+            {
+                _embedResolveTcs.TrySetResult(NormalizeEmbedUrl(source));
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // A newer episode or server selection replaced this resolve.
+        }
+    }
+
+    private async void TvServerComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_suppressTvServerSelection || !_isInitialized || !_isTvShow)
+            return;
+
+        var serverIndex = TvServerComboBox.SelectedIndex + 1;
+        if (TvServerComboBox.SelectedItem is ComboBoxItem item && item.Tag is int taggedIndex)
+            serverIndex = taggedIndex;
+
+        if (serverIndex == _selectedTvServerIndex)
+            return;
+
+        _selectedTvServerIndex = serverIndex;
+
+        if (_currentTvEpisode == null)
+            return;
+
+        await PlayTvEpisodeAsync(_currentTvEpisode);
     }
 
     private async Task TryCompleteEmbedResolveFromDomAsync()

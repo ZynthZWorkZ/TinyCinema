@@ -306,56 +306,54 @@
                                 <Button Click="CategoryButton_Click"
                                         Tag="{Binding}"
                                         Style="{StaticResource IptvCategoryCardButtonStyle}"
-                                        Width="210"
-                                        Height="112"
+                                        Width="240"
+                                        MinHeight="88"
                                         Margin="0,0,14,14">
                                     <Grid>
-                                        <Grid.RowDefinitions>
-                                            <RowDefinition Height="Auto"/>
-                                            <RowDefinition Height="*"/>
-                                            <RowDefinition Height="Auto"/>
-                                        </Grid.RowDefinitions>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
 
-                                        <Border Width="38"
-                                                Height="38"
+                                        <Border Width="44"
+                                                Height="44"
                                                 CornerRadius="10"
                                                 BorderThickness="1"
                                                 BorderBrush="#33FFFFFF"
-                                                Margin="0,0,0,0">
+                                                Margin="0,0,14,0"
+                                                VerticalAlignment="Center">
                                             <Grid>
                                                 <Border Background="{Binding AccentBrush}"
                                                         Opacity="0.18"
                                                         CornerRadius="10"/>
                                                 <FontAwesome:FontAwesome Icon="{Binding CategoryIcon}"
                                                                          Foreground="{Binding AccentBrush}"
-                                                                         Width="16"
-                                                                         Height="16"
+                                                                         Width="18"
+                                                                         Height="18"
                                                                          HorizontalAlignment="Center"
                                                                          VerticalAlignment="Center"/>
                                             </Grid>
                                         </Border>
 
-                                        <TextBlock Grid.Row="1"
-                                                   Text="{Binding Name}"
-                                                   Foreground="White"
-                                                   FontSize="15"
-                                                   FontWeight="SemiBold"
-                                                   TextWrapping="Wrap"
-                                                   Margin="0,12,0,0"
-                                                   VerticalAlignment="Top"/>
-
-                                        <Border Grid.Row="2"
-                                                Background="#22000000"
-                                                BorderBrush="{DynamicResource BorderBrush}"
-                                                BorderThickness="1"
-                                                CornerRadius="999"
-                                                Padding="10,4"
-                                                HorizontalAlignment="Left"
-                                                Margin="0,10,0,0">
-                                            <TextBlock Text="{Binding ListedChannelCount, StringFormat={}{0:N0} channels}"
-                                                       Foreground="{DynamicResource TextMutedBrush}"
-                                                       FontSize="11"/>
-                                        </Border>
+                                        <StackPanel Grid.Column="1"
+                                                    VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding Name}"
+                                                       Foreground="White"
+                                                       FontSize="15"
+                                                       FontWeight="SemiBold"
+                                                       TextWrapping="Wrap"/>
+                                            <Border Background="#22000000"
+                                                    BorderBrush="{DynamicResource BorderBrush}"
+                                                    BorderThickness="1"
+                                                    CornerRadius="999"
+                                                    Padding="10,4"
+                                                    HorizontalAlignment="Left"
+                                                    Margin="0,8,0,0">
+                                                <TextBlock Text="{Binding ListedChannelCount, StringFormat={}{0:N0} channels}"
+                                                           Foreground="{DynamicResource TextMutedBrush}"
+                                                           FontSize="11"/>
+                                            </Border>
+                                        </StackPanel>
                                     </Grid>
                                 </Button>
                             </DataTemplate>

@@ -755,6 +755,13 @@
                                VerticalAlignment="Center"/>
 
                     <StackPanel Grid.Column="1" Orientation="Horizontal">
+                        <ComboBox x:Name="TvServerComboBox"
+                                  Style="{StaticResource PlayerSeasonComboBoxStyle}"
+                                  Width="120"
+                                  Margin="0,0,8,0"
+                                  Visibility="Collapsed"
+                                  ToolTip="MovieLair playback server"
+                                  SelectionChanged="TvServerComboBox_SelectionChanged"/>
                         <ComboBox x:Name="MovieSourceComboBox"
                                   Style="{StaticResource PlayerSeasonComboBoxStyle}"
                                   Width="132"
