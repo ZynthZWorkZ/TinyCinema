@@ -431,10 +431,46 @@
                             </ListBox.ItemContainerStyle>
                             <ListBox.ItemTemplate>
                                 <DataTemplate>
-                                    <TextBlock Text="{Binding DisplayLabel}"
-                                               Foreground="#F0F0F0"
-                                               FontSize="13"
-                                               TextWrapping="Wrap"/>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="96"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Border Grid.Column="0"
+                                                Width="96"
+                                                Height="54"
+                                                CornerRadius="4"
+                                                Background="#1A1A1A"
+                                                Margin="0,0,10,0"
+                                                ClipToBounds="True">
+                                            <Image Source="{Binding CachedThumbnail}"
+                                                   Stretch="UniformToFill"
+                                                   Visibility="{Binding HasThumbnail, Converter={StaticResource BoolToVis}}"/>
+                                        </Border>
+                                        <StackPanel Grid.Column="1"
+                                                    VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding EpisodeNumberLabel}"
+                                                       Foreground="#F0F0F0"
+                                                       FontSize="13"
+                                                       FontWeight="SemiBold"/>
+                                            <TextBlock Text="{Binding Title}"
+                                                       Foreground="#909090"
+                                                       FontSize="11"
+                                                       Margin="0,2,0,0"
+                                                       TextWrapping="Wrap">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                        <Style.Triggers>
+                                                            <Trigger Property="Text" Value="">
+                                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                            </Trigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                        </StackPanel>
+                                    </Grid>
                                 </DataTemplate>
                             </ListBox.ItemTemplate>
                         </ListBox>

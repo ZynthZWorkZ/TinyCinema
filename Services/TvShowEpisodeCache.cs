@@ -40,6 +40,7 @@ public static class TvShowEpisodeCache
                     Season = entry.Season,
                     Episode = entry.Episode,
                     Title = entry.Title?.Trim() ?? string.Empty,
+                    ThumbnailUrl = entry.ThumbnailUrl?.Trim() ?? string.Empty,
                     MovieLairUrl = entry.MovieLairUrl.Trim()
                 })
                 .OrderBy(entry => entry.Season)
@@ -72,6 +73,7 @@ public static class TvShowEpisodeCache
                         Season = entry.Season,
                         Episode = entry.Episode,
                         Title = entry.Title,
+                        ThumbnailUrl = entry.ThumbnailUrl,
                         MovieLairUrl = entry.MovieLairUrl
                     })
                     .ToList()
@@ -110,6 +112,8 @@ public static class TvShowEpisodeCache
         public int Episode { get; set; }
 
         public string Title { get; set; } = string.Empty;
+
+        public string ThumbnailUrl { get; set; } = string.Empty;
 
         public string MovieLairUrl { get; set; } = string.Empty;
     }

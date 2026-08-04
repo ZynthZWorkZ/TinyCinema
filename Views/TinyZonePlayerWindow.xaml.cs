@@ -616,6 +616,7 @@ public partial class TinyZonePlayerWindow : Window
 
         PopulateSeasonFilter();
         ApplySeasonFilter();
+        LoadEpisodeThumbnails(_allTvEpisodes);
 
         var startEpisode = ResolveStartEpisode();
         SelectSeasonFilter(startEpisode.Season);
@@ -798,6 +799,12 @@ public partial class TinyZonePlayerWindow : Window
         {
             _suppressSeasonSelection = false;
         }
+    }
+
+    private static void LoadEpisodeThumbnails(IEnumerable<TvEpisodeEntry> episodes)
+    {
+        foreach (var episode in episodes)
+            _ = episode.LoadThumbnailAsync();
     }
 
     private void ApplySeasonFilter()

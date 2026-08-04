@@ -70,7 +70,23 @@ public static class MovieLairEpisodeScraper
                 return '';
             }
 
-            function addEpisode(season, episode, title, href) {
+            function readEpisodeThumbnail(anchor) {
+                const image = anchor.querySelector('img.episode, img.card-img-top, img');
+                if (!image)
+                    return '';
+
+                const src = (image.getAttribute('src') || image.getAttribute('data-src') || '').trim();
+                if (!src)
+                    return '';
+
+                try {
+                    return new URL(src, window.location.href).toString();
+                } catch {
+                    return src;
+                }
+            }
+
+            function addEpisode(season, episode, title, href, thumbnailUrl) {
                 const s = parseInt(season, 10);
                 const e = parseInt(episode, 10);
                 if (!Number.isFinite(s) || !Number.isFinite(e) || s <= 0 || e <= 0)
@@ -89,6 +105,7 @@ public static class MovieLairEpisodeScraper
                     season: s,
                     episode: e,
                     title: (title || '').replace(/\s+/g, ' ').trim(),
+                    thumbnailUrl: (thumbnailUrl || '').trim(),
                     movieLairUrl: url
                 });
             }
@@ -103,7 +120,12 @@ public static class MovieLairEpisodeScraper
                     const season = parsed.searchParams.get('season');
                     const episode = parsed.searchParams.get('episode');
                     if (season && episode)
-                        addEpisode(season, episode, readEpisodeTitle(anchor), parsed.toString());
+                        addEpisode(
+                            season,
+                            episode,
+                            readEpisodeTitle(anchor),
+                            parsed.toString(),
+                            readEpisodeThumbnail(anchor));
                 } catch {}
             });
 
@@ -188,6 +210,7 @@ public static class MovieLairEpisodeScraper
                 Season = item.Season,
                 Episode = item.Episode,
                 Title = item.Title?.Trim() ?? string.Empty,
+                ThumbnailUrl = item.ThumbnailUrl?.Trim() ?? string.Empty,
                 MovieLairUrl = item.MovieLairUrl.Trim()
             })
             .ToList();
@@ -203,6 +226,9 @@ public static class MovieLairEpisodeScraper
 
         [JsonPropertyName("title")]
         public string? Title { get; set; }
+
+        [JsonPropertyName("thumbnailUrl")]
+        public string? ThumbnailUrl { get; set; }
 
         [JsonPropertyName("movieLairUrl")]
         public string MovieLairUrl { get; set; } = string.Empty;
