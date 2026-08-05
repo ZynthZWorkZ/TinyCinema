@@ -125,8 +125,9 @@
                     <!-- Settings at bottom -->
                     <Button Grid.Row="2"
                             x:Name="NavSettingsButton"
+                            Tag="Settings"
                             Style="{StaticResource SidebarNavButtonStyle}"
-                            Click="SettingsButton_Click"
+                            Click="NavButton_Click"
                             Margin="0,0,0,16">
                         <StackPanel Orientation="Horizontal">
                             <FontAwesome:FontAwesome Icon="Cog" Width="16" Height="16" Margin="0,0,12,0"/>
@@ -179,7 +180,9 @@
                 </Grid>
 
                 <!-- Search & filters -->
-                <Border Grid.Row="1" Padding="24,16,24,12">
+                <Border x:Name="SearchFiltersBorder"
+                        Grid.Row="1"
+                        Padding="24,16,24,12">
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
@@ -372,6 +375,14 @@
                                             HorizontalAlignment="Stretch"
                                             Visibility="Collapsed"/>
                 </Grid>
+
+                <local:SettingsPanel x:Name="SettingsPanel"
+                                     Grid.Row="1"
+                                     Grid.RowSpan="3"
+                                     Margin="0,16,0,20"
+                                     VerticalAlignment="Stretch"
+                                     HorizontalAlignment="Stretch"
+                                     Visibility="Collapsed"/>
             </Grid>
         </Grid>
         </Grid>

@@ -120,6 +120,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             WatchedHomePanel.MovieSelected += WatchedHomePanel_MovieSelected;
             WatchedHomePanel.WatchedToggleRequested += WatchedHomePanel_WatchedToggleRequested;
             IptvHomePanel.ChannelPlayRequested += IptvHomePanel_ChannelPlayRequested;
+            SettingsPanel.HostWindow = this;
 
             PosterScrollViewer.ScrollChanged += async (_, e) =>
             {
@@ -201,9 +202,8 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             _showFavoritesOnly = false;
             _currentNav = MainNavSection.Explore;
 
-            var settingsWindow = new SettingsWindow();
-            var movieCatalogLocation = settingsWindow.MovieCatalogLocation;
-            var tvShowLinksLocation = settingsWindow.TvShowLinksLocation;
+            var movieCatalogLocation = SettingsWindow.GetMovieCatalogLocation();
+            var tvShowLinksLocation = SettingsWindow.GetTvShowLinksLocation();
 
             if (!File.Exists(movieCatalogLocation) && !File.Exists(tvShowLinksLocation))
             {
@@ -394,6 +394,12 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             return;
         }
 
+        if (_currentNav == MainNavSection.Settings)
+        {
+            UpdateContentVisibility();
+            return;
+        }
+
         UpdateContentVisibility();
         _currentIndex = 0;
         _movies.Clear();
@@ -489,6 +495,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         StyleNav(NavFavoritesButton, _currentNav == MainNavSection.Favorites);
         StyleNav(NavWatchedButton, _currentNav == MainNavSection.Watched);
         StyleNav(NavIptvButton, _currentNav == MainNavSection.Iptv);
+        StyleNav(NavSettingsButton, _currentNav == MainNavSection.Settings);
 
         GridSectionTitle.Text = _currentNav switch
         {
@@ -497,6 +504,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             MainNavSection.Favorites => "Favorites",
             MainNavSection.Watched => "Watched",
             MainNavSection.Iptv => "Live TV",
+            MainNavSection.Settings => "Settings",
             _ => "For You"
         };
     }
@@ -506,16 +514,23 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         var showExplore = _currentNav == MainNavSection.Explore;
         var showIptv = _currentNav == MainNavSection.Iptv;
         var showWatched = _currentNav == MainNavSection.Watched;
+        var showSettings = _currentNav == MainNavSection.Settings;
 
         ExploreHomePanel.Visibility = showExplore ? Visibility.Visible : Visibility.Collapsed;
         IptvHomePanel.Visibility = showIptv ? Visibility.Visible : Visibility.Collapsed;
         WatchedHomePanel.Visibility = showWatched ? Visibility.Visible : Visibility.Collapsed;
-        PosterScrollViewer.Visibility = showExplore || showIptv || showWatched ? Visibility.Collapsed : Visibility.Visible;
-        HeroPanel.Visibility = showIptv ? Visibility.Collapsed : Visibility.Visible;
-        GenreFilter.IsEnabled = !showIptv && !showWatched;
-        CountryFilter.IsEnabled = !showIptv && !showWatched;
+        SettingsPanel.Visibility = showSettings ? Visibility.Visible : Visibility.Collapsed;
+        PosterScrollViewer.Visibility = showExplore || showIptv || showWatched || showSettings
+            ? Visibility.Collapsed
+            : Visibility.Visible;
+        HeroPanel.Visibility = showIptv || showSettings ? Visibility.Collapsed : Visibility.Visible;
+        SearchFiltersBorder.Visibility = showSettings ? Visibility.Collapsed : Visibility.Visible;
+        ShuffleButton.Visibility = showSettings ? Visibility.Collapsed : Visibility.Visible;
+        SortButton.Visibility = showSettings ? Visibility.Collapsed : Visibility.Visible;
+        GenreFilter.IsEnabled = !showIptv && !showWatched && !showSettings;
+        CountryFilter.IsEnabled = !showIptv && !showWatched && !showSettings;
         EmptyGridText.Visibility = Visibility.Collapsed;
-        GridSectionTitle.Visibility = showExplore || showIptv || showWatched
+        GridSectionTitle.Visibility = showExplore || showIptv || showWatched || showSettings
             ? Visibility.Collapsed
             : Visibility.Visible;
 
@@ -905,15 +920,6 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         }
     }
 
-    private void SettingsButton_Click(object sender, RoutedEventArgs e)
-    {
-        var settingsWindow = new SettingsWindow();
-        settingsWindow.Owner = this;
-        settingsWindow.ShowDialog();
-        RefreshTheme();
-        ApplyWindowLayout();
-    }
-
     private void MoviesListView_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (_heroSubscribedMovie != null)
@@ -1246,8 +1252,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     {
         try
         {
-            var settingsWindow = new SettingsWindow();
-            var playerWindow = new TinyZonePlayerWindow(movie, settingsWindow.SelectedPlayer, resumeSeason, resumeEpisode)
+            var playerWindow = new TinyZonePlayerWindow(movie, SettingsWindow.GetSelectedPlayer(), resumeSeason, resumeEpisode)
             {
                 Owner = this
             };
@@ -1974,32 +1979,10 @@ public class Movie : INotifyPropertyChanged
 public static class ImageCache
 {
     private static readonly Dictionary<string, BitmapImage> _imageCache = new();
-    private static SettingsWindow _settingsWindow;
-    private static readonly object _lock = new object();
-
-    private static SettingsWindow GetSettingsWindow()
-    {
-        if (_settingsWindow == null)
-        {
-            lock (_lock)
-            {
-                if (_settingsWindow == null)
-                {
-                    _settingsWindow = new SettingsWindow();
-                }
-            }
-        }
-        return _settingsWindow;
-    }
 
     public static void Cleanup()
     {
         _imageCache.Clear();
-        if (_settingsWindow != null)
-        {
-            _settingsWindow.Close();
-            _settingsWindow = null;
-        }
     }
 
     public static string? TryGetCachedFilePath(string imageUrl)
@@ -2009,8 +1992,7 @@ public static class ImageCache
 
         try
         {
-            var settingsWindow = GetSettingsWindow();
-            if (!settingsWindow.IsCachingEnabled)
+            if (!SettingsWindow.GetIsCachingEnabled())
                 return null;
 
             var cacheFileName = Convert.ToBase64String(
@@ -2020,7 +2002,7 @@ public static class ImageCache
                 .Replace("+", "-")
                 .Replace("=", "");
 
-            return Path.Combine(settingsWindow.CacheLocation, cacheFileName + ".jpg");
+            return Path.Combine(SettingsWindow.GetCacheLocation(), cacheFileName + ".jpg");
         }
         catch
         {
@@ -2032,10 +2014,8 @@ public static class ImageCache
     {
         try
         {
-            var settingsWindow = GetSettingsWindow();
-
             // If caching is disabled, load directly from URL
-            if (!settingsWindow.IsCachingEnabled)
+            if (!SettingsWindow.GetIsCachingEnabled())
             {
                 var image = new BitmapImage();
                 image.BeginInit();
@@ -2059,7 +2039,7 @@ public static class ImageCache
                 .Replace("+", "-")
                 .Replace("=", "");
 
-            string cacheFilePath = Path.Combine(settingsWindow.CacheLocation, cacheFileName + ".jpg");
+            string cacheFilePath = Path.Combine(SettingsWindow.GetCacheLocation(), cacheFileName + ".jpg");
 
             // Check disk cache
             if (File.Exists(cacheFilePath))

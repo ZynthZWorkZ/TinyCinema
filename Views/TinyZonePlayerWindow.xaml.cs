@@ -34,7 +34,7 @@ public partial class TinyZonePlayerWindow : Window
         Showing
     }
 
-    private const double UrlsPanelWidth = 372;
+    private const double UrlsPanelWidth = 400;
     private readonly string _selectedPlayer;
     private readonly string _movieTitle;
     private readonly string _movieYear;
@@ -1542,22 +1542,28 @@ public partial class TinyZonePlayerWindow : Window
 
     private void ResetSidePanelTabStyles()
     {
-        var inactive = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(26, 26, 26));
+        var inactive = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(18, 18, 26));
         UrlsTabButton.Background = inactive;
         EpisodesTabButton.Background = inactive;
         UrlsTabButton.ToolTip = "Show URLs panel";
         EpisodesTabButton.ToolTip = "Show Episodes panel";
+        UrlsTabIcon.Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(138, 143, 154));
+        EpisodesTabIcon.Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(138, 143, 154));
         UrlsTabIcon.Icon = FontAwesome.WPF.FontAwesomeIcon.Link;
         EpisodesTabIcon.Icon = FontAwesome.WPF.FontAwesomeIcon.List;
     }
 
     private void UpdateSidePanelTabStyles()
     {
-        var active = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(37, 37, 37));
-        var inactive = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(26, 26, 26));
+        var active = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(26, 39, 68));
+        var inactive = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(18, 18, 26));
+        var activeIcon = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(74, 140, 255));
+        var inactiveIcon = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(138, 143, 154));
 
         UrlsTabButton.Background = _openSidePanel == SidePanelKind.Urls ? active : inactive;
         EpisodesTabButton.Background = _openSidePanel == SidePanelKind.Episodes ? active : inactive;
+        UrlsTabIcon.Foreground = _openSidePanel == SidePanelKind.Urls ? activeIcon : inactiveIcon;
+        EpisodesTabIcon.Foreground = _openSidePanel == SidePanelKind.Episodes ? activeIcon : inactiveIcon;
         UrlsTabButton.ToolTip = _openSidePanel == SidePanelKind.Urls ? "Hide URLs panel" : "Show URLs panel";
         EpisodesTabButton.ToolTip = _openSidePanel == SidePanelKind.Episodes ? "Hide Episodes panel" : "Show Episodes panel";
         UrlsTabIcon.Icon = _openSidePanel == SidePanelKind.Urls
