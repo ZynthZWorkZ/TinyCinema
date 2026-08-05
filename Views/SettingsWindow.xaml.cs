@@ -122,6 +122,8 @@ public static class SettingsWindow
 
     public static string GetTmdbApiKey() => ReadStringSetting("TmdbApiKey=");
 
+    public static string GetPlayerEmbedHostsRaw() => ReadStringSetting(PlayerEmbedHostSettings.SettingPrefix);
+
     public static (string Ip, string Username, string Password) GetRokuCredentials()
     {
         var ip = "";

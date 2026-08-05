@@ -4,73 +4,47 @@
         xmlns:fa="http://schemas.fontawesome.io/icons/"
         xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
         Title="TinyZone Player"
-        Height="780"
-        Width="1320"
-        MinHeight="520"
-        MinWidth="900"
+        Height="720"
+        Width="1280"
+        MinHeight="480"
+        MinWidth="800"
         WindowStartupLocation="CenterOwner"
         Background="Transparent"
         ResizeMode="CanResize"
         WindowStyle="None"
-        AllowsTransparency="True"
-        FontFamily="Segoe UI">
+        AllowsTransparency="True">
     <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/Themes/StreamingTheme.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+
         <BooleanToVisibilityConverter x:Key="BoolToVis"/>
 
-        <SolidColorBrush x:Key="PlayerAccentBrush" Color="#4A8CFF"/>
-        <SolidColorBrush x:Key="PlayerAccentSoftBrush" Color="#1A2744"/>
-        <SolidColorBrush x:Key="PlayerAccentBorderBrush" Color="#3A6AD4"/>
-        <SolidColorBrush x:Key="PlayerSurfaceBrush" Color="#0A0A0E"/>
-        <SolidColorBrush x:Key="PlayerSurfaceRaisedBrush" Color="#12121A"/>
-        <SolidColorBrush x:Key="PlayerSurfaceHoverBrush" Color="#1A1A24"/>
-        <SolidColorBrush x:Key="PlayerBorderBrush" Color="#2A2F3A"/>
-        <SolidColorBrush x:Key="PlayerMutedBrush" Color="#8A8F9A"/>
-        <SolidColorBrush x:Key="PlayerTextBrush" Color="#F2F4F8"/>
-
-        <LinearGradientBrush x:Key="PlayerChromeGradient" StartPoint="0,0" EndPoint="1,1">
-            <GradientStop Color="#161820" Offset="0"/>
-            <GradientStop Color="#0A0A0E" Offset="0.55"/>
-            <GradientStop Color="#101018" Offset="1"/>
-        </LinearGradientBrush>
-
-        <LinearGradientBrush x:Key="PlayerTitleBarGradient" StartPoint="0,0" EndPoint="0,1">
-            <GradientStop Color="#1C2030" Offset="0"/>
-            <GradientStop Color="#12121A" Offset="1"/>
-        </LinearGradientBrush>
-
-        <LinearGradientBrush x:Key="PlayerFooterGradient" StartPoint="0,0" EndPoint="0,1">
-            <GradientStop Color="#161820" Offset="0"/>
-            <GradientStop Color="#0E0E14" Offset="1"/>
-        </LinearGradientBrush>
-
         <Style x:Key="PlayerActionButtonStyle" TargetType="Button">
-            <Setter Property="Background" Value="#22222E"/>
-            <Setter Property="Foreground" Value="{StaticResource PlayerTextBrush}"/>
-            <Setter Property="BorderBrush" Value="{StaticResource PlayerBorderBrush}"/>
+            <Setter Property="Background" Value="{DynamicResource NavActiveBackgroundBrush}"/>
+            <Setter Property="Foreground" Value="White"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Padding" Value="14,8"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
+            <Setter Property="Padding" Value="14,7"/>
             <Setter Property="Margin" Value="0,0,8,0"/>
-            <Setter Property="FontSize" Value="12"/>
-            <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FontSize" Value="12"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
                         <Border x:Name="Root"
                                 Background="{TemplateBinding Background}"
-                                BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="{TemplateBinding BorderThickness}"
                                 CornerRadius="8"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
                                 Padding="{TemplateBinding Padding}">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Root" Property="Background" Value="#2A2A38"/>
-                                <Setter TargetName="Root" Property="BorderBrush" Value="#3A4050"/>
-                            </Trigger>
-                            <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="Root" Property="Background" Value="#1A1A24"/>
+                                <Setter TargetName="Root" Property="Background" Value="{DynamicResource NavHoverBackgroundBrush}"/>
+                                <Setter TargetName="Root" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
                                 <Setter Property="Opacity" Value="0.45"/>
@@ -81,34 +55,7 @@
             </Setter>
         </Style>
 
-        <Style x:Key="PlayerPrimaryButtonStyle" TargetType="Button" BasedOn="{StaticResource PlayerActionButtonStyle}">
-            <Setter Property="Background" Value="{StaticResource PlayerAccentSoftBrush}"/>
-            <Setter Property="BorderBrush" Value="{StaticResource PlayerAccentBorderBrush}"/>
-            <Setter Property="Foreground" Value="#B8D4FF"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border x:Name="Root"
-                                Background="{TemplateBinding Background}"
-                                BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="1"
-                                CornerRadius="8"
-                                Padding="{TemplateBinding Padding}">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Root" Property="Background" Value="#223355"/>
-                                <Setter TargetName="Root" Property="BorderBrush" Value="#5A9CFF"/>
-                            </Trigger>
-                            <Trigger Property="IsEnabled" Value="False">
-                                <Setter Property="Opacity" Value="0.45"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
+        <Style x:Key="ActionButtonStyle" TargetType="Button" BasedOn="{StaticResource PlayerActionButtonStyle}"/>
 
         <Style x:Key="UrlIconButtonStyle" TargetType="Button">
             <Setter Property="Width" Value="32"/>
@@ -119,42 +66,18 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border x:Name="Root"
+                        <Border x:Name="IconRoot"
                                 Background="{TemplateBinding Background}"
                                 CornerRadius="8">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Root" Property="Opacity" Value="0.88"/>
+                                <Setter TargetName="IconRoot" Property="Opacity" Value="0.88"/>
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="Root" Property="Opacity" Value="0.72"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
-        <Style x:Key="PlayerPanelIconButtonStyle" TargetType="Button" BasedOn="{StaticResource UrlIconButtonStyle}">
-            <Setter Property="Width" Value="28"/>
-            <Setter Property="Height" Value="28"/>
-            <Setter Property="Background" Value="#1E1E28"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border x:Name="Root"
-                                Background="{TemplateBinding Background}"
-                                BorderBrush="#2A2F3A"
-                                BorderThickness="1"
-                                CornerRadius="7">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Root" Property="Background" Value="#2A2A38"/>
-                                <Setter TargetName="Root" Property="BorderBrush" Value="#3A4050"/>
+                                <Setter TargetName="IconRoot" Property="Opacity" Value="0.72"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -163,15 +86,15 @@
         </Style>
 
         <Style x:Key="PlayerSideTabButtonStyle" TargetType="Button">
-            <Setter Property="Width" Value="44"/>
-            <Setter Property="Background" Value="#12121A"/>
-            <Setter Property="BorderBrush" Value="{StaticResource PlayerBorderBrush}"/>
+            <Setter Property="Width" Value="34"/>
+            <Setter Property="Background" Value="{DynamicResource PanelBackgroundBrush}"/>
             <Setter Property="BorderThickness" Value="1,0,0,0"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border x:Name="Root"
+                        <Border x:Name="TabRoot"
                                 Background="{TemplateBinding Background}"
                                 BorderBrush="{TemplateBinding BorderBrush}"
                                 BorderThickness="{TemplateBinding BorderThickness}">
@@ -179,7 +102,7 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Root" Property="Background" Value="#1A1A24"/>
+                                <Setter TargetName="TabRoot" Property="Background" Value="{DynamicResource NavHoverBackgroundBrush}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -187,91 +110,31 @@
             </Setter>
         </Style>
 
-        <Style x:Key="PlayerToggleChipStyle" TargetType="ToggleButton">
-            <Setter Property="Background" Value="#22222E"/>
-            <Setter Property="Foreground" Value="#B8BCC8"/>
-            <Setter Property="BorderBrush" Value="{StaticResource PlayerBorderBrush}"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Padding" Value="12,7"/>
-            <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="FontSize" Value="12"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="ToggleButton">
-                        <Border x:Name="Chip"
-                                Background="{TemplateBinding Background}"
-                                BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="8"
-                                Padding="{TemplateBinding Padding}">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsChecked" Value="True">
-                                <Setter TargetName="Chip" Property="Background" Value="{StaticResource PlayerAccentSoftBrush}"/>
-                                <Setter TargetName="Chip" Property="BorderBrush" Value="{StaticResource PlayerAccentBorderBrush}"/>
-                                <Setter Property="Foreground" Value="#B8D4FF"/>
-                            </Trigger>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Chip" Property="Background" Value="#2A2A38"/>
-                            </Trigger>
-                            <MultiTrigger>
-                                <MultiTrigger.Conditions>
-                                    <Condition Property="IsChecked" Value="True"/>
-                                    <Condition Property="IsMouseOver" Value="True"/>
-                                </MultiTrigger.Conditions>
-                                <Setter TargetName="Chip" Property="Background" Value="#223355"/>
-                            </MultiTrigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
-        <Style x:Key="PlayerGreenToggleChipStyle" TargetType="ToggleButton" BasedOn="{StaticResource PlayerToggleChipStyle}">
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="ToggleButton">
-                        <Border x:Name="Chip"
-                                Background="{TemplateBinding Background}"
-                                BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="8"
-                                Padding="{TemplateBinding Padding}">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsChecked" Value="True">
-                                <Setter TargetName="Chip" Property="Background" Value="#152818"/>
-                                <Setter TargetName="Chip" Property="BorderBrush" Value="#3D7A4A"/>
-                                <Setter Property="Foreground" Value="#8AE6A0"/>
-                            </Trigger>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Chip" Property="Background" Value="#2A2A38"/>
-                            </Trigger>
-                            <MultiTrigger>
-                                <MultiTrigger.Conditions>
-                                    <Condition Property="IsChecked" Value="True"/>
-                                    <Condition Property="IsMouseOver" Value="True"/>
-                                </MultiTrigger.Conditions>
-                                <Setter TargetName="Chip" Property="Background" Value="#1A3520"/>
-                            </MultiTrigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
+        <Style x:Key="PlayerPanelHeaderStyle" TargetType="Border">
+            <Setter Property="Background" Value="{DynamicResource TitleBarBackgroundBrush}"/>
+            <Setter Property="Padding" Value="14,12"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
+            <Setter Property="BorderThickness" Value="0,0,0,1"/>
         </Style>
 
         <DataTemplate x:Key="SeasonItemTemplate">
             <TextBlock Text="{Binding StringFormat=Season {0}}"
-                       Foreground="{StaticResource PlayerTextBrush}"
+                       Foreground="#E5E5E5"
                        FontSize="13"/>
         </DataTemplate>
 
+        <Style x:Key="PlayerLoadingProgressStyle" TargetType="ProgressBar">
+            <Setter Property="Height" Value="3"/>
+            <Setter Property="IsIndeterminate" Value="True"/>
+            <Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
+            <Setter Property="Background" Value="#2A2A2A"/>
+            <Setter Property="BorderThickness" Value="0"/>
+        </Style>
+
         <Style x:Key="PlayerComboBoxItemStyle" TargetType="ComboBoxItem">
-            <Setter Property="Background" Value="#12121A"/>
-            <Setter Property="Foreground" Value="{StaticResource PlayerTextBrush}"/>
-            <Setter Property="Padding" Value="12,9"/>
+            <Setter Property="Background" Value="#1A1A1A"/>
+            <Setter Property="Foreground" Value="#E5E5E5"/>
+            <Setter Property="Padding" Value="10,8"/>
             <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
             <Setter Property="Template">
                 <Setter.Value>
@@ -283,10 +146,10 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="ItemBorder" Property="Background" Value="#1E1E28"/>
+                                <Setter TargetName="ItemBorder" Property="Background" Value="#2A2A2A"/>
                             </Trigger>
                             <Trigger Property="IsSelected" Value="True">
-                                <Setter TargetName="ItemBorder" Property="Background" Value="{StaticResource PlayerAccentSoftBrush}"/>
+                                <Setter TargetName="ItemBorder" Property="Background" Value="#243047"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -295,12 +158,12 @@
         </Style>
 
         <Style x:Key="PlayerSeasonComboBoxStyle" TargetType="ComboBox">
-            <Setter Property="Background" Value="#16161E"/>
-            <Setter Property="Foreground" Value="{StaticResource PlayerTextBrush}"/>
-            <Setter Property="BorderBrush" Value="{StaticResource PlayerBorderBrush}"/>
+            <Setter Property="Background" Value="#1A1A1A"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#3A3A3A"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Padding" Value="10,8"/>
-            <Setter Property="MinHeight" Value="38"/>
+            <Setter Property="MinHeight" Value="36"/>
             <Setter Property="ItemContainerStyle" Value="{StaticResource PlayerComboBoxItemStyle}"/>
             <Setter Property="Template">
                 <Setter.Value>
@@ -316,15 +179,10 @@
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="24"/>
+                                        <ColumnDefinition Width="20"/>
                                     </Grid.ColumnDefinitions>
-                                    <Border Grid.ColumnSpan="2"
-                                            CornerRadius="8"
-                                            Background="{TemplateBinding Background}"
-                                            BorderBrush="{TemplateBinding BorderBrush}"
-                                            BorderThickness="{TemplateBinding BorderThickness}"/>
                                     <ContentPresenter Grid.Column="0"
-                                                      Margin="12,0,4,0"
+                                                      Margin="10,0,4,0"
                                                       VerticalAlignment="Center"
                                                       HorizontalAlignment="Left"
                                                       Content="{TemplateBinding SelectionBoxItem}"
@@ -333,10 +191,10 @@
                                     <Path Grid.Column="1"
                                           Width="10"
                                           Height="6"
-                                          Margin="0,0,12,0"
+                                          Margin="0,0,10,0"
                                           VerticalAlignment="Center"
                                           HorizontalAlignment="Right"
-                                          Fill="{StaticResource PlayerMutedBrush}"
+                                          Fill="#A3A3A3"
                                           Data="M 0 0 L 5 6 L 10 0 Z"/>
                                 </Grid>
                             </ToggleButton>
@@ -346,13 +204,14 @@
                                    Focusable="False"
                                    PopupAnimation="Slide">
                                 <Border MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}"
-                                        Background="#12121A"
-                                        BorderBrush="{StaticResource PlayerBorderBrush}"
+                                        Background="#141414"
+                                        BorderBrush="#3A3A3A"
                                         BorderThickness="1"
-                                        CornerRadius="10"
-                                        Margin="0,6,0,0"
+                                        CornerRadius="8"
+                                        Margin="0,4,0,0"
                                         Padding="0,4">
-                                    <ScrollViewer MaxHeight="260" VerticalScrollBarVisibility="Auto">
+                                    <ScrollViewer MaxHeight="260"
+                                                  VerticalScrollBarVisibility="Auto">
                                         <ItemsPresenter KeyboardNavigation.DirectionalNavigation="Contained"/>
                                     </ScrollViewer>
                                 </Border>
@@ -363,234 +222,175 @@
             </Setter>
         </Style>
 
-        <Style x:Key="PlayerCloseButtonStyle" TargetType="Button">
-            <Setter Property="Width" Value="44"/>
-            <Setter Property="Height" Value="36"/>
+        <Style x:Key="CloseButtonStyle" TargetType="Button">
+            <Setter Property="Width" Value="46"/>
+            <Setter Property="Height" Value="32"/>
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border x:Name="Root" Background="{TemplateBinding Background}" CornerRadius="0,12,0,0">
+                        <Border Background="{TemplateBinding Background}">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Root" Property="Background" Value="#E81123"/>
+                                <Setter Property="Background" Value="#E81123"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
         </Style>
-
-        <Style x:Key="PlayerEpisodeListItemStyle" TargetType="ListBoxItem">
-            <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Padding" Value="10,5"/>
-            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
-            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="ListBoxItem">
-                        <Border x:Name="Card"
-                                Background="#16161E"
-                                BorderBrush="#252530"
-                                BorderThickness="1"
-                                CornerRadius="10"
-                                Padding="10"
-                                Margin="0,0,0,6">
-                            <ContentPresenter/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsSelected" Value="True">
-                                <Setter TargetName="Card" Property="Background" Value="#1A2744"/>
-                                <Setter TargetName="Card" Property="BorderBrush" Value="{StaticResource PlayerAccentBorderBrush}"/>
-                            </Trigger>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Card" Property="Background" Value="#1E1E28"/>
-                                <Setter TargetName="Card" Property="BorderBrush" Value="#3A4050"/>
-                            </Trigger>
-                            <MultiTrigger>
-                                <MultiTrigger.Conditions>
-                                    <Condition Property="IsSelected" Value="True"/>
-                                    <Condition Property="IsMouseOver" Value="True"/>
-                                </MultiTrigger.Conditions>
-                                <Setter TargetName="Card" Property="Background" Value="#223355"/>
-                            </MultiTrigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
+        </ResourceDictionary>
     </Window.Resources>
 
-    <Border Background="{StaticResource PlayerSurfaceBrush}"
+    <Border Background="{DynamicResource AppBackgroundBrush}"
             CornerRadius="14"
-            BorderThickness="1">
-        <Border.BorderBrush>
-            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                <GradientStop Color="#3A4558" Offset="0"/>
-                <GradientStop Color="#1A1A22" Offset="0.5"/>
-                <GradientStop Color="#3A4558" Offset="1"/>
-            </LinearGradientBrush>
-        </Border.BorderBrush>
+            BorderThickness="1"
+            BorderBrush="{DynamicResource BorderBrush}">
         <Border.Effect>
-            <DropShadowEffect Color="#000000" BlurRadius="28" ShadowDepth="0" Opacity="0.65"/>
+            <DropShadowEffect BlurRadius="28"
+                              ShadowDepth="0"
+                              Opacity="0.55"
+                              Color="#000000"/>
         </Border.Effect>
-
         <Grid>
             <Grid.RowDefinitions>
-                <RowDefinition Height="48"/>
+                <RowDefinition Height="44"/>
                 <RowDefinition Height="*"/>
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
-            <!-- Title bar -->
             <Border Grid.Row="0"
-                    Background="{StaticResource PlayerTitleBarGradient}"
-                    BorderBrush="{StaticResource PlayerBorderBrush}"
+                    Background="{DynamicResource TitleBarBackgroundBrush}"
+                    BorderBrush="{DynamicResource BorderBrush}"
                     BorderThickness="0,0,0,1"
                     CornerRadius="14,14,0,0"
                     MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
-                <Grid Margin="16,0,0,0">
+                <Grid Margin="14,0,6,0">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
 
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                        <Border Background="{StaticResource PlayerAccentSoftBrush}"
-                                BorderBrush="{StaticResource PlayerAccentBorderBrush}"
-                                BorderThickness="1"
+                        <Border Width="28"
+                                Height="28"
                                 CornerRadius="8"
-                                Padding="8,6"
-                                Margin="0,0,12,0">
+                                Background="{DynamicResource NavActiveBackgroundBrush}"
+                                BorderBrush="{DynamicResource BorderBrush}"
+                                BorderThickness="1"
+                                Margin="0,0,10,0">
                             <fa:FontAwesome Icon="Film"
-                                            Foreground="{StaticResource PlayerAccentBrush}"
-                                            Width="14"
-                                            Height="14"/>
+                                            Foreground="{DynamicResource AccentBrush}"
+                                            Width="13"
+                                            Height="13"
+                                            HorizontalAlignment="Center"
+                                            VerticalAlignment="Center"/>
                         </Border>
                         <StackPanel VerticalAlignment="Center">
                             <TextBlock x:Name="TitleText"
                                        Text="Now Playing"
-                                       Foreground="{StaticResource PlayerTextBrush}"
+                                       Foreground="White"
                                        FontSize="14"
                                        FontWeight="SemiBold"/>
                             <TextBlock Text="TinyCinema Player"
-                                       Foreground="{StaticResource PlayerMutedBrush}"
+                                       Foreground="{DynamicResource TextMutedBrush}"
                                        FontSize="10"
                                        Margin="0,1,0,0"/>
                         </StackPanel>
                     </StackPanel>
 
-                    <StackPanel Grid.Column="1" Orientation="Horizontal">
-                        <Button x:Name="ProbeSnapshotButton"
-                                Style="{StaticResource PlayerActionButtonStyle}"
-                                Width="36"
-                                Height="32"
-                                Padding="0"
-                                Margin="0,0,6,0"
-                                Visibility="Collapsed"
-                                Click="ProbeSnapshotButton_Click"
-                                ToolTip="Probe snapshot">
-                            <fa:FontAwesome Icon="Bug" Width="12" Height="12"/>
-                        </Button>
-                        <Button x:Name="ProbeOpenFolderButton"
-                                Style="{StaticResource PlayerActionButtonStyle}"
-                                Width="36"
-                                Height="32"
-                                Padding="0"
-                                Margin="0,0,6,0"
-                                Visibility="Collapsed"
-                                Click="ProbeOpenFolderButton_Click"
-                                ToolTip="Open probe log folder">
-                            <fa:FontAwesome Icon="FolderOpen" Width="12" Height="12"/>
-                        </Button>
-                        <Button Style="{StaticResource PlayerCloseButtonStyle}"
-                                Click="CloseButton_Click">
-                            <fa:FontAwesome Icon="Close" Foreground="White" Width="12" Height="12"/>
-                        </Button>
-                    </StackPanel>
+                <StackPanel Grid.Column="1"
+                            Orientation="Horizontal"
+                            VerticalAlignment="Center">
+                    <Button x:Name="ProbeSnapshotButton"
+                            Style="{StaticResource ActionButtonStyle}"
+                            Width="32"
+                            Height="28"
+                            Padding="0"
+                            Margin="0,0,4,0"
+                            Visibility="Collapsed"
+                            Click="ProbeSnapshotButton_Click"
+                            ToolTip="Probe snapshot">
+                        <fa:FontAwesome Icon="Bug" Width="12" Height="12"/>
+                    </Button>
+                    <Button x:Name="ProbeOpenFolderButton"
+                            Style="{StaticResource ActionButtonStyle}"
+                            Width="32"
+                            Height="28"
+                            Padding="0"
+                            Margin="0,0,4,0"
+                            Visibility="Collapsed"
+                            Click="ProbeOpenFolderButton_Click"
+                            ToolTip="Open probe log folder">
+                        <fa:FontAwesome Icon="FolderOpen" Width="12" Height="12"/>
+                    </Button>
+                    <Button Style="{StaticResource CloseButtonStyle}"
+                            Click="CloseButton_Click">
+                        <fa:FontAwesome Icon="Close" Foreground="White" Width="12" Height="12"/>
+                    </Button>
+                </StackPanel>
                 </Grid>
             </Border>
 
-            <!-- Main content -->
-            <Grid Grid.Row="1" Background="#000000">
+            <Grid Grid.Row="1" Background="#050505">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition x:Name="UrlsPanelColumn" Width="0"/>
                 </Grid.ColumnDefinitions>
 
-                <Grid Grid.Column="0" Background="#050508">
-                    <Border Margin="12"
-                            CornerRadius="10"
-                            BorderBrush="#1A1A24"
+                <Grid Grid.Column="0" Background="#050505" Margin="8,8,0,8">
+                    <Border CornerRadius="10"
+                            Background="#000000"
+                            BorderBrush="{DynamicResource BorderBrush}"
                             BorderThickness="1"
-                            Background="#000000">
+                            ClipToBounds="True">
                         <Grid>
-                            <Border x:Name="PlayerWebViewHost" Visibility="Collapsed" CornerRadius="9" ClipToBounds="True">
+                            <Border x:Name="PlayerWebViewHost" Visibility="Collapsed">
                                 <wv2:WebView2 x:Name="PlayerWebView"/>
                             </Border>
                             <Border x:Name="LoadingOverlay"
                                     Panel.ZIndex="10"
-                                    Background="#050508"
-                                    CornerRadius="9"
+                                    Background="#080808"
                                     Visibility="Visible">
-                                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                                    <Grid Width="48" Height="48" Margin="0,0,0,20">
-                                        <Ellipse Width="48" Height="48"
-                                                 Stroke="#1A2744"
-                                                 StrokeThickness="4"/>
-                                        <Ellipse Width="48" Height="48"
-                                                 Stroke="{StaticResource PlayerAccentBrush}"
-                                                 StrokeThickness="4"
-                                                 StrokeDashArray="6 4"
-                                                 RenderTransformOrigin="0.5,0.5">
-                                            <Ellipse.RenderTransform>
-                                                <RotateTransform Angle="0"/>
-                                            </Ellipse.RenderTransform>
-                                            <Ellipse.Triggers>
-                                                <EventTrigger RoutedEvent="FrameworkElement.Loaded">
-                                                    <BeginStoryboard>
-                                                        <Storyboard RepeatBehavior="Forever">
-                                                            <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(RotateTransform.Angle)"
-                                                                             From="0" To="360" Duration="0:0:1.1"/>
-                                                        </Storyboard>
-                                                    </BeginStoryboard>
-                                                </EventTrigger>
-                                            </Ellipse.Triggers>
-                                        </Ellipse>
-                                        <fa:FontAwesome Icon="Play"
-                                                        Foreground="{StaticResource PlayerAccentBrush}"
-                                                        Width="14"
-                                                        Height="14"
-                                                        HorizontalAlignment="Center"
-                                                        VerticalAlignment="Center"/>
-                                    </Grid>
+                                <StackPanel VerticalAlignment="Center"
+                                            HorizontalAlignment="Center"
+                                            MaxWidth="440"
+                                            Margin="24">
+                                    <fa:FontAwesome Icon="Spinner"
+                                                    Foreground="{DynamicResource AccentBrush}"
+                                                    Width="28"
+                                                    Height="28"
+                                                    HorizontalAlignment="Center"
+                                                    Spin="True"
+                                                    SpinDuration="1.2"/>
                                     <TextBlock Text="Preparing player"
-                                               Foreground="{StaticResource PlayerTextBrush}"
-                                               FontSize="18"
+                                               Foreground="White"
+                                               FontSize="17"
                                                FontWeight="SemiBold"
-                                               HorizontalAlignment="Center"/>
+                                               HorizontalAlignment="Center"
+                                               Margin="0,16,0,0"/>
                                     <TextBlock x:Name="LoadingHintText"
                                                Text="Applying cinema view and selecting Server 1..."
-                                               Foreground="{StaticResource PlayerMutedBrush}"
+                                               Foreground="{DynamicResource TextMutedBrush}"
                                                FontSize="12"
-                                               Margin="0,8,0,0"
+                                               Margin="0,8,0,16"
                                                TextWrapping="Wrap"
-                                               MaxWidth="420"
                                                TextAlignment="Center"/>
+                                    <ProgressBar Style="{StaticResource PlayerLoadingProgressStyle}"
+                                                 Width="220"
+                                                 HorizontalAlignment="Center"/>
                                 </StackPanel>
                             </Border>
                         </Grid>
                     </Border>
                 </Grid>
 
-                <!-- Side tabs -->
-                <Grid Grid.Column="1" Background="#0A0A0E">
+                <Grid Grid.Column="1">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="*"/>
                         <RowDefinition Height="*"/>
@@ -605,14 +405,19 @@
                         <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
                             <fa:FontAwesome x:Name="EpisodesTabIcon"
                                             Icon="List"
-                                            Foreground="{StaticResource PlayerMutedBrush}"
-                                            Width="14"
-                                            Height="14"
-                                            Margin="0,0,0,5"/>
+                                            Foreground="#B3FFFFFF"
+                                            Width="12"
+                                            Height="12"
+                                            Margin="0,0,0,6"/>
                             <TextBlock Text="EPS"
-                                       Foreground="{StaticResource PlayerMutedBrush}"
+                                       Foreground="#B3FFFFFF"
                                        FontSize="9"
-                                       FontWeight="Bold"/>
+                                       FontWeight="SemiBold"
+                                       RenderTransformOrigin="0.5,0.5">
+                                <TextBlock.RenderTransform>
+                                    <RotateTransform Angle="90"/>
+                                </TextBlock.RenderTransform>
+                            </TextBlock>
                         </StackPanel>
                     </Button>
 
@@ -621,27 +426,33 @@
                             Style="{StaticResource PlayerSideTabButtonStyle}"
                             Click="UrlsTabButton_Click"
                             ToolTip="Show URLs panel">
-                        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                            <fa:FontAwesome x:Name="UrlsTabIcon"
-                                            Icon="Link"
-                                            Foreground="{StaticResource PlayerMutedBrush}"
-                                            Width="14"
-                                            Height="14"
-                                            Margin="0,0,0,5"/>
-                            <TextBlock Text="URLs"
-                                       Foreground="{StaticResource PlayerMutedBrush}"
-                                       FontSize="9"
-                                       FontWeight="Bold"/>
-                        </StackPanel>
-                    </Button>
+                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                        <fa:FontAwesome x:Name="UrlsTabIcon"
+                                        Icon="Link"
+                                        Foreground="#B3FFFFFF"
+                                        Width="12"
+                                        Height="12"
+                                        Margin="0,0,0,6"/>
+                        <TextBlock Text="URLs"
+                                   Foreground="#B3FFFFFF"
+                                   FontSize="10"
+                                   FontWeight="SemiBold"
+                                   RenderTransformOrigin="0.5,0.5">
+                            <TextBlock.RenderTransform>
+                                <RotateTransform Angle="90"/>
+                            </TextBlock.RenderTransform>
+                        </TextBlock>
+                    </StackPanel>
+                </Button>
                 </Grid>
 
-                <!-- Episodes panel -->
                 <Border x:Name="EpisodesPanel"
                         Grid.Column="2"
-                        Background="{StaticResource PlayerSurfaceRaisedBrush}"
-                        BorderBrush="{StaticResource PlayerBorderBrush}"
+                        Background="{DynamicResource PanelBackgroundBrush}"
+                        BorderBrush="{DynamicResource BorderBrush}"
                         BorderThickness="1,0,0,0"
+                        Margin="0,8,8,8"
+                        CornerRadius="10"
                         Visibility="Collapsed">
                     <Grid>
                         <Grid.RowDefinitions>
@@ -651,58 +462,40 @@
                         </Grid.RowDefinitions>
 
                         <Border Grid.Row="0"
-                                Background="#161820"
-                                Padding="16,14"
-                                BorderBrush="{StaticResource PlayerBorderBrush}"
-                                BorderThickness="0,0,0,1">
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto"/>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
-                                <Border Grid.Column="0"
-                                        Background="{StaticResource PlayerAccentSoftBrush}"
-                                        BorderBrush="{StaticResource PlayerAccentBorderBrush}"
-                                        BorderThickness="1"
-                                        CornerRadius="8"
-                                        Padding="8"
-                                        Margin="0,0,12,0"
-                                        VerticalAlignment="Center">
-                                    <fa:FontAwesome Icon="List"
-                                                    Foreground="{StaticResource PlayerAccentBrush}"
-                                                    Width="12"
-                                                    Height="12"/>
-                                </Border>
-                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                    <TextBlock Text="Episodes"
-                                               Foreground="{StaticResource PlayerTextBrush}"
-                                               FontSize="14"
-                                               FontWeight="SemiBold"/>
-                                    <TextBlock x:Name="EpisodeCountText"
-                                               Text="0 episodes"
-                                               Foreground="{StaticResource PlayerMutedBrush}"
-                                               FontSize="11"
-                                               Margin="0,2,0,0"/>
-                                </StackPanel>
-                                <Button Grid.Column="2"
-                                        Click="HideEpisodesPanel_Click"
+                                Style="{StaticResource PlayerPanelHeaderStyle}"
+                                CornerRadius="10,10,0,0">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <Button Click="HideEpisodesPanel_Click"
                                         ToolTip="Hide Episodes panel"
-                                        Style="{StaticResource PlayerPanelIconButtonStyle}"
-                                        VerticalAlignment="Center">
+                                        Style="{StaticResource UrlIconButtonStyle}"
+                                        Background="Transparent"
+                                        Width="24"
+                                        Height="24"
+                                        Margin="0,0,8,0">
                                     <fa:FontAwesome Icon="ChevronRight"
-                                                    Foreground="{StaticResource PlayerMutedBrush}"
+                                                    Foreground="#808080"
                                                     Width="10"
                                                     Height="10"
                                                     IsHitTestVisible="False"/>
                                 </Button>
-                            </Grid>
+                                <StackPanel>
+                                    <TextBlock Text="Episodes"
+                                               Foreground="White"
+                                               FontSize="13"
+                                               FontWeight="SemiBold"/>
+                                    <TextBlock x:Name="EpisodeCountText"
+                                               Text="0 episodes"
+                                               Foreground="{DynamicResource TextMutedBrush}"
+                                               FontSize="11"
+                                               Margin="0,2,0,0"/>
+                                </StackPanel>
+                            </StackPanel>
                         </Border>
 
                         <Border Grid.Row="1"
-                                Background="{StaticResource PlayerSurfaceRaisedBrush}"
-                                Padding="14,12"
-                                BorderBrush="{StaticResource PlayerBorderBrush}"
+                                Background="{DynamicResource PanelBackgroundBrush}"
+                                Padding="12,10"
+                                BorderBrush="{DynamicResource BorderBrush}"
                                 BorderThickness="0,0,0,1">
                             <ComboBox x:Name="SeasonFilterComboBox"
                                       Style="{StaticResource PlayerSeasonComboBoxStyle}"
@@ -715,29 +508,70 @@
                                  Grid.Row="2"
                                  Background="Transparent"
                                  BorderThickness="0"
-                                 Padding="8,8,8,12"
+                                 Padding="0,6"
                                  ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                                 SelectionChanged="EpisodesListBox_SelectionChanged"
-                                 ItemContainerStyle="{StaticResource PlayerEpisodeListItemStyle}">
+                                 SelectionChanged="EpisodesListBox_SelectionChanged">
+                            <ListBox.Resources>
+                                <Style TargetType="ScrollViewer" BasedOn="{StaticResource ModernScrollViewerStyle}"/>
+                            </ListBox.Resources>
+                            <ListBox.ItemContainerStyle>
+                                <Style TargetType="ListBoxItem">
+                                    <Setter Property="Background" Value="Transparent"/>
+                                    <Setter Property="BorderThickness" Value="0"/>
+                                    <Setter Property="Padding" Value="8,4"/>
+                                    <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                                    <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+                                    <Setter Property="Template">
+                                        <Setter.Value>
+                                            <ControlTemplate TargetType="ListBoxItem">
+                                                <Border x:Name="EpisodeRow"
+                                                        Background="Transparent"
+                                                        CornerRadius="10"
+                                                        Padding="{TemplateBinding Padding}"
+                                                        BorderThickness="1"
+                                                        BorderBrush="Transparent">
+                                                    <ContentPresenter/>
+                                                </Border>
+                                                <ControlTemplate.Triggers>
+                                                    <Trigger Property="IsSelected" Value="True">
+                                                        <Setter TargetName="EpisodeRow" Property="Background" Value="#1A2438"/>
+                                                        <Setter TargetName="EpisodeRow" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                                                    </Trigger>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter TargetName="EpisodeRow" Property="Background" Value="#161616"/>
+                                                    </Trigger>
+                                                    <MultiTrigger>
+                                                        <MultiTrigger.Conditions>
+                                                            <Condition Property="IsSelected" Value="True"/>
+                                                            <Condition Property="IsMouseOver" Value="True"/>
+                                                        </MultiTrigger.Conditions>
+                                                        <Setter TargetName="EpisodeRow" Property="Background" Value="#1E2D45"/>
+                                                    </MultiTrigger>
+                                                </ControlTemplate.Triggers>
+                                            </ControlTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                </Style>
+                            </ListBox.ItemContainerStyle>
                             <ListBox.ItemTemplate>
                                 <DataTemplate>
                                     <Grid>
                                         <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="112"/>
+                                            <ColumnDefinition Width="96"/>
                                             <ColumnDefinition Width="*"/>
                                         </Grid.ColumnDefinitions>
                                         <Border Grid.Column="0"
-                                                Width="112"
-                                                Height="63"
-                                                CornerRadius="6"
-                                                Background="#0A0A0E"
-                                                BorderBrush="#252530"
+                                                Width="104"
+                                                Height="58"
+                                                CornerRadius="8"
+                                                Background="#101010"
+                                                BorderBrush="{DynamicResource BorderBrush}"
                                                 BorderThickness="1"
                                                 Margin="0,0,12,0"
                                                 ClipToBounds="True">
                                             <Grid>
                                                 <fa:FontAwesome Icon="Film"
-                                                                Foreground="#3A4050"
+                                                                Foreground="#333333"
                                                                 Width="16"
                                                                 Height="16"
                                                                 HorizontalAlignment="Center"
@@ -747,17 +581,28 @@
                                                        Visibility="{Binding HasThumbnail, Converter={StaticResource BoolToVis}}"/>
                                             </Grid>
                                         </Border>
-                                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                            <TextBlock Text="{Binding EpisodeNumberLabel}"
-                                                       Foreground="{StaticResource PlayerTextBrush}"
-                                                       FontSize="13"
-                                                       FontWeight="SemiBold"/>
+                                        <StackPanel Grid.Column="1"
+                                                    VerticalAlignment="Center">
+                                            <StackPanel Orientation="Horizontal" Margin="0,0,0,3">
+                                                <TextBlock Text="{Binding EpisodeNumberLabel}"
+                                                           Foreground="#F5F5F5"
+                                                           FontSize="13"
+                                                           FontWeight="SemiBold"/>
+                                                <Border Background="#243047"
+                                                        CornerRadius="4"
+                                                        Padding="6,2"
+                                                        Margin="8,0,0,0"
+                                                        Visibility="{Binding IsCurrent, Converter={StaticResource BoolToVis}}">
+                                                    <TextBlock Text="NOW"
+                                                               Foreground="{DynamicResource AccentBrush}"
+                                                               FontSize="9"
+                                                               FontWeight="Bold"/>
+                                                </Border>
+                                            </StackPanel>
                                             <TextBlock Text="{Binding Title}"
-                                                       Foreground="{StaticResource PlayerMutedBrush}"
+                                                       Foreground="{DynamicResource TextMutedBrush}"
                                                        FontSize="11"
-                                                       Margin="0,3,0,0"
-                                                       TextWrapping="Wrap"
-                                                       LineHeight="15">
+                                                       TextWrapping="Wrap">
                                                 <TextBlock.Style>
                                                     <Style TargetType="TextBlock">
                                                         <Setter Property="Visibility" Value="Visible"/>
@@ -777,12 +622,13 @@
                     </Grid>
                 </Border>
 
-                <!-- URLs panel -->
                 <Border x:Name="UrlsPanel"
                         Grid.Column="2"
-                        Background="{StaticResource PlayerSurfaceRaisedBrush}"
-                        BorderBrush="{StaticResource PlayerBorderBrush}"
+                        Background="{DynamicResource PanelBackgroundBrush}"
+                        BorderBrush="{DynamicResource BorderBrush}"
                         BorderThickness="1,0,0,0"
+                        Margin="0,8,8,8"
+                        CornerRadius="10"
                         Visibility="Collapsed">
                     <Grid>
                         <Grid.RowDefinitions>
@@ -792,114 +638,184 @@
                         </Grid.RowDefinitions>
 
                         <Border Grid.Row="0"
-                                Background="#161820"
-                                Padding="16,14"
-                                BorderBrush="{StaticResource PlayerBorderBrush}"
-                                BorderThickness="0,0,0,1">
+                                Style="{StaticResource PlayerPanelHeaderStyle}"
+                                CornerRadius="10,10,0,0">
                             <Grid>
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto"/>
                                     <RowDefinition Height="Auto"/>
                                     <RowDefinition Height="Auto"/>
                                 </Grid.RowDefinitions>
-                                <Grid Grid.Row="0">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto"/>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="Auto"/>
-                                    </Grid.ColumnDefinitions>
-                                    <Border Grid.Column="0"
-                                            Background="#152818"
-                                            BorderBrush="#3D7A4A"
-                                            BorderThickness="1"
-                                            CornerRadius="8"
-                                            Padding="8"
-                                            Margin="0,0,12,0"
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Row="0"
+                                            Grid.Column="0"
+                                            Orientation="Horizontal"
                                             VerticalAlignment="Center">
-                                        <fa:FontAwesome Icon="Link"
-                                                        Foreground="#8AE6A0"
-                                                        Width="12"
-                                                        Height="12"/>
-                                    </Border>
-                                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                    <Button Click="HideUrlsPanel_Click"
+                                            ToolTip="Hide URLs panel"
+                                            Style="{StaticResource UrlIconButtonStyle}"
+                                            Background="Transparent"
+                                            Width="24"
+                                            Height="24"
+                                            Margin="0,0,8,0">
+                                        <fa:FontAwesome Icon="ChevronRight"
+                                                        Foreground="#808080"
+                                                        Width="10"
+                                                        Height="10"
+                                                        IsHitTestVisible="False"/>
+                                    </Button>
+                                    <StackPanel>
                                         <TextBlock Text="Live URLs"
-                                                   Foreground="{StaticResource PlayerTextBrush}"
-                                                   FontSize="14"
+                                                   Foreground="White"
+                                                   FontSize="13"
                                                    FontWeight="SemiBold"/>
                                         <TextBlock x:Name="UrlCountText"
                                                    Text="0 captured"
-                                                   Foreground="{StaticResource PlayerMutedBrush}"
+                                                   Foreground="{DynamicResource TextMutedBrush}"
                                                    FontSize="11"
                                                    Margin="0,2,0,0"/>
                                     </StackPanel>
-                                    <StackPanel Grid.Column="2" Orientation="Horizontal">
-                                        <Button Click="HideUrlsPanel_Click"
-                                                ToolTip="Hide URLs panel"
-                                                Style="{StaticResource PlayerPanelIconButtonStyle}"
-                                                Margin="0,0,6,0">
-                                            <fa:FontAwesome Icon="ChevronRight"
-                                                            Foreground="{StaticResource PlayerMutedBrush}"
-                                                            Width="10"
-                                                            Height="10"
-                                                            IsHitTestVisible="False"/>
-                                        </Button>
-                                        <Button Content="Clear"
-                                                Click="ClearUrlsButton_Click"
-                                                Style="{StaticResource PlayerActionButtonStyle}"
-                                                Padding="10,6"
-                                                Margin="0"/>
-                                    </StackPanel>
-                                </Grid>
+                                </StackPanel>
+                                <Button Grid.Row="0"
+                                        Grid.Column="1"
+                                        Content="Clear"
+                                        Click="ClearUrlsButton_Click"
+                                        Style="{StaticResource ActionButtonStyle}"
+                                        Padding="8,4"
+                                        Margin="0"/>
                                 <ToggleButton x:Name="UrlCaptureToggle"
                                               Grid.Row="1"
-                                              Style="{StaticResource PlayerGreenToggleChipStyle}"
-                                              Margin="0,12,0,0"
+                                              Grid.ColumnSpan="2"
+                                              Margin="0,10,0,0"
                                               IsChecked="True"
                                               Click="UrlCaptureToggle_Click"
+                                              Background="#2A2A2A"
+                                              Foreground="#B3FFFFFF"
+                                              BorderBrush="#3A3A3A"
+                                              BorderThickness="1"
+                                              Padding="10,5"
                                               HorizontalAlignment="Stretch"
+                                              Cursor="Hand"
                                               ToolTip="Listen for network URLs">
-                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                        <fa:FontAwesome Icon="Rss" Width="11" Height="11" Margin="0,0,6,0"/>
-                                        <TextBlock Text="Capture URLs"/>
-                                    </StackPanel>
+                                    <ToggleButton.Template>
+                                        <ControlTemplate TargetType="ToggleButton">
+                                            <Border x:Name="CaptureBorder"
+                                                    Background="{TemplateBinding Background}"
+                                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                                    CornerRadius="6"
+                                                    Padding="{TemplateBinding Padding}">
+                                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                                    <fa:FontAwesome Icon="Rss"
+                                                                    Foreground="{TemplateBinding Foreground}"
+                                                                    Width="11"
+                                                                    Height="11"
+                                                                    Margin="0,0,6,0"/>
+                                                    <TextBlock Text="Capture URLs"
+                                                               Foreground="{TemplateBinding Foreground}"
+                                                               FontSize="11"/>
+                                                </StackPanel>
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsChecked" Value="True">
+                                                    <Setter TargetName="CaptureBorder" Property="Background" Value="#1A2744"/>
+                                                    <Setter TargetName="CaptureBorder" Property="BorderBrush" Value="#3A5A8A"/>
+                                                    <Setter Property="Foreground" Value="#8CB4FF"/>
+                                                </Trigger>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter TargetName="CaptureBorder" Property="Background" Value="#333333"/>
+                                                </Trigger>
+                                                <MultiTrigger>
+                                                    <MultiTrigger.Conditions>
+                                                        <Condition Property="IsChecked" Value="True"/>
+                                                        <Condition Property="IsMouseOver" Value="True"/>
+                                                    </MultiTrigger.Conditions>
+                                                    <Setter TargetName="CaptureBorder" Property="Background" Value="#223355"/>
+                                                </MultiTrigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </ToggleButton.Template>
                                 </ToggleButton>
                                 <ToggleButton x:Name="HlsFilterToggle"
                                               Grid.Row="2"
-                                              Style="{StaticResource PlayerGreenToggleChipStyle}"
+                                              Grid.ColumnSpan="2"
                                               Margin="0,8,0,0"
                                               Click="HlsFilterToggle_Click"
-                                              HorizontalAlignment="Stretch">
-                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                        <fa:FontAwesome Icon="Filter" Width="11" Height="11" Margin="0,0,6,0"/>
-                                        <TextBlock Text="HLS streams only"/>
-                                    </StackPanel>
+                                              Background="#2A2A2A"
+                                              Foreground="#B3FFFFFF"
+                                              BorderBrush="#3A3A3A"
+                                              BorderThickness="1"
+                                              Padding="10,5"
+                                              HorizontalAlignment="Stretch"
+                                              Cursor="Hand">
+                                    <ToggleButton.Template>
+                                        <ControlTemplate TargetType="ToggleButton">
+                                            <Border x:Name="FilterBorder"
+                                                    Background="{TemplateBinding Background}"
+                                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                                    CornerRadius="6"
+                                                    Padding="{TemplateBinding Padding}">
+                                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                                    <fa:FontAwesome Icon="Filter"
+                                                                    Foreground="{TemplateBinding Foreground}"
+                                                                    Width="11"
+                                                                    Height="11"
+                                                                    Margin="0,0,6,0"/>
+                                                    <TextBlock Text="HLS streams only"
+                                                               Foreground="{TemplateBinding Foreground}"
+                                                               FontSize="11"/>
+                                                </StackPanel>
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsChecked" Value="True">
+                                                    <Setter TargetName="FilterBorder" Property="Background" Value="#1E3A1E"/>
+                                                    <Setter TargetName="FilterBorder" Property="BorderBrush" Value="#3D6B3D"/>
+                                                    <Setter Property="Foreground" Value="#7DD87D"/>
+                                                </Trigger>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter TargetName="FilterBorder" Property="Background" Value="#333333"/>
+                                                </Trigger>
+                                                <MultiTrigger>
+                                                    <MultiTrigger.Conditions>
+                                                        <Condition Property="IsChecked" Value="True"/>
+                                                        <Condition Property="IsMouseOver" Value="True"/>
+                                                    </MultiTrigger.Conditions>
+                                                    <Setter TargetName="FilterBorder" Property="Background" Value="#254525"/>
+                                                </MultiTrigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </ToggleButton.Template>
                                 </ToggleButton>
                             </Grid>
                         </Border>
 
                         <Border Grid.Row="1"
-                                Background="{StaticResource PlayerSurfaceRaisedBrush}"
-                                Padding="14,0,14,12"
-                                BorderBrush="{StaticResource PlayerBorderBrush}"
+                                Background="{DynamicResource PanelBackgroundBrush}"
+                                Padding="12,0,12,10"
+                                BorderBrush="{DynamicResource BorderBrush}"
                                 BorderThickness="0,0,0,1">
-                            <Border Background="#16161E"
-                                    BorderBrush="{StaticResource PlayerBorderBrush}"
+                            <Border Background="{DynamicResource NavActiveBackgroundBrush}"
+                                    BorderBrush="{DynamicResource BorderBrush}"
                                     BorderThickness="1"
                                     CornerRadius="8"
                                     Padding="1">
                                 <Grid>
                                     <TextBox x:Name="UrlSearchTextBox"
                                              Background="Transparent"
-                                             Foreground="{StaticResource PlayerTextBrush}"
+                                             Foreground="White"
                                              BorderThickness="0"
-                                             Padding="32,8,10,8"
-                                             FontSize="12"
+                                             Padding="28,8,8,8"
+                                             FontSize="11"
                                              TextChanged="UrlSearchTextBox_TextChanged"/>
                                     <fa:FontAwesome Icon="Search"
-                                                    Foreground="{StaticResource PlayerMutedBrush}"
+                                                    Foreground="{DynamicResource TextMutedBrush}"
                                                     Width="11"
                                                     Height="11"
-                                                    Margin="12,0,0,0"
+                                                    Margin="10,0,0,0"
                                                     VerticalAlignment="Center"
                                                     HorizontalAlignment="Left"
                                                     IsHitTestVisible="False"/>
@@ -908,48 +824,44 @@
                         </Border>
 
                         <ScrollViewer Grid.Row="2"
+                                      Style="{StaticResource ModernScrollViewerStyle}"
                                       VerticalScrollBarVisibility="Auto"
                                       HorizontalScrollBarVisibility="Disabled"
                                       Background="Transparent"
-                                      Padding="8,4,8,12">
+                                      Padding="0,4">
                             <ItemsControl x:Name="UrlsItemsControl">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
-                                        <Border Background="#16161E"
-                                                BorderBrush="#252530"
-                                                BorderThickness="1"
-                                                CornerRadius="10"
-                                                Padding="12,10"
-                                                Margin="0,0,0,8">
+                                        <Border BorderBrush="#222222"
+                                                BorderThickness="0,0,0,1"
+                                                Padding="10,8"
+                                                Background="Transparent">
                                             <Grid>
                                                 <Grid.ColumnDefinitions>
                                                     <ColumnDefinition Width="*"/>
                                                     <ColumnDefinition Width="Auto"/>
                                                 </Grid.ColumnDefinitions>
-                                                <StackPanel Grid.Column="0" Margin="0,0,10,0">
-                                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
-                                                        <Border Background="#152818"
-                                                                BorderBrush="#3D7A4A"
-                                                                BorderThickness="1"
-                                                                CornerRadius="5"
-                                                                Padding="7,3"
-                                                                Margin="0,0,8,0"
+                                                <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                                        <Border Background="#2A2A2A"
+                                                                CornerRadius="4"
+                                                                Padding="6,2"
+                                                                Margin="0,0,6,0"
                                                                 Visibility="{Binding IsStream, Converter={StaticResource BoolToVis}}">
                                                             <TextBlock Text="HLS"
-                                                                       Foreground="#8AE6A0"
+                                                                       Foreground="#7DD87D"
                                                                        FontSize="10"
-                                                                       FontWeight="Bold"/>
+                                                                       FontWeight="SemiBold"/>
                                                         </Border>
                                                         <TextBlock Text="{Binding Time}"
-                                                                   Foreground="{StaticResource PlayerMutedBrush}"
+                                                                   Foreground="#666666"
                                                                    FontSize="10"
                                                                    VerticalAlignment="Center"/>
                                                     </StackPanel>
                                                     <TextBlock Text="{Binding Url}"
-                                                               Foreground="#D4D8E0"
+                                                               Foreground="#D9D9D9"
                                                                FontSize="11"
-                                                               TextWrapping="Wrap"
-                                                               LineHeight="16"/>
+                                                               TextWrapping="Wrap"/>
                                                 </StackPanel>
                                                 <StackPanel Grid.Column="1"
                                                             Orientation="Horizontal"
@@ -958,35 +870,51 @@
                                                             Click="OpenHlsInPlayerButton_Click"
                                                             ToolTip="Open in external player"
                                                             Style="{StaticResource UrlIconButtonStyle}"
-                                                            Background="#152818"
+                                                            Background="#2A4A2A"
                                                             Margin="0,0,4,0"
                                                             Visibility="{Binding IsStream, Converter={StaticResource BoolToVis}}">
-                                                        <fa:FontAwesome Icon="Play" Foreground="#8AE6A0" Width="11" Height="11" IsHitTestVisible="False"/>
+                                                        <fa:FontAwesome Icon="Play"
+                                                                        Foreground="#7DD87D"
+                                                                        Width="11"
+                                                                        Height="11"
+                                                                        IsHitTestVisible="False"/>
                                                     </Button>
                                                     <Button CommandParameter="{Binding Url}"
                                                             Click="DownloadHlsButton_Click"
                                                             ToolTip="Download or clip with ffmpeg"
                                                             Style="{StaticResource UrlIconButtonStyle}"
-                                                            Background="#1A2744"
+                                                            Background="#2A3548"
                                                             Margin="0,0,4,0"
                                                             Visibility="{Binding IsStream, Converter={StaticResource BoolToVis}}">
-                                                        <fa:FontAwesome Icon="Download" Foreground="#8CB4FF" Width="11" Height="11" IsHitTestVisible="False"/>
+                                                        <fa:FontAwesome Icon="Download"
+                                                                        Foreground="#7EB8FF"
+                                                                        Width="11"
+                                                                        Height="11"
+                                                                        IsHitTestVisible="False"/>
                                                     </Button>
                                                     <Button CommandParameter="{Binding Url}"
                                                             Click="SendToRokuButton_Click"
                                                             ToolTip="Sideload channel to Roku"
                                                             Style="{StaticResource UrlIconButtonStyle}"
-                                                            Background="#2A1A38"
+                                                            Background="#3A2448"
                                                             Margin="0,0,4,0"
                                                             Visibility="{Binding IsStream, Converter={StaticResource BoolToVis}}">
-                                                        <fa:FontAwesome Icon="Tv" Foreground="#D8A8FF" Width="11" Height="11" IsHitTestVisible="False"/>
+                                                        <fa:FontAwesome Icon="Tv"
+                                                                        Foreground="#D8A8FF"
+                                                                        Width="11"
+                                                                        Height="11"
+                                                                        IsHitTestVisible="False"/>
                                                     </Button>
                                                     <Button CommandParameter="{Binding Url}"
                                                             Click="CopyUrlButton_Click"
                                                             ToolTip="Copy URL"
                                                             Style="{StaticResource UrlIconButtonStyle}"
-                                                            Background="#22222E">
-                                                        <fa:FontAwesome Icon="Copy" Foreground="White" Width="12" Height="12" IsHitTestVisible="False"/>
+                                                            Background="#2A2A2A">
+                                                        <fa:FontAwesome Icon="Copy"
+                                                                        Foreground="White"
+                                                                        Width="12"
+                                                                        Height="12"
+                                                                        IsHitTestVisible="False"/>
                                                     </Button>
                                                 </StackPanel>
                                             </Grid>
@@ -999,39 +927,41 @@
                 </Border>
             </Grid>
 
-            <!-- Footer controls -->
             <Border Grid.Row="2"
-                    Background="{StaticResource PlayerFooterGradient}"
-                    BorderBrush="{StaticResource PlayerBorderBrush}"
+                    Background="{DynamicResource TitleBarBackgroundBrush}"
+                    BorderBrush="{DynamicResource BorderBrush}"
                     BorderThickness="0,1,0,0"
                     CornerRadius="0,0,14,14"
-                    Padding="16,10">
+                    Padding="14,10">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
 
-                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                        <Ellipse Width="7" Height="7" Fill="{StaticResource PlayerAccentBrush}" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                    <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
+                        <TextBlock Text="Status"
+                                   Foreground="{DynamicResource TextMutedBrush}"
+                                   FontSize="10"
+                                   FontWeight="SemiBold"
+                                   Margin="0,0,0,2"/>
                         <TextBlock x:Name="StatusText"
-                                   Foreground="{StaticResource PlayerMutedBrush}"
+                                   Foreground="#D9D9D9"
                                    FontSize="12"
-                                   TextWrapping="Wrap"
-                                   VerticalAlignment="Center"/>
+                                   TextWrapping="Wrap"/>
                     </StackPanel>
 
                     <StackPanel Grid.Column="1" Orientation="Horizontal">
                         <ComboBox x:Name="TvServerComboBox"
                                   Style="{StaticResource PlayerSeasonComboBoxStyle}"
-                                  Width="128"
+                                  Width="120"
                                   Margin="0,0,8,0"
                                   Visibility="Collapsed"
                                   ToolTip="MovieLair playback server"
                                   SelectionChanged="TvServerComboBox_SelectionChanged"/>
                         <ComboBox x:Name="MovieSourceComboBox"
                                   Style="{StaticResource PlayerSeasonComboBoxStyle}"
-                                  Width="136"
+                                  Width="132"
                                   Margin="0,0,8,0"
                                   Visibility="Collapsed"
                                   SelectionChanged="MovieSourceComboBox_SelectionChanged">
@@ -1039,24 +969,51 @@
                             <ComboBoxItem Content="MovieLair"/>
                         </ComboBox>
                         <ToggleButton x:Name="CinemaModeToggle"
-                                      Style="{StaticResource PlayerToggleChipStyle}"
                                       Click="CinemaModeToggle_Click"
                                       IsChecked="True"
+                                      Background="#2A2A2A"
+                                      Foreground="#B3FFFFFF"
+                                      BorderBrush="#3A3A3A"
+                                      BorderThickness="1"
+                                      Padding="10,6"
                                       Margin="0,0,8,0"
+                                      Cursor="Hand"
                                       ToolTip="Minimal player-only view">
-                            <StackPanel Orientation="Horizontal">
-                                <fa:FontAwesome Icon="Film" Width="11" Height="11" Margin="0,0,6,0"/>
-                                <TextBlock Text="Cinema"/>
-                            </StackPanel>
+                            <ToggleButton.Template>
+                                <ControlTemplate TargetType="ToggleButton">
+                                    <Border x:Name="CinemaBorder"
+                                            Background="{TemplateBinding Background}"
+                                            BorderBrush="{TemplateBinding BorderBrush}"
+                                            BorderThickness="{TemplateBinding BorderThickness}"
+                                            CornerRadius="6"
+                                            Padding="{TemplateBinding Padding}">
+                                        <StackPanel Orientation="Horizontal">
+                                            <fa:FontAwesome Icon="Film"
+                                                            Foreground="{TemplateBinding Foreground}"
+                                                            Width="11"
+                                                            Height="11"
+                                                            Margin="0,0,6,0"/>
+                                            <TextBlock Text="Cinema"
+                                                       Foreground="{TemplateBinding Foreground}"
+                                                       FontSize="12"/>
+                                        </StackPanel>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsChecked" Value="True">
+                                            <Setter TargetName="CinemaBorder" Property="Background" Value="#1A2744"/>
+                                            <Setter TargetName="CinemaBorder" Property="BorderBrush" Value="#3A5A8A"/>
+                                            <Setter Property="Foreground" Value="#8CB4FF"/>
+                                        </Trigger>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="CinemaBorder" Property="Background" Value="#333333"/>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </ToggleButton.Template>
                         </ToggleButton>
-                        <Button Click="RefreshButton_Click"
-                                Style="{StaticResource PlayerPrimaryButtonStyle}"
-                                Padding="14,8">
-                            <StackPanel Orientation="Horizontal">
-                                <fa:FontAwesome Icon="Refresh" Width="11" Height="11" Margin="0,0,6,0"/>
-                                <TextBlock Text="Refresh"/>
-                            </StackPanel>
-                        </Button>
+                        <Button Content="Refresh"
+                                Click="RefreshButton_Click"
+                                Style="{StaticResource ActionButtonStyle}"/>
                     </StackPanel>
                 </Grid>
             </Border>

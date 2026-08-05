@@ -409,6 +409,7 @@
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
                             </Grid.RowDefinitions>
                             
                             <!-- Setting Title -->
@@ -505,7 +506,24 @@
                                               Style="{StaticResource SettingsToggleStyle}"/>
                             </Grid>
 
-                            <TextBlock Grid.Row="5"
+                            <StackPanel Grid.Row="5" Margin="0,0,0,12">
+                                <TextBlock Text="Embed Player Hosts"
+                                           Foreground="White"
+                                           Margin="0,0,0,6"/>
+                                <TextBlock Text="One host per line (e.g. vsembed.ru). Built-in hosts are always included. Paste a full URL and the domain will be used."
+                                           Foreground="{DynamicResource TextMutedBrush}"
+                                           FontSize="11"
+                                           Margin="0,0,0,8"
+                                           TextWrapping="Wrap"/>
+                                <TextBox Text="{Binding PlayerEmbedHosts, UpdateSourceTrigger=PropertyChanged}"
+                                         AcceptsReturn="True"
+                                         TextWrapping="Wrap"
+                                         MinHeight="72"
+                                         VerticalScrollBarVisibility="Auto"
+                                         Style="{StaticResource SettingsInputStyle}"/>
+                            </StackPanel>
+
+                            <TextBlock Grid.Row="6"
                                        Text="In-App Browser watches on TinyZone. Other players open automatically when an m3u8 stream is captured."
                                        Foreground="{DynamicResource TextMutedBrush}"
                                        FontSize="12"

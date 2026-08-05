@@ -34,7 +34,7 @@ public partial class TinyZonePlayerWindow : Window
         Showing
     }
 
-    private const double UrlsPanelWidth = 400;
+    private const double UrlsPanelWidth = 372;
     private readonly string _selectedPlayer;
     private readonly string _movieTitle;
     private readonly string _movieYear;
@@ -74,6 +74,8 @@ public partial class TinyZonePlayerWindow : Window
     private bool _suppressMovieSourceSelection;
     private int _selectedTvServerIndex = 1;
     private bool _suppressTvServerSelection;
+    private bool _tvEmbedServerReady;
+    private bool _tvReapplyServerAfterLoad;
     private MovieLairProbeSession? _probeSession;
     private bool _probeEnabled;
 
@@ -482,7 +484,7 @@ public partial class TinyZonePlayerWindow : Window
         _probeSession?.LogNavigation("tv-starting", e.Uri, true, 0);
 
         if (_tvPhase == TvPlayerPhase.ShowingEmbed &&
-            TvEmbedResolver.IsEmbedPageUrl(e.Uri))
+            (TvEmbedResolver.IsExternalPlayerPageUrl(e.Uri) || TvEmbedResolver.IsMovieLairWatchUrl(e.Uri)))
             return;
 
         HidePlayerSurface();
@@ -501,6 +503,16 @@ public partial class TinyZonePlayerWindow : Window
         {
             if (_tvPhase == TvPlayerPhase.ShowingEmbed)
             {
+                if (_currentTvEpisode != null &&
+                    !TvEmbedResolver.IsMovieLairWatchUrl(PlayerWebView.CoreWebView2.Source))
+                {
+                    LoadingHintText.Text = "Embed unavailable, opening MovieLair player...";
+                    StatusText.Text = "Embed unavailable, opening MovieLair player...";
+                    _tvReapplyServerAfterLoad = true;
+                    PlayerWebView.CoreWebView2.Navigate(_currentTvEpisode.MovieLairUrl);
+                    return;
+                }
+
                 ShowPlayerSurface();
                 StatusText.Text = $"Failed to load player (HTTP {e.HttpStatusCode}).";
             }
@@ -533,6 +545,14 @@ public partial class TinyZonePlayerWindow : Window
             else if (_tvPhase == TvPlayerPhase.ShowingEmbed)
             {
                 ShowPlayerSurface();
+                if (_tvReapplyServerAfterLoad)
+                {
+                    _tvReapplyServerAfterLoad = false;
+                    await WaitForTvServerButtonsAsync(CancellationToken.None);
+                    await PlayerWebView.CoreWebView2.ExecuteScriptAsync(
+                        MovieLairTvServerSelector.BuildSelectServerScript(_selectedTvServerIndex));
+                }
+
                 StatusText.Text = _currentTvEpisode == null
                     ? "Player loaded."
                     : $"Now playing {_currentTvEpisode.DisplayLabel}";
@@ -857,6 +877,14 @@ public partial class TinyZonePlayerWindow : Window
                 return;
 
             _tvPhase = TvPlayerPhase.ShowingEmbed;
+
+            if (TvEmbedResolver.ShouldPlayInlineOnMovieLair(embedUrl))
+            {
+                ShowPlayerSurface();
+                StatusText.Text = $"Now playing {episode.DisplayLabel}";
+                return;
+            }
+
             HidePlayerSurface();
             LoadingHintText.Text = $"Starting {episode.DisplayLabel}...";
             PlayerWebView.CoreWebView2.Navigate(embedUrl);
@@ -880,6 +908,7 @@ public partial class TinyZonePlayerWindow : Window
     private async Task<string> ResolveEmbedUrlAsync(string movieLairUrl, CancellationToken cancellationToken)
     {
         _embedResolveTcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+        _tvEmbedServerReady = false;
 
         using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         timeoutCts.CancelAfter(TimeSpan.FromSeconds(25));
@@ -952,17 +981,21 @@ public partial class TinyZonePlayerWindow : Window
             LoadingHintText.Text = $"Selecting Server {_selectedTvServerIndex}...";
             await PlayerWebView.CoreWebView2.ExecuteScriptAsync(
                 MovieLairTvServerSelector.BuildSelectServerScript(_selectedTvServerIndex));
-            await Task.Delay(400, cancellationToken);
+            _tvEmbedServerReady = true;
 
-            await TryCompleteEmbedResolveFromDomAsync();
-
-            var source = PlayerWebView.CoreWebView2.Source;
-            if (_embedResolveTcs != null &&
-                !_embedResolveTcs.Task.IsCompleted &&
-                TvEmbedResolver.IsEmbedPageUrl(source))
+            for (var attempt = 0; attempt < 15; attempt++)
             {
-                _embedResolveTcs.TrySetResult(NormalizeEmbedUrl(source));
+                cancellationToken.ThrowIfCancellationRequested();
+                await Task.Delay(attempt == 0 ? 500 : 400, cancellationToken);
+                await TryCompleteEmbedResolveFromDomAsync();
+
+                if (_embedResolveTcs == null || _embedResolveTcs.Task.IsCompleted)
+                    return;
             }
+
+            var fallbackUrl = _currentTvEpisode?.MovieLairUrl ?? PlayerWebView.CoreWebView2.Source;
+            if (TvEmbedResolver.IsMovieLairWatchUrl(fallbackUrl))
+                _embedResolveTcs?.TrySetResult(NormalizeEmbedUrl(fallbackUrl));
         }
         catch (OperationCanceledException)
         {
@@ -995,9 +1028,9 @@ public partial class TinyZonePlayerWindow : Window
         if (_embedResolveTcs == null || _embedResolveTcs.Task.IsCompleted)
             return;
 
-        var raw = await PlayerWebView.CoreWebView2.ExecuteScriptAsync(TvEmbedResolver.FindEmbedIframeScript);
+        var raw = await PlayerWebView.CoreWebView2.ExecuteScriptAsync(TvEmbedResolver.BuildFindEmbedIframeScript());
         var iframeUrl = JsonSerializer.Deserialize<string>(raw)?.Trim();
-        if (!string.IsNullOrWhiteSpace(iframeUrl) && TvEmbedResolver.IsEmbedPageUrl(iframeUrl))
+        if (!string.IsNullOrWhiteSpace(iframeUrl) && TvEmbedResolver.IsExternalPlayerPageUrl(iframeUrl))
             _embedResolveTcs.TrySetResult(NormalizeEmbedUrl(iframeUrl));
     }
 
@@ -1036,11 +1069,13 @@ public partial class TinyZonePlayerWindow : Window
             !TvEmbedResolver.IsEmbedPageUrl(url))
             return;
 
-        var isResolving = (_isTvShow && _tvPhase == TvPlayerPhase.ResolvingEpisode) ||
-                          (!_isTvShow &&
-                           _currentMovieSource == MoviePlayerSource.MovieLair &&
-                           _movieLairEmbedPhase == MovieLairEmbedPhase.Resolving);
-        if (!isResolving)
+        var isResolvingMovie = !_isTvShow &&
+                               _currentMovieSource == MoviePlayerSource.MovieLair &&
+                               _movieLairEmbedPhase == MovieLairEmbedPhase.Resolving;
+        var isResolvingTv = _isTvShow &&
+                            _tvPhase == TvPlayerPhase.ResolvingEpisode &&
+                            _tvEmbedServerReady;
+        if (!isResolvingMovie && !isResolvingTv)
             return;
 
         _embedResolveTcs.TrySetResult(NormalizeEmbedUrl(url));
@@ -1542,34 +1577,45 @@ public partial class TinyZonePlayerWindow : Window
 
     private void ResetSidePanelTabStyles()
     {
-        var inactive = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(18, 18, 26));
+        var inactive = Application.Current.TryFindResource("PanelBackgroundBrush") as System.Windows.Media.Brush
+            ?? new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(17, 17, 17));
+        var muted = Application.Current.TryFindResource("TextMutedBrush") as System.Windows.Media.Brush
+            ?? new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(163, 163, 163));
+
         UrlsTabButton.Background = inactive;
         EpisodesTabButton.Background = inactive;
+        UrlsTabIcon.Foreground = muted;
+        EpisodesTabIcon.Foreground = muted;
         UrlsTabButton.ToolTip = "Show URLs panel";
         EpisodesTabButton.ToolTip = "Show Episodes panel";
-        UrlsTabIcon.Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(138, 143, 154));
-        EpisodesTabIcon.Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(138, 143, 154));
         UrlsTabIcon.Icon = FontAwesome.WPF.FontAwesomeIcon.Link;
         EpisodesTabIcon.Icon = FontAwesome.WPF.FontAwesomeIcon.List;
     }
 
     private void UpdateSidePanelTabStyles()
     {
-        var active = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(26, 39, 68));
-        var inactive = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(18, 18, 26));
-        var activeIcon = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(74, 140, 255));
-        var inactiveIcon = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(138, 143, 154));
+        var inactive = Application.Current.TryFindResource("PanelBackgroundBrush") as System.Windows.Media.Brush
+            ?? new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(17, 17, 17));
+        var active = Application.Current.TryFindResource("NavActiveBackgroundBrush") as System.Windows.Media.Brush
+            ?? new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(26, 26, 26));
+        var accent = Application.Current.TryFindResource("AccentBrush") as System.Windows.Media.Brush
+            ?? new System.Windows.Media.SolidColorBrush(System.Windows.Media.Colors.White);
+        var muted = Application.Current.TryFindResource("TextMutedBrush") as System.Windows.Media.Brush
+            ?? new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(163, 163, 163));
 
-        UrlsTabButton.Background = _openSidePanel == SidePanelKind.Urls ? active : inactive;
-        EpisodesTabButton.Background = _openSidePanel == SidePanelKind.Episodes ? active : inactive;
-        UrlsTabIcon.Foreground = _openSidePanel == SidePanelKind.Urls ? activeIcon : inactiveIcon;
-        EpisodesTabIcon.Foreground = _openSidePanel == SidePanelKind.Episodes ? activeIcon : inactiveIcon;
-        UrlsTabButton.ToolTip = _openSidePanel == SidePanelKind.Urls ? "Hide URLs panel" : "Show URLs panel";
-        EpisodesTabButton.ToolTip = _openSidePanel == SidePanelKind.Episodes ? "Hide Episodes panel" : "Show Episodes panel";
-        UrlsTabIcon.Icon = _openSidePanel == SidePanelKind.Urls
+        var urlsActive = _openSidePanel == SidePanelKind.Urls;
+        var episodesActive = _openSidePanel == SidePanelKind.Episodes;
+
+        UrlsTabButton.Background = urlsActive ? active : inactive;
+        EpisodesTabButton.Background = episodesActive ? active : inactive;
+        UrlsTabIcon.Foreground = urlsActive ? accent : muted;
+        EpisodesTabIcon.Foreground = episodesActive ? accent : muted;
+        UrlsTabButton.ToolTip = urlsActive ? "Hide URLs panel" : "Show URLs panel";
+        EpisodesTabButton.ToolTip = episodesActive ? "Hide Episodes panel" : "Show Episodes panel";
+        UrlsTabIcon.Icon = urlsActive
             ? FontAwesome.WPF.FontAwesomeIcon.ChevronLeft
             : FontAwesome.WPF.FontAwesomeIcon.Link;
-        EpisodesTabIcon.Icon = _openSidePanel == SidePanelKind.Episodes
+        EpisodesTabIcon.Icon = episodesActive
             ? FontAwesome.WPF.FontAwesomeIcon.ChevronLeft
             : FontAwesome.WPF.FontAwesomeIcon.List;
     }
