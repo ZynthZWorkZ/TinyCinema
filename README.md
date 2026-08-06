@@ -12,20 +12,25 @@ Desktop app for browsing, organizing, and watching movies and TV shows from your
 - **FFmpeg** — required for downloads
 - Optional external players: **VLC**, **FFPLAY** (FFmpeg), or **TinyPlayer**
 
-## Run
+## Download Latest or Build
+
+**Download** — Get the latest Windows build from the project **Releases** page (when available).
+
+**Build from source** — Clone the repo, install the [Requirements](#requirements), then use one of the options below.
+
+### Run (development)
 
 ```bash
 dotnet run
 ```
 
-## Build
+### Build (release)
 
 ```bash
 dotnet publish -c Release
 ```
 
 Output is a self-contained Windows executable in `bin/Release/net9.0-windows/win-x64/publish/`.
-
 ---
 
 ## Getting Started
