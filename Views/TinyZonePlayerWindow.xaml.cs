@@ -183,6 +183,7 @@ public partial class TinyZonePlayerWindow : Window
             {
                 await core.AddScriptToExecuteOnDocumentCreatedAsync(TinyZonePopupBlocker.BlockPopupsScript);
                 TinyZonePopupBlocker.Attach(core);
+                TinyZoneRequestBlocker.Attach(core);
             }
 
             if (!_isTvShow)
@@ -1808,7 +1809,10 @@ public partial class TinyZonePlayerWindow : Window
             try
             {
                 if (_popupBlockerEnabled)
+                {
                     TinyZonePopupBlocker.Detach(PlayerWebView.CoreWebView2);
+                    TinyZoneRequestBlocker.Detach(PlayerWebView.CoreWebView2);
+                }
 
                 if (_isTvShow)
                 {

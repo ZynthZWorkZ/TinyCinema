@@ -24,6 +24,7 @@ public partial class SettingsPanel : UserControl, INotifyPropertyChanged
     private string _tinyZoneBaseUrl = "https://ww5.tinyzone.org";
     private string _tmdbApiKey = "";
     private string _playerEmbedHosts = "";
+    private string _playerRequestBlocklist = "";
     private string _selectedAppTheme = "Black";
     private AppWindowSize _selectedWindowSize = AppWindowSize.Standard;
     private List<string> _availablePlayers = [];
@@ -220,6 +221,17 @@ public partial class SettingsPanel : UserControl, INotifyPropertyChanged
         {
             _playerEmbedHosts = value;
             OnPropertyChanged(nameof(PlayerEmbedHosts));
+            SaveSettings();
+        }
+    }
+
+    public string PlayerRequestBlocklist
+    {
+        get => _playerRequestBlocklist;
+        set
+        {
+            _playerRequestBlocklist = value;
+            OnPropertyChanged(nameof(PlayerRequestBlocklist));
             SaveSettings();
         }
     }
@@ -430,6 +442,9 @@ public partial class SettingsPanel : UserControl, INotifyPropertyChanged
                     else if (line.StartsWith(PlayerEmbedHostSettings.SettingPrefix))
                         _playerEmbedHosts = PlayerEmbedHostSettings.FormatForDisplay(
                             line.Substring(PlayerEmbedHostSettings.SettingPrefix.Length).Trim());
+                    else if (line.StartsWith(PlayerRequestBlocklistSettings.SettingPrefix))
+                        _playerRequestBlocklist = PlayerRequestBlocklistSettings.FormatForDisplay(
+                            line.Substring(PlayerRequestBlocklistSettings.SettingPrefix.Length).Trim());
                     else if (line.StartsWith("AppTheme="))
                         _selectedAppTheme = NormalizeThemeDisplayName(line.Substring("AppTheme=".Length).Trim());
                     else if (line.StartsWith("WindowSize="))
@@ -444,6 +459,7 @@ public partial class SettingsPanel : UserControl, INotifyPropertyChanged
                 OnPropertyChanged(nameof(WindowSizeDescription));
                 OnPropertyChanged(nameof(IsStartCentered));
                 OnPropertyChanged(nameof(PlayerEmbedHosts));
+                OnPropertyChanged(nameof(PlayerRequestBlocklist));
                 AppLayoutManager.LoadFromSettings();
             }
         }
@@ -497,6 +513,7 @@ public partial class SettingsPanel : UserControl, INotifyPropertyChanged
                 $"TinyZoneBaseUrl={TinyZoneBaseUrl}",
                 $"TmdbApiKey={TmdbApiKey}",
                 $"{PlayerEmbedHostSettings.SettingPrefix}{PlayerEmbedHostSettings.FormatForStorage(PlayerEmbedHosts)}",
+                $"{PlayerRequestBlocklistSettings.SettingPrefix}{PlayerRequestBlocklistSettings.FormatForStorage(PlayerRequestBlocklist)}",
                 $"AppTheme={ThemeManager.ToSettingValue(ThemeManager.ParseTheme(SelectedAppTheme))}",
                 $"WindowSize={AppLayoutManager.ToSettingValue(_selectedWindowSize)}",
                 $"StartCentered={IsStartCentered}"

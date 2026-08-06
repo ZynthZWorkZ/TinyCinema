@@ -410,6 +410,7 @@
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
                             </Grid.RowDefinitions>
                             
                             <!-- Setting Title -->
@@ -462,7 +463,24 @@
                                              Style="{StaticResource SettingsToggleStyle}"/>
                             </Grid>
 
-                            <Grid Grid.Row="3" Margin="0,0,0,12">
+                            <StackPanel Grid.Row="3" Margin="0,0,0,12">
+                                <TextBlock Text="Blocked Ad / Tracker Hosts"
+                                           Foreground="White"
+                                           Margin="0,0,0,6"/>
+                                <TextBlock Text="Used when Block Popups and Ads is on. One host per line. Built-in blocks include llvpn.com and usrpubtrk.com; common ad script paths are blocked on other sites."
+                                           Foreground="{DynamicResource TextMutedBrush}"
+                                           FontSize="11"
+                                           Margin="0,0,0,8"
+                                           TextWrapping="Wrap"/>
+                                <TextBox Text="{Binding PlayerRequestBlocklist, UpdateSourceTrigger=PropertyChanged}"
+                                         AcceptsReturn="True"
+                                         TextWrapping="Wrap"
+                                         MinHeight="56"
+                                         VerticalScrollBarVisibility="Auto"
+                                         Style="{StaticResource SettingsInputStyle}"/>
+                            </StackPanel>
+
+                            <Grid Grid.Row="4" Margin="0,0,0,12">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="Auto"/>
@@ -484,7 +502,7 @@
                                               Style="{StaticResource SettingsToggleStyle}"/>
                             </Grid>
 
-                            <Grid Grid.Row="4" Margin="0,0,0,12">
+                            <Grid Grid.Row="5" Margin="0,0,0,12">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="Auto"/>
@@ -506,7 +524,7 @@
                                               Style="{StaticResource SettingsToggleStyle}"/>
                             </Grid>
 
-                            <StackPanel Grid.Row="5" Margin="0,0,0,12">
+                            <StackPanel Grid.Row="6" Margin="0,0,0,12">
                                 <TextBlock Text="Embed Player Hosts"
                                            Foreground="White"
                                            Margin="0,0,0,6"/>
@@ -523,7 +541,7 @@
                                          Style="{StaticResource SettingsInputStyle}"/>
                             </StackPanel>
 
-                            <TextBlock Grid.Row="6"
+                            <TextBlock Grid.Row="7"
                                        Text="In-App Browser watches on TinyZone. Other players open automatically when an m3u8 stream is captured."
                                        Foreground="{DynamicResource TextMutedBrush}"
                                        FontSize="12"

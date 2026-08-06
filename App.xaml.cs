@@ -47,6 +47,7 @@ public partial class App : Application
 
         ThemeManager.ApplyTheme(SettingsWindow.GetAppTheme());
         AppLayoutManager.LoadFromSettings();
+
         base.OnStartup(e);
     }
 }
