@@ -2,6 +2,8 @@
 
 Desktop app for browsing, organizing, and watching movies and TV shows from your personal catalog.
 
+![Main UI](Readmeimages/Main%20UI.png)
+
 ## Requirements
 
 - **Windows** (Mac support planned)
@@ -32,6 +34,8 @@ When you first open TinyCinema, movies and TV shows are loaded from `Movies.json
 
 ## Sidebar
 
+![Sidebar](Readmeimages/Sidebar.png)
+
 The left sidebar is how you move around the app. Each tab focuses on a different view of your catalog:
 
 | Tab | What it does |
@@ -46,6 +50,8 @@ The left sidebar is how you move around the app. Each tab focuses on a different
 Select a title in any tab to see details in the hero panel, then play it from there.
 
 ## Player
+
+![Player](Readmeimages/Player.png)
 
 The built-in player opens when you hit **Play** on a title. It uses WebView2 to load streaming sites and can capture HLS (`.m3u8`) stream URLs for external playback or download.
 
@@ -76,6 +82,8 @@ TV playback uses **MovieLair** only.
 - **Episode cache** — Season/episode lists are cached (when enabled in Settings) so repeat visits load faster.
 
 ## Settings
+
+![Settings](Readmeimages/Settings.png)
 
 Open **Settings** from the sidebar to configure the app. Changes save automatically.
 
