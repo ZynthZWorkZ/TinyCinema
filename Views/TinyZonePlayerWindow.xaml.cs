@@ -68,10 +68,13 @@ public partial class TinyZonePlayerWindow : Window
     private readonly int? _resumeSeason;
     private readonly int? _resumeEpisode;
     private MoviePlayerSource _currentMovieSource = MoviePlayerSource.TinyZone;
+    private MoviePlayerSource _currentTvSource = MoviePlayerSource.MovieLair;
     private MovieLairEmbedPhase _movieLairEmbedPhase = MovieLairEmbedPhase.None;
     private string? _resolvedMovieLairUrl;
+    private string? _resolvedVidSrcContentId;
     private CancellationTokenSource? _movieEmbedResolveCts;
     private bool _suppressMovieSourceSelection;
+    private bool _suppressTvSourceSelection;
     private int _selectedTvServerIndex = 1;
     private bool _suppressTvServerSelection;
     private bool _tvEmbedServerReady;
@@ -100,10 +103,14 @@ public partial class TinyZonePlayerWindow : Window
         {
             EpisodesTabButton.Visibility = Visibility.Visible;
             CinemaModeToggle.Visibility = Visibility.Collapsed;
+            TvSourceComboBox.Visibility = Visibility.Visible;
             TvServerComboBox.Visibility = Visibility.Visible;
             EpisodesListBox.ItemsSource = _filteredTvEpisodes;
             LoadingHintText.Text = "Finding episodes...";
             StatusText.Text = "Loading TV show catalog...";
+            _suppressTvSourceSelection = true;
+            TvSourceComboBox.SelectedIndex = 0;
+            _suppressTvSourceSelection = false;
             PopulateDefaultTvServers();
         }
         else
@@ -208,10 +215,12 @@ public partial class TinyZonePlayerWindow : Window
 
             core.NavigationStarting += (_, e) =>
             {
-                if (_currentMovieSource == MoviePlayerSource.MovieLair)
+                if (IsDirectMovieEmbedSource())
                 {
                     if (_movieLairEmbedPhase == MovieLairEmbedPhase.Showing &&
-                        TvEmbedResolver.IsEmbedPageUrl(e.Uri))
+                        (VidSrcEmbedBuilder.IsVidSrcUrl(e.Uri) ||
+                         (_currentMovieSource == MoviePlayerSource.MovieLair &&
+                          TvEmbedResolver.IsEmbedPageUrl(e.Uri))))
                         return;
 
                     HidePlayerSurface();
@@ -246,7 +255,7 @@ public partial class TinyZonePlayerWindow : Window
 
         if (!args.IsSuccess)
         {
-            if (_currentMovieSource == MoviePlayerSource.MovieLair)
+            if (IsDirectMovieEmbedSource())
             {
                 if (_movieLairEmbedPhase == MovieLairEmbedPhase.Showing)
                 {
@@ -256,7 +265,8 @@ public partial class TinyZonePlayerWindow : Window
                 else if (_movieLairEmbedPhase == MovieLairEmbedPhase.Resolving)
                 {
                     _embedResolveTcs?.TrySetException(
-                        new InvalidOperationException($"Failed to load MovieLair page (HTTP {args.HttpStatusCode})."));
+                        new InvalidOperationException(
+                            $"Failed to load {_currentMovieSource.GetDisplayName()} page (HTTP {args.HttpStatusCode})."));
                 }
 
                 return;
@@ -268,6 +278,14 @@ public partial class TinyZonePlayerWindow : Window
         }
 
         _activePageUrl = PlayerWebView.CoreWebView2.Source;
+
+        if (_currentMovieSource == MoviePlayerSource.VidSrc &&
+            _movieLairEmbedPhase == MovieLairEmbedPhase.Showing)
+        {
+            ShowPlayerSurface();
+            StatusText.Text = "Now playing on VidSrc.";
+            return;
+        }
 
         if (_currentMovieSource == MoviePlayerSource.MovieLair)
         {
@@ -357,17 +375,33 @@ public partial class TinyZonePlayerWindow : Window
             var movieLairUrl = await ResolveMovieLairUrlAsync();
             if (string.IsNullOrWhiteSpace(movieLairUrl))
             {
-                ShowPlayerSurface();
-                _suppressMovieSourceSelection = true;
-                MovieSourceComboBox.SelectedIndex = 0;
-                _suppressMovieSourceSelection = false;
-                _currentMovieSource = MoviePlayerSource.TinyZone;
-                UpdateMovieSourceUi();
+                await RevertMovieSourceToTinyZoneAsync();
                 return;
             }
 
             _activePageUrl = movieLairUrl;
             await LoadMovieLairEmbedAsync(movieLairUrl);
+            return;
+        }
+
+        if (source == MoviePlayerSource.VidSrc)
+        {
+            LoadingHintText.Text = "Resolving VidSrc player from TMDB...";
+            StatusText.Text = "Looking up movie on TMDB...";
+
+            var embedUrl = await ResolveVidSrcMovieEmbedUrlAsync();
+            if (string.IsNullOrWhiteSpace(embedUrl))
+            {
+                await RevertMovieSourceToTinyZoneAsync();
+                return;
+            }
+
+            _movieLairEmbedPhase = MovieLairEmbedPhase.Showing;
+            _activePageUrl = embedUrl;
+            HidePlayerSurface();
+            LoadingHintText.Text = "Starting VidSrc player...";
+            StatusText.Text = "Loading VidSrc player...";
+            PlayerWebView.CoreWebView2.Navigate(embedUrl);
             return;
         }
 
@@ -421,6 +455,101 @@ public partial class TinyZonePlayerWindow : Window
                 MessageBoxImage.Warning);
         }
     }
+
+    private async Task RevertMovieSourceToTinyZoneAsync()
+    {
+        ShowPlayerSurface();
+        _suppressMovieSourceSelection = true;
+        MovieSourceComboBox.SelectedIndex = 0;
+        _suppressMovieSourceSelection = false;
+        _currentMovieSource = MoviePlayerSource.TinyZone;
+        UpdateMovieSourceUi();
+        await Task.CompletedTask;
+    }
+
+    private async Task<string?> ResolveVidSrcMovieEmbedUrlAsync()
+    {
+        var apiKey = SettingsWindow.GetTmdbApiKey();
+        if (string.IsNullOrWhiteSpace(apiKey))
+        {
+            MessageBox.Show(
+                "A TMDB API key is required to watch on VidSrc.\n\nAdd one in Settings → TMDB API Key.",
+                "TMDB API Key Required",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
+            return null;
+        }
+
+        try
+        {
+            if (!string.IsNullOrWhiteSpace(_resolvedVidSrcContentId))
+                return VidSrcEmbedBuilder.BuildMovieEmbedUrl(_resolvedVidSrcContentId);
+
+            var movieId = await TmdbClient.ResolveMovieIdAsync(_movieTitle, _movieYear, apiKey);
+            if (movieId is not > 0)
+            {
+                MessageBox.Show(
+                    $"Could not find \"{_movieTitle}\" on TMDB.\n\nTry another source or verify the title/year in your catalog.",
+                    "Movie Not Found",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+                return null;
+            }
+
+            var imdbId = await TmdbClient.GetMovieImdbIdAsync(movieId.Value, apiKey);
+            var contentId = VidSrcEmbedBuilder.PickContentId(movieId, imdbId);
+            if (string.IsNullOrWhiteSpace(contentId))
+                return null;
+
+            _resolvedVidSrcContentId = contentId;
+            return VidSrcEmbedBuilder.BuildMovieEmbedUrl(contentId);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(
+                $"Failed to resolve the VidSrc player URL.\n\n{ex.Message}",
+                "TMDB Lookup Failed",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+            return null;
+        }
+    }
+
+    private async Task<string?> ResolveVidSrcTvEmbedUrlAsync(TvEpisodeEntry episode)
+    {
+        var showId = MovieLairTvDetailsParser.ExtractShowId(_pageUrl);
+        if (showId is not > 0)
+        {
+            MessageBox.Show(
+                "Could not read the TMDB show ID from this TV show URL.\n\nVidSrc requires a MovieLair-style catalog URL with /watch-tv/{id}.",
+                "Show ID Missing",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+            return null;
+        }
+
+        var contentId = _resolvedVidSrcContentId;
+        if (string.IsNullOrWhiteSpace(contentId))
+        {
+            var apiKey = SettingsWindow.GetTmdbApiKey();
+            if (!string.IsNullOrWhiteSpace(apiKey))
+            {
+                var imdbId = await TmdbClient.GetTvImdbIdAsync(showId.Value, apiKey);
+                contentId = VidSrcEmbedBuilder.PickContentId(showId, imdbId);
+            }
+            else
+            {
+                contentId = showId.Value.ToString();
+            }
+
+            _resolvedVidSrcContentId = contentId;
+        }
+
+        return VidSrcEmbedBuilder.BuildTvEmbedUrl(contentId, episode.Season, episode.Episode);
+    }
+
+    private bool IsDirectMovieEmbedSource() =>
+        _currentMovieSource is MoviePlayerSource.MovieLair or MoviePlayerSource.VidSrc;
 
     private async Task<string?> ResolveMovieLairUrlAsync()
     {
@@ -480,12 +609,46 @@ public partial class TinyZonePlayerWindow : Window
             _cinemaModeEnabled = false;
     }
 
+    private void UpdateTvSourceUi()
+    {
+        if (!_isTvShow)
+            return;
+
+        var isMovieLair = _currentTvSource == MoviePlayerSource.MovieLair;
+        TvServerComboBox.Visibility = isMovieLair ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private async void TvSourceComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_suppressTvSourceSelection || !_isInitialized || !_isTvShow)
+            return;
+
+        if (TvSourceComboBox.SelectedItem is not ComboBoxItem item ||
+            item.Content is not string displayName)
+            return;
+
+        var requestedSource = MoviePlayerSourceExtensions.ParseDisplayName(displayName);
+        if (requestedSource == MoviePlayerSource.TinyZone)
+            requestedSource = MoviePlayerSource.MovieLair;
+
+        if (requestedSource == _currentTvSource)
+            return;
+
+        _currentTvSource = requestedSource;
+        UpdateTvSourceUi();
+
+        if (_currentTvEpisode != null)
+            await PlayTvEpisodeAsync(_currentTvEpisode);
+    }
+
     private void OnTvNavigationStarting(object? sender, CoreWebView2NavigationStartingEventArgs e)
     {
         _probeSession?.LogNavigation("tv-starting", e.Uri, true, 0);
 
         if (_tvPhase == TvPlayerPhase.ShowingEmbed &&
-            (TvEmbedResolver.IsExternalPlayerPageUrl(e.Uri) || TvEmbedResolver.IsMovieLairWatchUrl(e.Uri)))
+            (VidSrcEmbedBuilder.IsVidSrcUrl(e.Uri) ||
+             TvEmbedResolver.IsExternalPlayerPageUrl(e.Uri) ||
+             TvEmbedResolver.IsMovieLairWatchUrl(e.Uri)))
             return;
 
         HidePlayerSurface();
@@ -873,13 +1036,34 @@ public partial class TinyZonePlayerWindow : Window
 
         try
         {
-            var embedUrl = await ResolveEmbedUrlAsync(episode.MovieLairUrl, _episodeResolveCts.Token);
+            if (_currentTvSource == MoviePlayerSource.VidSrc)
+            {
+                var embedUrl = await ResolveVidSrcTvEmbedUrlAsync(episode);
+                if (generation != _episodeResolveGeneration || _episodeResolveCts.Token.IsCancellationRequested)
+                    return;
+
+                if (string.IsNullOrWhiteSpace(embedUrl))
+                {
+                    ShowPlayerSurface();
+                    StatusText.Text = $"Could not load {episode.DisplayLabel} on VidSrc.";
+                    return;
+                }
+
+                _tvPhase = TvPlayerPhase.ShowingEmbed;
+                HidePlayerSurface();
+                LoadingHintText.Text = $"Starting {episode.DisplayLabel} on VidSrc...";
+                StatusText.Text = $"Loading {episode.DisplayLabel} on VidSrc...";
+                PlayerWebView.CoreWebView2.Navigate(embedUrl);
+                return;
+            }
+
+            var embedUrlMovieLair = await ResolveEmbedUrlAsync(episode.MovieLairUrl, _episodeResolveCts.Token);
             if (generation != _episodeResolveGeneration || _episodeResolveCts.Token.IsCancellationRequested)
                 return;
 
             _tvPhase = TvPlayerPhase.ShowingEmbed;
 
-            if (TvEmbedResolver.ShouldPlayInlineOnMovieLair(embedUrl))
+            if (TvEmbedResolver.ShouldPlayInlineOnMovieLair(embedUrlMovieLair))
             {
                 ShowPlayerSurface();
                 StatusText.Text = $"Now playing {episode.DisplayLabel}";
@@ -888,7 +1072,7 @@ public partial class TinyZonePlayerWindow : Window
 
             HidePlayerSurface();
             LoadingHintText.Text = $"Starting {episode.DisplayLabel}...";
-            PlayerWebView.CoreWebView2.Navigate(embedUrl);
+            PlayerWebView.CoreWebView2.Navigate(embedUrlMovieLair);
         }
         catch (OperationCanceledException)
         {
@@ -1006,7 +1190,8 @@ public partial class TinyZonePlayerWindow : Window
 
     private async void TvServerComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        if (_suppressTvServerSelection || !_isInitialized || !_isTvShow)
+        if (_suppressTvServerSelection || !_isInitialized || !_isTvShow ||
+            _currentTvSource != MoviePlayerSource.MovieLair)
             return;
 
         var serverIndex = TvServerComboBox.SelectedIndex + 1;
@@ -1074,6 +1259,7 @@ public partial class TinyZonePlayerWindow : Window
                                _currentMovieSource == MoviePlayerSource.MovieLair &&
                                _movieLairEmbedPhase == MovieLairEmbedPhase.Resolving;
         var isResolvingTv = _isTvShow &&
+                            _currentTvSource == MoviePlayerSource.MovieLair &&
                             _tvPhase == TvPlayerPhase.ResolvingEpisode &&
                             _tvEmbedServerReady;
         if (!isResolvingMovie && !isResolvingTv)
@@ -1732,6 +1918,18 @@ public partial class TinyZonePlayerWindow : Window
             LoadingHintText.Text = $"Reloading {_currentTvEpisode.DisplayLabel}...";
             StatusText.Text = $"Reloading {_currentTvEpisode.DisplayLabel}...";
             await PlayTvEpisodeAsync(_currentTvEpisode);
+            return;
+        }
+
+        if (!_isTvShow && _currentMovieSource == MoviePlayerSource.VidSrc &&
+            !string.IsNullOrWhiteSpace(_resolvedVidSrcContentId))
+        {
+            var embedUrl = VidSrcEmbedBuilder.BuildMovieEmbedUrl(_resolvedVidSrcContentId);
+            LoadingHintText.Text = "Reloading VidSrc...";
+            StatusText.Text = "Reloading VidSrc...";
+            _movieLairEmbedPhase = MovieLairEmbedPhase.Showing;
+            HidePlayerSurface();
+            PlayerWebView.CoreWebView2.Navigate(embedUrl);
             return;
         }
 

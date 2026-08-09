@@ -271,6 +271,49 @@ public static class TmdbClient
         CancellationToken cancellationToken = default) =>
         SearchMovieIdAsync(title, year, apiKey, cancellationToken);
 
+    public static async Task<string?> GetMovieImdbIdAsync(
+        int movieId,
+        string apiKey,
+        CancellationToken cancellationToken = default)
+    {
+        if (movieId <= 0 || string.IsNullOrWhiteSpace(apiKey))
+            return null;
+
+        var url = $"movie/{movieId}/external_ids?api_key={Uri.EscapeDataString(apiKey)}";
+        using var response = await Http.GetAsync(url, cancellationToken);
+        response.EnsureSuccessStatusCode();
+
+        await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
+        var payload = await JsonSerializer.DeserializeAsync<TmdbExternalIdsResponse>(stream, JsonOptions, cancellationToken);
+        return NormalizeImdbId(payload?.ImdbId);
+    }
+
+    public static async Task<string?> GetTvImdbIdAsync(
+        int tvId,
+        string apiKey,
+        CancellationToken cancellationToken = default)
+    {
+        if (tvId <= 0 || string.IsNullOrWhiteSpace(apiKey))
+            return null;
+
+        var url = $"tv/{tvId}/external_ids?api_key={Uri.EscapeDataString(apiKey)}";
+        using var response = await Http.GetAsync(url, cancellationToken);
+        response.EnsureSuccessStatusCode();
+
+        await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
+        var payload = await JsonSerializer.DeserializeAsync<TmdbExternalIdsResponse>(stream, JsonOptions, cancellationToken);
+        return NormalizeImdbId(payload?.ImdbId);
+    }
+
+    private static string? NormalizeImdbId(string? imdbId)
+    {
+        if (string.IsNullOrWhiteSpace(imdbId))
+            return null;
+
+        var trimmed = imdbId.Trim();
+        return trimmed.StartsWith("tt", StringComparison.OrdinalIgnoreCase) ? trimmed : null;
+    }
+
     private static async Task<int?> SearchMovieIdAsync(
         string title,
         string year,
@@ -455,5 +498,11 @@ public static class TmdbClient
 
         [JsonPropertyName("published_at")]
         public DateTime? PublishedAt { get; set; }
+    }
+
+    private sealed class TmdbExternalIdsResponse
+    {
+        [JsonPropertyName("imdb_id")]
+        public string? ImdbId { get; set; }
     }
 }

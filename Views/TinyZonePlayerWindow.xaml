@@ -952,6 +952,16 @@
                     </StackPanel>
 
                     <StackPanel Grid.Column="1" Orientation="Horizontal">
+                        <ComboBox x:Name="TvSourceComboBox"
+                                  Style="{StaticResource PlayerSeasonComboBoxStyle}"
+                                  Width="132"
+                                  Margin="0,0,8,0"
+                                  Visibility="Collapsed"
+                                  ToolTip="TV playback provider"
+                                  SelectionChanged="TvSourceComboBox_SelectionChanged">
+                            <ComboBoxItem Content="MovieLair"/>
+                            <ComboBoxItem Content="VidSrc"/>
+                        </ComboBox>
                         <ComboBox x:Name="TvServerComboBox"
                                   Style="{StaticResource PlayerSeasonComboBoxStyle}"
                                   Width="120"
@@ -967,6 +977,7 @@
                                   SelectionChanged="MovieSourceComboBox_SelectionChanged">
                             <ComboBoxItem Content="TinyZone"/>
                             <ComboBoxItem Content="MovieLair"/>
+                            <ComboBoxItem Content="VidSrc"/>
                         </ComboBox>
                         <ToggleButton x:Name="CinemaModeToggle"
                                       Click="CinemaModeToggle_Click"
