@@ -2,14 +2,17 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:fa="http://schemas.fontawesome.io/icons/"
-        Title="Build Smart Search Index" Height="620" Width="720"
+        Title="Build Smart Search Index" Height="760" Width="800"
         WindowStartupLocation="CenterOwner"
         Background="Transparent"
         ResizeMode="CanResizeWithGrip"
-        MinHeight="480"
-        MinWidth="560"
+        MinHeight="520"
+        MinWidth="600"
         WindowStyle="None"
-        AllowsTransparency="True">
+        AllowsTransparency="True"
+        ShowInTaskbar="True"
+        Closing="Window_Closing"
+        StateChanged="Window_StateChanged">
     <Window.Resources>
         <Style x:Key="ModernButtonStyle" TargetType="Button">
             <Setter Property="Background" Value="#2A2A2A"/>
@@ -43,7 +46,24 @@
             <Setter Property="Background" Value="#007ACC"/>
         </Style>
 
-        <Style x:Key="CloseButtonStyle" TargetType="Button">
+        <Style x:Key="AccentButtonStyle" TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
+            <Setter Property="Background" Value="#1E4D2B"/>
+            <Setter Property="BorderBrush" Value="#2E7D46"/>
+        </Style>
+
+        <Style x:Key="CancelBuildButtonStyle" TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
+            <Setter Property="Background" Value="#5C1A1A"/>
+            <Setter Property="BorderBrush" Value="#A03030"/>
+            <Setter Property="Foreground" Value="#FFE0E0"/>
+        </Style>
+
+        <Style x:Key="StopSaveButtonStyle" TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
+            <Setter Property="Background" Value="#4A3A12"/>
+            <Setter Property="BorderBrush" Value="#8A6A1A"/>
+            <Setter Property="Foreground" Value="#FFE8B0"/>
+        </Style>
+
+        <Style x:Key="DialogCloseButtonStyle" TargetType="Button">
             <Setter Property="Width" Value="46"/>
             <Setter Property="Height" Value="32"/>
             <Setter Property="Background" Value="Transparent"/>
@@ -84,13 +104,23 @@
                 </Grid.ColumnDefinitions>
                 <StackPanel Orientation="Horizontal" Margin="12,0,0,0" VerticalAlignment="Center">
                     <fa:FontAwesome Icon="Search" Foreground="White" Width="14" Height="14" Margin="0,0,8,0"/>
-                    <TextBlock Text="Build Smart Search Index" Foreground="White" FontSize="14"/>
+                    <TextBlock x:Name="TitleBarText"
+                               Text="Build Smart Search Index"
+                               Foreground="White"
+                               FontSize="14"/>
                 </StackPanel>
-                <Button Grid.Column="1"
-                        Style="{StaticResource CloseButtonStyle}"
-                        Click="CloseButton_Click">
-                    <fa:FontAwesome Icon="Close" Foreground="White" Width="12" Height="12"/>
-                </Button>
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <Button Style="{StaticResource WindowButtonStyle}"
+                            Click="MinimizeButton_Click"
+                            ToolTip="Minimize">
+                        <fa:FontAwesome Icon="WindowMinimize" Foreground="White" Width="12" Height="12"/>
+                    </Button>
+                    <Button Style="{StaticResource DialogCloseButtonStyle}"
+                            Click="CloseButton_Click"
+                            ToolTip="Minimize to background while building">
+                        <fa:FontAwesome Icon="Close" Foreground="White" Width="12" Height="12"/>
+                    </Button>
+                </StackPanel>
             </Grid>
 
             <Grid Grid.Row="1" Margin="24">
@@ -100,23 +130,73 @@
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
                     <RowDefinition Height="*"/>
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
-                <TextBlock Grid.Row="0"
+                <StackPanel Grid.Row="0" Margin="0,0,0,12">
+                    <Border x:Name="PauseBanner"
+                            Background="#3A2E14"
+                            BorderBrush="#8A6A1A"
+                            BorderThickness="1"
+                            CornerRadius="8"
+                            Padding="12,10"
+                            Margin="0,0,0,0"
+                            Visibility="Collapsed">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Orientation="Horizontal">
+                                <fa:FontAwesome Icon="PauseCircle" Foreground="#FFD58A" Width="18" Height="18" Margin="0,0,10,0"/>
+                                <TextBlock x:Name="PauseBannerText"
+                                           Text=""
+                                           Foreground="#FFE8C8"
+                                           TextWrapping="Wrap"/>
+                            </StackPanel>
+                            <Button Grid.Column="1"
+                                    x:Name="StartFreshButton"
+                                    Content="Start Fresh"
+                                    Style="{StaticResource ModernButtonStyle}"
+                                    Margin="12,0,0,0"
+                                    Padding="12,6"
+                                    Click="StartFreshButton_Click"/>
+                        </Grid>
+                    </Border>
+
+                    <Border x:Name="SuccessBanner"
+                            Background="#1A3D24"
+                            BorderBrush="#2E7D46"
+                            BorderThickness="1"
+                            CornerRadius="8"
+                            Padding="12,10"
+                            Margin="0,0,0,0"
+                            Visibility="Collapsed">
+                        <StackPanel Orientation="Horizontal">
+                            <fa:FontAwesome Icon="CheckCircle" Foreground="#6EE7A0" Width="18" Height="18" Margin="0,0,10,0"/>
+                            <TextBlock Text="Smart search index is ready. You can search by plot, vibe, cast, and director."
+                                       Foreground="#D4F5E0"
+                                       TextWrapping="Wrap"/>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+
+                <TextBlock Grid.Row="1"
                            Text="Semantic search index"
                            Foreground="White"
                            FontSize="18"
                            FontWeight="SemiBold"
-                           Margin="0,0,0,8"/>
-                <TextBlock Grid.Row="1"
-                           Text="Build runs on a background thread. The log below shows every step — model load, JSON read, each movie embedded, and save progress."
+                           Margin="0,0,0,6"/>
+                <TextBlock Grid.Row="2"
+                           Text="Minimize this window anytime — TinyCinema keeps running and you can watch movies while the index builds in the background."
                            Foreground="#B3FFFFFF"
                            TextWrapping="Wrap"
                            Margin="0,0,0,12"/>
 
-                <StackPanel Grid.Row="2" Margin="0,0,0,12">
+                <StackPanel Grid.Row="3" Margin="0,0,0,14">
                     <TextBlock Text="Catalog file"
                                Foreground="#99FFFFFF"
                                Margin="0,0,0,4"/>
@@ -125,61 +205,215 @@
                                TextWrapping="Wrap"/>
                 </StackPanel>
 
-                <TextBlock Grid.Row="3"
-                           x:Name="PhaseText"
-                           Text=""
-                           Foreground="#7EC8FF"
-                           FontWeight="SemiBold"
-                           Margin="0,0,0,6"/>
-
-                <StackPanel Grid.Row="4" Margin="0,0,0,10">
-                    <ProgressBar x:Name="BuildProgressBar"
-                                 Height="8"
-                                 Minimum="0"
-                                 Maximum="100"
-                                 Value="0"
-                                 Margin="0,0,0,6"/>
-                    <TextBlock x:Name="StatusText"
-                               Text="Ready to build."
-                               Foreground="#B3FFFFFF"
-                               TextWrapping="Wrap"/>
-                    <TextBlock x:Name="StatsText"
-                               Text=""
-                               Foreground="#88FFFFFF"
-                               FontSize="12"
-                               Margin="0,4,0,0"/>
-                </StackPanel>
+                <UniformGrid Grid.Row="4" Columns="4" Margin="0,0,0,14">
+                    <Border x:Name="Step1Border" Background="#1A1A1A" BorderBrush="#333" BorderThickness="1" CornerRadius="8" Margin="0,0,6,0" Padding="8,10">
+                        <StackPanel HorizontalAlignment="Center">
+                            <TextBlock Text="1" Foreground="#888" FontWeight="Bold" FontSize="16" HorizontalAlignment="Center"/>
+                            <TextBlock Text="Load model" Foreground="#AAA" FontSize="11" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                        </StackPanel>
+                    </Border>
+                    <Border x:Name="Step2Border" Background="#1A1A1A" BorderBrush="#333" BorderThickness="1" CornerRadius="8" Margin="3,0" Padding="8,10">
+                        <StackPanel HorizontalAlignment="Center">
+                            <TextBlock Text="2" Foreground="#888" FontWeight="Bold" FontSize="16" HorizontalAlignment="Center"/>
+                            <TextBlock Text="Read catalog" Foreground="#AAA" FontSize="11" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                        </StackPanel>
+                    </Border>
+                    <Border x:Name="Step3Border" Background="#1A1A1A" BorderBrush="#333" BorderThickness="1" CornerRadius="8" Margin="3,0" Padding="8,10">
+                        <StackPanel HorizontalAlignment="Center">
+                            <TextBlock Text="3" Foreground="#888" FontWeight="Bold" FontSize="16" HorizontalAlignment="Center"/>
+                            <TextBlock Text="Embed movies" Foreground="#AAA" FontSize="11" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                        </StackPanel>
+                    </Border>
+                    <Border x:Name="Step4Border" Background="#1A1A1A" BorderBrush="#333" BorderThickness="1" CornerRadius="8" Margin="6,0,0,0" Padding="8,10">
+                        <StackPanel HorizontalAlignment="Center">
+                            <TextBlock Text="4" Foreground="#888" FontWeight="Bold" FontSize="16" HorizontalAlignment="Center"/>
+                            <TextBlock Text="Save index" Foreground="#AAA" FontSize="11" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                        </StackPanel>
+                    </Border>
+                </UniformGrid>
 
                 <Border Grid.Row="5"
                         Background="#141414"
                         BorderBrush="#2A2A2A"
                         BorderThickness="1"
-                        CornerRadius="6"
-                        Margin="0,0,0,12">
-                    <Grid>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="*"/>
-                        </Grid.RowDefinitions>
-                        <TextBlock Grid.Row="0"
-                                   Text="Build log"
-                                   Foreground="#99FFFFFF"
-                                   Margin="10,8,10,4"/>
-                        <ScrollViewer Grid.Row="1"
-                                      x:Name="LogScrollViewer"
-                                      VerticalScrollBarVisibility="Auto"
-                                      HorizontalScrollBarVisibility="Auto"
-                                      Margin="4,0,4,4">
-                            <TextBlock x:Name="LogTextBlock"
-                                       TextWrapping="Wrap"
-                                       Foreground="#DDDDDD"
-                                       FontFamily="Consolas"
-                                       FontSize="11"/>
-                        </ScrollViewer>
-                    </Grid>
+                        CornerRadius="8"
+                        Padding="14,12"
+                        Margin="0,0,0,10">
+                    <StackPanel>
+                        <Grid Margin="0,0,0,6">
+                            <TextBlock x:Name="PhaseText"
+                                       Text=""
+                                       Foreground="#7EC8FF"
+                                       FontWeight="SemiBold"
+                                       VerticalAlignment="Center"/>
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                <Button x:Name="StopAndSaveButton"
+                                        Content="Stop &amp; Save"
+                                        Style="{StaticResource StopSaveButtonStyle}"
+                                        Padding="14,6"
+                                        Margin="0,0,8,0"
+                                        Visibility="Collapsed"
+                                        Click="StopAndSaveButton_Click"/>
+                                <Button x:Name="CancelBuildButton"
+                                        Content="Cancel Build"
+                                        Style="{StaticResource CancelBuildButtonStyle}"
+                                        Padding="14,6"
+                                        Visibility="Collapsed"
+                                        Click="CancelBuildButton_Click"/>
+                            </StackPanel>
+                        </Grid>
+                        <TextBlock x:Name="CurrentItemText"
+                                   Text="Waiting to start..."
+                                   Foreground="White"
+                                   FontSize="15"
+                                   FontWeight="SemiBold"
+                                   TextWrapping="Wrap"
+                                   Margin="0,0,0,8"/>
+                        <ProgressBar x:Name="BuildProgressBar"
+                                     Height="10"
+                                     Minimum="0"
+                                     Maximum="100"
+                                     Value="0"
+                                     Margin="0,0,0,6"/>
+                        <TextBlock x:Name="StatsText"
+                                   Text=""
+                                   Foreground="#88FFFFFF"
+                                   FontSize="12"
+                                   Margin="0,0,0,10"/>
+
+                        <Border x:Name="PassageDetailsPanel"
+                                Background="#0F0F0F"
+                                BorderBrush="#333"
+                                BorderThickness="1"
+                                CornerRadius="6"
+                                Padding="10,8"
+                                Visibility="Collapsed">
+                            <StackPanel>
+                                <TextBlock Text="Fields sent to the embedding model"
+                                           Foreground="#99FFFFFF"
+                                           FontSize="11"
+                                           Margin="0,0,0,6"/>
+                                <ItemsControl x:Name="PassageFieldsList">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock TextWrapping="Wrap" Margin="0,0,0,4">
+                                                <Run Text="{Binding Key}" Foreground="#7EC8FF" FontWeight="SemiBold"/>
+                                                <Run Text=": " Foreground="#666"/>
+                                                <Run Text="{Binding Value}" Foreground="#EEEEEE"/>
+                                            </TextBlock>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                <TextBlock Text="Search keywords (text matching)"
+                                           Foreground="#99FFFFFF"
+                                           FontSize="11"
+                                           Margin="0,8,0,4"/>
+                                <TextBlock x:Name="SearchKeywordsText"
+                                           Text=""
+                                           Foreground="#C8E6C9"
+                                           FontSize="11"
+                                           TextWrapping="Wrap"/>
+
+                                <TextBlock Text="AI model tokens (e5-small-v2 tokenizer)"
+                                           Foreground="#99FFFFFF"
+                                           FontSize="11"
+                                           Margin="0,8,0,4"/>
+                                <TextBlock x:Name="ModelTokensText"
+                                           Text=""
+                                           Foreground="#FFD8A8"
+                                           FontFamily="Consolas"
+                                           FontSize="10"
+                                           TextWrapping="Wrap"/>
+
+                                <TextBlock Text="Semantic vector"
+                                           Foreground="#99FFFFFF"
+                                           FontSize="11"
+                                           Margin="0,8,0,4"/>
+                                <TextBlock Text="Also saved: 384-dimension meaning vector (not human-readable)."
+                                           Foreground="#777777"
+                                           FontSize="10"
+                                           TextWrapping="Wrap"
+                                           Margin="0,0,0,4"/>
+
+                                <TextBlock Text="Full passage preview"
+                                           Foreground="#99FFFFFF"
+                                           FontSize="11"
+                                           Margin="0,8,0,4"/>
+                                <TextBlock x:Name="PassagePreviewText"
+                                           Text=""
+                                           Foreground="#BBBBBB"
+                                           FontFamily="Consolas"
+                                           FontSize="10"
+                                           TextWrapping="Wrap"/>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
                 </Border>
 
-                <Grid Grid.Row="6">
+                <Grid Grid.Row="6" Margin="0,0,0,10">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <Border Background="#141414"
+                            BorderBrush="#2A2A2A"
+                            BorderThickness="1"
+                            CornerRadius="6"
+                            Margin="0,0,6,0"
+                            MinHeight="120">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                            <TextBlock Grid.Row="0"
+                                       Text="Recent activity"
+                                       Foreground="#99FFFFFF"
+                                       Margin="10,8,10,4"/>
+                            <ListBox Grid.Row="1"
+                                     x:Name="RecentActivityList"
+                                     Background="Transparent"
+                                     BorderThickness="0"
+                                     Foreground="#DDDDDD"
+                                     FontSize="11"
+                                     Margin="4,0,4,4"
+                                     ScrollViewer.HorizontalScrollBarVisibility="Disabled"/>
+                        </Grid>
+                    </Border>
+
+                    <Border Grid.Column="1"
+                            Background="#141414"
+                            BorderBrush="#2A2A2A"
+                            BorderThickness="1"
+                            CornerRadius="6"
+                            Margin="6,0,0,0"
+                            MinHeight="120">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                            <TextBlock Grid.Row="0"
+                                       Text="Full log"
+                                       Foreground="#99FFFFFF"
+                                       Margin="10,8,10,4"/>
+                            <ScrollViewer Grid.Row="1"
+                                          x:Name="LogScrollViewer"
+                                          VerticalScrollBarVisibility="Auto"
+                                          HorizontalScrollBarVisibility="Auto"
+                                          Margin="4,0,4,4">
+                                <TextBlock x:Name="LogTextBlock"
+                                           TextWrapping="Wrap"
+                                           Foreground="#BBBBBB"
+                                           FontFamily="Consolas"
+                                           FontSize="10"/>
+                            </ScrollViewer>
+                        </Grid>
+                    </Border>
+                </Grid>
+
+                <Grid Grid.Row="8">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
@@ -192,6 +426,12 @@
                                VerticalAlignment="Center"
                                Margin="0,0,12,0"/>
                     <StackPanel Grid.Column="1" Orientation="Horizontal">
+                        <Button x:Name="MinimizeBackgroundButton"
+                                Content="Minimize &amp; Keep Watching"
+                                Style="{StaticResource AccentButtonStyle}"
+                                Margin="0,0,8,0"
+                                Visibility="Collapsed"
+                                Click="MinimizeBackgroundButton_Click"/>
                         <Button x:Name="OpenLogButton"
                                 Content="Open Log File"
                                 Style="{StaticResource ModernButtonStyle}"

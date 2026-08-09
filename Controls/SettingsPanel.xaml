@@ -347,7 +347,7 @@
                                                Width="16"
                                                Height="16"
                                                Margin="0,0,8,0"/>
-                                <TextBlock Text="TV Show Links File Settings"
+                                <TextBlock Text="TV Show Catalog Settings"
                                          Foreground="White"
                                          FontSize="16"
                                          FontWeight="SemiBold"/>

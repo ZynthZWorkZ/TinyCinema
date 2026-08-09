@@ -82,7 +82,7 @@ public static class ManualCatalogAdder
         if (showId is not > 0)
             throw new ArgumentException("Enter a valid MovieLair TV show URL (must contain /watch-tv/{id}).");
 
-        if (TvShowAlreadyExists(outputPath, showId.Value))
+        if (TvShowCatalogStore.ShowExists(outputPath, showId.Value))
         {
             return new ManualCatalogAddResult
             {
@@ -127,7 +127,15 @@ public static class ManualCatalogAdder
         entry.Url = normalizedUrl;
         entry.TmdbId = showId.Value;
 
-        AppendLine(outputPath, entry.ToFileLine());
+        var added = await TvShowCatalogStore.AddShowAsync(outputPath, entry.ToRecord(), cancellationToken);
+        if (!added)
+        {
+            return new ManualCatalogAddResult
+            {
+                AlreadyExists = true,
+                OutputPath = outputPath
+            };
+        }
 
         return new ManualCatalogAddResult
         {
@@ -144,41 +152,6 @@ public static class ManualCatalogAdder
             return trimmed;
 
         return absolute.GetLeftPart(UriPartial.Path).TrimEnd('/') + "/";
-    }
-
-    private static bool TvShowAlreadyExists(string outputPath, int showId)
-    {
-        if (!File.Exists(outputPath))
-            return false;
-
-        foreach (var line in File.ReadAllLines(outputPath))
-        {
-            var entry = TvShowCatalogEntry.FromFileLine(line);
-            if (entry == null)
-                continue;
-
-            if (entry.TmdbId == showId)
-                return true;
-
-            if (int.TryParse(entry.ShowId, out var existingId) && existingId == showId)
-                return true;
-        }
-
-        return false;
-    }
-
-    private static void AppendLine(string outputPath, string line)
-    {
-        var directory = Path.GetDirectoryName(outputPath);
-        if (!string.IsNullOrWhiteSpace(directory) && !Directory.Exists(directory))
-            Directory.CreateDirectory(directory);
-
-        var existingLines = File.Exists(outputPath)
-            ? File.ReadAllLines(outputPath).Where(l => !string.IsNullOrWhiteSpace(l)).ToList()
-            : [];
-
-        existingLines.Insert(0, line);
-        File.WriteAllLines(outputPath, existingLines);
     }
 
     private static async Task<string> DownloadStringAsync(string url, CancellationToken cancellationToken)

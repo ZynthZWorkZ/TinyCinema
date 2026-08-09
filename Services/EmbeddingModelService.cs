@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.IO;
+using System.Text;
 using Microsoft.ML.OnnxRuntime;
 using Microsoft.ML.OnnxRuntime.Tensors;
 using Microsoft.ML.Tokenizers;
@@ -15,6 +16,7 @@ public sealed class EmbeddingModelService : IDisposable
 
     private readonly InferenceSession _session;
     private readonly BertTokenizer _tokenizer;
+    private readonly string[] _vocab;
     private readonly string _inputIdsName;
     private readonly string _attentionMaskName;
     private readonly string? _tokenTypeIdsName;
@@ -24,6 +26,7 @@ public sealed class EmbeddingModelService : IDisposable
     private EmbeddingModelService(
         InferenceSession session,
         BertTokenizer tokenizer,
+        string[] vocab,
         string inputIdsName,
         string attentionMaskName,
         string? tokenTypeIdsName,
@@ -31,6 +34,7 @@ public sealed class EmbeddingModelService : IDisposable
     {
         _session = session;
         _tokenizer = tokenizer;
+        _vocab = vocab;
         _inputIdsName = inputIdsName;
         _attentionMaskName = attentionMaskName;
         _tokenTypeIdsName = tokenTypeIdsName;
@@ -82,6 +86,7 @@ public sealed class EmbeddingModelService : IDisposable
 
         reporter?.Log("Loading BERT tokenizer from vocab.txt...");
         var tokenizerStopwatch = Stopwatch.StartNew();
+        var vocabLines = File.ReadAllLines(vocabPath);
         var tokenizer = BertTokenizer.Create(
             vocabPath,
             new BertOptions { LowerCaseBeforeTokenization = true });
@@ -91,6 +96,7 @@ public sealed class EmbeddingModelService : IDisposable
         var service = new EmbeddingModelService(
             session,
             tokenizer,
+            vocabLines,
             inputIdsName,
             attentionMaskName,
             tokenTypeIdsName,
@@ -123,6 +129,56 @@ public sealed class EmbeddingModelService : IDisposable
 
     public float[] EmbedPassage(MovieCatalogRecord record) =>
         EmbedText(SearchPassageBuilder.BuildPassage(record));
+
+    public IReadOnlyList<string> GetModelTokens(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+            return [];
+
+        lock (_inferenceLock)
+        {
+            var ids = _tokenizer.EncodeToIds(text, addSpecialTokens: true, considerPreTokenization: true);
+            var mergedWords = new List<string>();
+            var current = new StringBuilder();
+
+            foreach (var id in ids)
+            {
+                if (id < 0 || id >= _vocab.Length)
+                    continue;
+
+                var piece = _vocab[id];
+                if (IsSpecialToken(piece))
+                    continue;
+
+                if (piece.StartsWith("##", StringComparison.Ordinal))
+                {
+                    current.Append(piece[2..]);
+                    continue;
+                }
+
+                if (current.Length > 0)
+                {
+                    mergedWords.Add(current.ToString());
+                    current.Clear();
+                }
+
+                current.Append(piece);
+            }
+
+            if (current.Length > 0)
+                mergedWords.Add(current.ToString());
+
+            return mergedWords
+                .Select(word => word.Trim().ToLowerInvariant())
+                .Where(word => word.Length > 1 && !IsSpecialToken(word))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .Take(48)
+                .ToList();
+        }
+    }
+
+    private static bool IsSpecialToken(string token) =>
+        token is "[CLS]" or "[SEP]" or "[PAD]" or "<pad>" or "<s>" or "</s>";
 
     private float[] EmbedText(string text)
     {

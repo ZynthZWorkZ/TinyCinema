@@ -88,7 +88,7 @@ public class TvShowCatalogFetcher
         }
 
         var existingIds = saveMode == MovieCatalogSaveMode.MergeWithExisting
-            ? LoadExistingShowIds(outputPath)
+            ? TvShowCatalogStore.LoadExistingTmdbIds(outputPath)
             : new HashSet<int>();
         var showsToFetch = saveMode == MovieCatalogSaveMode.MergeWithExisting
             ? discovered
@@ -143,7 +143,11 @@ public class TvShowCatalogFetcher
                 await Task.Delay(RequestDelayMs, cancellationToken);
         }
 
-        var added = SaveShows(outputPath, showsToWrite, saveMode);
+        var added = await TvShowCatalogStore.MergeShowsAsync(
+            outputPath,
+            showsToWrite.Select(show => show.ToRecord()).ToList(),
+            saveMode,
+            cancellationToken);
         var skipped = discovered.Count - showsToFetch.Count;
 
         return new TvShowCatalogFetchResult
@@ -165,53 +169,5 @@ public class TvShowCatalogFetcher
         show.Country = string.IsNullOrWhiteSpace(show.Country) ? "Unknown" : show.Country;
         show.Duration = string.IsNullOrWhiteSpace(show.Duration) ? "Unknown" : show.Duration;
         show.Year = string.IsNullOrWhiteSpace(show.Year) ? "Unknown" : show.Year;
-    }
-
-    private static HashSet<int> LoadExistingShowIds(string outputPath)
-    {
-        var ids = new HashSet<int>();
-        if (!File.Exists(outputPath))
-            return ids;
-
-        foreach (var line in File.ReadAllLines(outputPath))
-        {
-            var entry = TvShowCatalogEntry.FromFileLine(line);
-            if (entry == null)
-                continue;
-
-            if (entry.TmdbId > 0)
-                ids.Add(entry.TmdbId);
-            else if (int.TryParse(entry.ShowId, out var showId))
-                ids.Add(showId);
-        }
-
-        return ids;
-    }
-
-    private static int SaveShows(string outputPath, IReadOnlyList<TvShowCatalogEntry> shows, MovieCatalogSaveMode saveMode)
-    {
-        if (shows.Count == 0)
-            return 0;
-
-        var directory = Path.GetDirectoryName(outputPath);
-        if (!string.IsNullOrWhiteSpace(directory) && !Directory.Exists(directory))
-            Directory.CreateDirectory(directory);
-
-        var newLines = shows.Select(show => show.ToFileLine()).ToList();
-
-        if (saveMode == MovieCatalogSaveMode.Overwrite || !File.Exists(outputPath))
-        {
-            File.WriteAllLines(outputPath, newLines);
-            return shows.Count;
-        }
-
-        var existingLines = File.ReadAllLines(outputPath)
-            .Where(line => !string.IsNullOrWhiteSpace(line))
-            .ToList();
-
-        var mergedLines = newLines.Concat(existingLines).ToList();
-        File.WriteAllLines(outputPath, mergedLines);
-
-        return shows.Count;
     }
 }

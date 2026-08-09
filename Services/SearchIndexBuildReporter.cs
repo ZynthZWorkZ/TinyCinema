@@ -13,6 +13,7 @@ public sealed class SearchIndexBuildReporter
     private int _total;
     private string _phase = string.Empty;
     private string _status = string.Empty;
+    private int _stepIndex;
     private DateTime _lastRateSampleUtc = DateTime.UtcNow;
     private int _lastRateSampleProcessed;
 
@@ -47,6 +48,7 @@ public sealed class SearchIndexBuildReporter
     public void SetPhase(string phase)
     {
         _phase = phase;
+        _stepIndex = ParseStepIndex(phase);
         Log(phase, includeInStatus: true);
     }
 
@@ -66,7 +68,7 @@ public sealed class SearchIndexBuildReporter
         Publish(logLine: line);
     }
 
-    public void ReportItemProcessed(int processed, string itemStatus)
+    public void ReportItemProcessed(int processed, string itemStatus, SearchPassageDescription? passage = null)
     {
         _processed = processed;
         _status = itemStatus;
@@ -88,7 +90,13 @@ public sealed class SearchIndexBuildReporter
         WriteToFile(line);
 
         var publishLine = processed <= 5 || processed % 25 == 0 || processed == _total;
-        Publish(logLine: publishLine ? line : string.Empty, itemsPerSecond: rate);
+        Publish(
+            logLine: publishLine ? line : string.Empty,
+            itemsPerSecond: rate,
+            passageFields: passage?.Fields,
+            passagePreview: passage?.Preview,
+            searchKeywords: passage?.SearchKeywords,
+            modelTokens: passage?.ModelTokens);
     }
 
     private void WriteToFile(string line)
@@ -106,7 +114,13 @@ public sealed class SearchIndexBuildReporter
         }
     }
 
-    private void Publish(string? logLine = null, double? itemsPerSecond = null)
+    private void Publish(
+        string? logLine = null,
+        double? itemsPerSecond = null,
+        IReadOnlyList<SearchPassageField>? passageFields = null,
+        string? passagePreview = null,
+        IReadOnlyList<string>? searchKeywords = null,
+        IReadOnlyList<string>? modelTokens = null)
     {
         try
         {
@@ -116,15 +130,36 @@ public sealed class SearchIndexBuildReporter
                 Total = _total,
                 Status = _status,
                 Phase = _phase,
+                StepIndex = _stepIndex,
                 LogLine = logLine ?? string.Empty,
                 LogFilePath = LogFilePath,
                 ElapsedSeconds = _stopwatch.Elapsed.TotalSeconds,
-                ItemsPerSecond = itemsPerSecond
+                ItemsPerSecond = itemsPerSecond,
+                PassageFields = passageFields ?? [],
+                PassagePreview = passagePreview ?? string.Empty,
+                SearchKeywords = searchKeywords ?? [],
+                ModelTokens = modelTokens ?? []
             });
         }
         catch
         {
             // Never crash the build because UI progress reporting failed.
         }
+    }
+
+    private static int ParseStepIndex(string phase)
+    {
+        if (phase.Contains("Step 1", StringComparison.Ordinal))
+            return 1;
+        if (phase.Contains("Step 2", StringComparison.Ordinal))
+            return 2;
+        if (phase.Contains("Step 3", StringComparison.Ordinal))
+            return 3;
+        if (phase.Contains("Step 4", StringComparison.Ordinal) || phase.Contains("Save index", StringComparison.OrdinalIgnoreCase))
+            return 4;
+        if (phase.Contains("Finishing", StringComparison.OrdinalIgnoreCase))
+            return 4;
+
+        return 0;
     }
 }

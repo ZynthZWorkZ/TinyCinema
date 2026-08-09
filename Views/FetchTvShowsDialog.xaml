@@ -100,7 +100,7 @@
             </Grid>
 
             <StackPanel Grid.Row="1" Margin="24">
-                <TextBlock Text="Fetch TV show listings from TMDB and build tv_show_links.txt"
+                <TextBlock Text="Fetch TV show listings from TMDB and update your TvShows.json catalog"
                            Foreground="#B3FFFFFF"
                            Margin="0,0,0,20"/>
 

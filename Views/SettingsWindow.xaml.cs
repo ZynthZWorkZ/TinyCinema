@@ -74,14 +74,16 @@ public static class SettingsWindow
         return NormalizeMovieCatalogLocation(null);
     }
 
-    public static string GetTvShowLinksLocation()
+    public static string GetTvShowCatalogLocation()
     {
-        var location = ReadStringSetting("TvShowLinksLocation=");
-        if (!string.IsNullOrEmpty(location))
-            return location;
+        var location = ReadStringSetting("TvShowCatalogLocation=");
+        if (string.IsNullOrEmpty(location))
+            location = ReadStringSetting("TvShowLinksLocation=");
 
-        return Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "tv_show_links.txt");
+        return NormalizeTvShowCatalogLocation(location);
     }
+
+    public static string GetTvShowLinksLocation() => GetTvShowCatalogLocation();
 
     public static AppWindowSize GetWindowSize() => AppLayoutManager.ReadFromSettings();
 
@@ -173,6 +175,29 @@ public static class SettingsWindow
             var jsonSibling = Path.Combine(
                 Path.GetDirectoryName(configuredPath) ?? AppDomain.CurrentDomain.BaseDirectory,
                 "Movies.json");
+
+            if (File.Exists(jsonSibling))
+                return jsonSibling;
+        }
+
+        return configuredPath;
+    }
+
+    internal static string NormalizeTvShowCatalogLocation(string? configuredPath)
+    {
+        var defaultPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "TvShows.json");
+
+        if (string.IsNullOrWhiteSpace(configuredPath))
+            return defaultPath;
+
+        if (configuredPath.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
+            return configuredPath;
+
+        if (configuredPath.EndsWith(".txt", StringComparison.OrdinalIgnoreCase))
+        {
+            var jsonSibling = Path.Combine(
+                Path.GetDirectoryName(configuredPath) ?? AppDomain.CurrentDomain.BaseDirectory,
+                "TvShows.json");
 
             if (File.Exists(jsonSibling))
                 return jsonSibling;

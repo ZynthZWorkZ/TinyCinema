@@ -12,6 +12,8 @@ public class TvShowCatalogEntry
     public string Genre { get; set; } = string.Empty;
     public string Duration { get; set; } = string.Empty;
     public string Country { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public DateTime? DescriptionFetchedAt { get; set; }
 
     public string ShowId
     {
@@ -55,4 +57,8 @@ public class TvShowCatalogEntry
 
         return entry;
     }
+
+    public TvShowCatalogRecord ToRecord() => TvShowCatalogRecord.FromEntry(this);
+
+    public static TvShowCatalogEntry FromRecord(TvShowCatalogRecord record) => record.ToEntry();
 }

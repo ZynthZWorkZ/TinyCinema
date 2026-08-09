@@ -170,6 +170,12 @@ public static class MovieLairTmdbClient
 
         if (string.IsNullOrWhiteSpace(entry.ImageUrl) && !string.IsNullOrWhiteSpace(details.PosterPath))
             entry.ImageUrl = $"{TmdbImageBaseUrl}{details.PosterPath}";
+
+        if (!string.IsNullOrWhiteSpace(details.Overview))
+        {
+            entry.Description = details.Overview.Trim();
+            entry.DescriptionFetchedAt = DateTime.UtcNow;
+        }
     }
 
     public sealed class TmdbDiscoverTvPage

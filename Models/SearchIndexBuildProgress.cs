@@ -18,5 +18,15 @@ public sealed class SearchIndexBuildProgress
 
     public double? ItemsPerSecond { get; init; }
 
+    public int StepIndex { get; init; }
+
+    public IReadOnlyList<SearchPassageField> PassageFields { get; init; } = [];
+
+    public string PassagePreview { get; init; } = string.Empty;
+
+    public IReadOnlyList<string> SearchKeywords { get; init; } = [];
+
+    public IReadOnlyList<string> ModelTokens { get; init; } = [];
+
     public double Percent => Total <= 0 ? 0 : (double)Processed / Total * 100;
 }

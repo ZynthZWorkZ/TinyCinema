@@ -30,6 +30,7 @@ public partial class SettingsPanel : UserControl, INotifyPropertyChanged
     private List<string> _availablePlayers = [];
     private List<string> _availableThemes = ThemeManager.GetAvailableDisplayNames().ToList();
     private List<string> _availableWindowSizes = AppLayoutManager.AvailableDisplayNames.ToList();
+    private BuildSearchIndexDialog? _activeBuildDialog;
 
     public MainWindow? HostWindow { get; set; }
 
@@ -416,6 +417,8 @@ public partial class SettingsPanel : UserControl, INotifyPropertyChanged
                         MovieCatalogLocation = line.Substring("MovieCatalogLocation=".Length).Trim();
                     else if (line.StartsWith("MovieLinksLocation="))
                         MovieCatalogLocation = line.Substring("MovieLinksLocation=".Length).Trim();
+                    else if (line.StartsWith("TvShowCatalogLocation="))
+                        TvShowLinksLocation = line.Substring("TvShowCatalogLocation=".Length).Trim();
                     else if (line.StartsWith("TvShowLinksLocation="))
                         TvShowLinksLocation = line.Substring("TvShowLinksLocation=".Length).Trim();
                     else if (line.StartsWith("MovieLairShowsUrl="))
@@ -478,11 +481,13 @@ public partial class SettingsPanel : UserControl, INotifyPropertyChanged
 
         MovieCatalogLocation = SettingsWindow.NormalizeMovieCatalogLocation(MovieCatalogLocation);
 
+        TvShowLinksLocation = SettingsWindow.NormalizeTvShowCatalogLocation(TvShowLinksLocation);
+
         if (string.IsNullOrEmpty(TvShowLinksLocation))
         {
             TvShowLinksLocation = Path.Combine(
                 AppDomain.CurrentDomain.BaseDirectory,
-                "tv_show_links.txt");
+                "TvShows.json");
         }
     }
 
@@ -504,6 +509,7 @@ public partial class SettingsPanel : UserControl, INotifyPropertyChanged
                 $"IsClearPlayerBrowserDataOnClose={IsClearPlayerBrowserDataOnClose}",
                 $"IsMovieLairProbeEnabled={IsMovieLairProbeEnabled}",
                 $"MovieCatalogLocation={MovieCatalogLocation}",
+                $"TvShowCatalogLocation={TvShowLinksLocation}",
                 $"TvShowLinksLocation={TvShowLinksLocation}",
                 $"MovieLairShowsUrl={MovieLairShowsUrl}",
                 $"RokuIpAddress={RokuIpAddress}",
@@ -636,25 +642,49 @@ public partial class SettingsPanel : UserControl, INotifyPropertyChanged
 
     private void BuildSearchIndex_Click(object sender, RoutedEventArgs e)
     {
-        var dialog = new BuildSearchIndexDialog(MovieCatalogLocation)
+        if (_activeBuildDialog != null)
+        {
+            _activeBuildDialog.Show();
+            if (_activeBuildDialog.WindowState == WindowState.Minimized)
+                _activeBuildDialog.WindowState = WindowState.Normal;
+            _activeBuildDialog.Activate();
+            return;
+        }
+
+        if (SmartSearchCoordinator.IsBuildInProgress)
+        {
+            MessageBox.Show(
+                "A smart search index build is already running. Check the taskbar for the progress window.",
+                "Smart Search",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
+            return;
+        }
+
+        _activeBuildDialog = new BuildSearchIndexDialog(MovieCatalogLocation)
         {
             Owner = DialogOwner
         };
-
-        if (dialog.ShowDialog() == true)
+        _activeBuildDialog.Closed += (_, _) =>
         {
-            UpdateSmartSearchStatus();
-            if (HostWindow != null)
-                _ = HostWindow.ReloadMoviesAsync();
-        }
+            if (_activeBuildDialog?.IndexBuilt == true)
+            {
+                UpdateSmartSearchStatus();
+                if (HostWindow != null)
+                    _ = HostWindow.ReloadMoviesAsync();
+            }
+
+            _activeBuildDialog = null;
+        };
+        _activeBuildDialog.Show();
     }
 
     private void SelectTvShowLinksLocation_Click(object sender, RoutedEventArgs e)
     {
         var dialog = new Microsoft.Win32.OpenFileDialog
         {
-            Title = "Select TV Show Links File",
-            Filter = "Text Files|*.txt|All Files|*.*",
+            Title = "Select TV Show Catalog File",
+            Filter = "JSON Files|*.json|All Files|*.*",
             CheckFileExists = true,
             CheckPathExists = true
         };
@@ -663,7 +693,7 @@ public partial class SettingsPanel : UserControl, INotifyPropertyChanged
         {
             try
             {
-                File.ReadAllLines(dialog.FileName);
+                _ = File.ReadAllText(dialog.FileName);
                 TvShowLinksLocation = dialog.FileName;
             }
             catch (Exception ex)

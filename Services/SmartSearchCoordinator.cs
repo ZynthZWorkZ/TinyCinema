@@ -23,6 +23,8 @@ public static class SmartSearchCoordinator
 
     public static bool IsModelAvailable => EmbeddingModelPaths.IsModelAvailable();
 
+    public static bool IsBuildInProgress => BuildLock.CurrentCount == 0;
+
     public static event Action? IndexReady;
 
     public static SearchIndexData? GetIndex()
@@ -51,7 +53,16 @@ public static class SmartSearchCoordinator
 
         var indexPath = GetIndexPath(catalogPath);
         if (!File.Exists(indexPath))
+        {
+            var checkpoint = SearchIndexCheckpointStore.TryGetStatus(catalogPath);
+            if (checkpoint != null)
+            {
+                return
+                    $"Index build paused at {checkpoint.ProcessedCount:N0}/{checkpoint.TotalCount:N0} movies — resume to continue.";
+            }
+
             return "Search index not built yet.";
+        }
 
         if (IsIndexStale(catalogPath))
             return "Search index is out of date — rebuild recommended.";
@@ -99,23 +110,31 @@ public static class SmartSearchCoordinator
         EnsureIndexLoaded(catalogPath);
     }
 
+    public static SearchIndexCheckpointStatus? GetCheckpointStatus(string catalogPath) =>
+        SearchIndexCheckpointStore.TryGetStatus(catalogPath);
+
+    public static void ClearCheckpoint(string catalogPath) =>
+        SearchIndexCheckpointStore.Delete(catalogPath);
+
     public static async Task<SearchIndexBuildReporter> RebuildIndexAsync(
         string catalogPath,
         IProgress<SearchIndexBuildProgress>? progress,
-        CancellationToken cancellationToken)
+        SearchIndexBuildSession session)
     {
-        await BuildLock.WaitAsync(cancellationToken);
+        await BuildLock.WaitAsync(session.Token);
         try
         {
-            await WaitForBackgroundWorkAsync(cancellationToken);
+            await WaitForBackgroundWorkAsync(session.Token);
 
             var reporter = new SearchIndexBuildReporter(progress);
-            reporter.Log("Build queued on background thread (UI will stay responsive).");
+            reporter.Log(session.ResumeFromCheckpoint
+                ? "Resuming index build from saved checkpoint."
+                : "Build queued on background thread (UI will stay responsive).");
             reporter.Log($"Detailed log file: {reporter.LogFilePath}");
 
             await Task.Run(
-                async () => await RebuildIndexInternalAsync(catalogPath, reporter, cancellationToken),
-                cancellationToken);
+                async () => await RebuildIndexInternalAsync(catalogPath, session, reporter, session.Token),
+                session.Token);
 
             return reporter;
         }
@@ -151,6 +170,7 @@ public static class SmartSearchCoordinator
 
     private static async Task RebuildIndexInternalAsync(
         string catalogPath,
+        SearchIndexBuildSession session,
         SearchIndexBuildReporter? reporter,
         CancellationToken cancellationToken)
     {
@@ -161,7 +181,7 @@ public static class SmartSearchCoordinator
             () => CreateOrReplaceEmbeddingModel(reporter),
             cancellationToken);
 
-        await SearchIndexBuilder.BuildAndSaveAsync(catalogPath, model, reporter, cancellationToken);
+        await SearchIndexBuilder.BuildAndSaveAsync(catalogPath, model, session, reporter, cancellationToken);
 
         reporter?.SetPhase("Finishing");
         reporter?.Log("Loading index into memory...");

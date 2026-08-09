@@ -55,8 +55,8 @@ public partial class FetchTvShowsDialog : Window
     {
         var dialog = new Microsoft.Win32.SaveFileDialog
         {
-            Title = "Save TV Show Links File",
-            Filter = "Text Files|*.txt|All Files|*.*",
+            Title = "Save TV Show Catalog File",
+            Filter = "JSON Files|*.json|All Files|*.*",
             FileName = Path.GetFileName(_outputPath),
             InitialDirectory = Path.GetDirectoryName(_outputPath) ?? AppDomain.CurrentDomain.BaseDirectory,
             OverwritePrompt = false
@@ -109,7 +109,7 @@ public partial class FetchTvShowsDialog : Window
 
         if (string.IsNullOrWhiteSpace(_outputPath))
         {
-            MessageBox.Show("Choose where to save tv_show_links.txt.", "Invalid Input",
+            MessageBox.Show("Choose where to save TvShows.json.", "Invalid Input",
                 MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }

@@ -121,6 +121,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             WatchedHomePanel.WatchedToggleRequested += WatchedHomePanel_WatchedToggleRequested;
             IptvHomePanel.ChannelPlayRequested += IptvHomePanel_ChannelPlayRequested;
             SettingsPanel.HostWindow = this;
+            RandomPickOverlay.PreviewRequested += RandomPickOverlay_PreviewRequested;
 
             PosterScrollViewer.ScrollChanged += async (_, e) =>
             {
@@ -203,12 +204,12 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             _currentNav = MainNavSection.Explore;
 
             var movieCatalogLocation = SettingsWindow.GetMovieCatalogLocation();
-            var tvShowLinksLocation = SettingsWindow.GetTvShowLinksLocation();
+            var tvShowCatalogLocation = SettingsWindow.GetTvShowCatalogLocation();
 
-            if (!File.Exists(movieCatalogLocation) && !File.Exists(tvShowLinksLocation))
+            if (!File.Exists(movieCatalogLocation) && !File.Exists(tvShowCatalogLocation))
             {
                 MessageBox.Show(
-                    $"No catalog files found.\n\nMovies: {movieCatalogLocation}\nTV shows: {tvShowLinksLocation}\n\nUse Settings to fetch movies or TV shows.",
+                    $"No catalog files found.\n\nMovies: {movieCatalogLocation}\nTV shows: {tvShowCatalogLocation}\n\nUse Settings to fetch movies or TV shows.",
                     "Error",
                     MessageBoxButton.OK,
                     MessageBoxImage.Error);
@@ -222,27 +223,11 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                     _allMovies.Add(movie);
             }
 
-            if (File.Exists(tvShowLinksLocation))
+            if (File.Exists(tvShowCatalogLocation))
             {
-                var tvLines = await File.ReadAllLinesAsync(tvShowLinksLocation);
-                foreach (var line in tvLines)
-                {
-                    var parts = line.Split('|').Select(p => p.Trim()).ToArray();
-                    if (parts.Length >= 7)
-                    {
-                        _allMovies.Add(new Movie
-                        {
-                            Year = parts[0],
-                            Title = parts[1],
-                            Url = parts[2],
-                            ImageUrl = parts[3],
-                            Genre = parts[4],
-                            Duration = parts[5],
-                            Country = parts[6],
-                            ContentType = CatalogContentType.TvShow
-                        });
-                    }
-                }
+                var tvShows = await TvShowCatalogStore.LoadShowsAsync(tvShowCatalogLocation);
+                foreach (var show in tvShows)
+                    _allMovies.Add(show);
             }
 
             LoadFavorites();
@@ -525,7 +510,8 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             : Visibility.Visible;
         HeroPanel.Visibility = showIptv || showSettings ? Visibility.Collapsed : Visibility.Visible;
         SearchFiltersBorder.Visibility = showSettings ? Visibility.Collapsed : Visibility.Visible;
-        ShuffleButton.Visibility = showSettings ? Visibility.Collapsed : Visibility.Visible;
+        ShuffleButton.Visibility = showSettings || showIptv ? Visibility.Collapsed : Visibility.Visible;
+        DiceButton.Visibility = showSettings || showIptv ? Visibility.Collapsed : Visibility.Visible;
         SortButton.Visibility = showSettings ? Visibility.Collapsed : Visibility.Visible;
         GenreFilter.IsEnabled = !showIptv && !showWatched && !showSettings;
         CountryFilter.IsEnabled = !showIptv && !showWatched && !showSettings;
@@ -1278,6 +1264,11 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         if (GetSelectedMovie() is not Movie movie)
             return;
 
+        await PlayTrailerForMovieAsync(movie);
+    }
+
+    private async Task PlayTrailerForMovieAsync(Movie movie)
+    {
         var apiKey = SettingsWindow.GetTmdbApiKey();
         if (string.IsNullOrWhiteSpace(apiKey))
         {
@@ -1330,6 +1321,11 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         if (GetSelectedMovie() is not Movie movie)
             return;
 
+        await PlayOpeningCreditsForMovieAsync(movie);
+    }
+
+    private async Task PlayOpeningCreditsForMovieAsync(Movie movie)
+    {
         var apiKey = SettingsWindow.GetTmdbApiKey();
         if (string.IsNullOrWhiteSpace(apiKey))
         {
@@ -1378,6 +1374,14 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         }
     }
 
+    private async void RandomPickOverlay_PreviewRequested(Movie movie)
+    {
+        if (movie.IsTvShow)
+            await PlayOpeningCreditsForMovieAsync(movie);
+        else
+            await PlayTrailerForMovieAsync(movie);
+    }
+
     private void RokuButton_Click(object sender, RoutedEventArgs e)
     {
         MessageBox.Show(
@@ -1385,6 +1389,56 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             "Roku Sideload",
             MessageBoxButton.OK,
             MessageBoxImage.Information);
+    }
+
+    private async void DiceButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_currentNav is MainNavSection.Settings or MainNavSection.Iptv)
+            return;
+
+        var candidates = RandomCatalogPicker.GetCandidates(_currentNav, _allMovies);
+        if (candidates.Count == 0)
+        {
+            MessageBox.Show(
+                RandomCatalogPicker.GetEmptyMessage(_currentNav),
+                "Roll the Dice",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
+            return;
+        }
+
+        DiceButton.IsEnabled = false;
+        ShuffleButton.IsEnabled = false;
+
+        try
+        {
+            var result = await RandomPickOverlay.RollAndPickAsync(
+                candidates,
+                RandomCatalogPicker.GetRollingLabel(_currentNav));
+
+            if (result.Action != RandomPickAction.Watch || result.Movie == null)
+                return;
+
+            SelectHeroMovie(result.Movie);
+            UserInteractionTracker.Record(result.Movie, InteractionEventType.Play);
+            OpenPlayer(result.Movie);
+
+            if (_currentNav == MainNavSection.Explore)
+                _ = RefreshExploreAsync();
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(
+                $"Could not roll the dice:\n{ex.Message}",
+                "Roll the Dice",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+        }
+        finally
+        {
+            DiceButton.IsEnabled = true;
+            ShuffleButton.IsEnabled = true;
+        }
     }
 
     private async void ShuffleButton_Click(object sender, RoutedEventArgs e)
