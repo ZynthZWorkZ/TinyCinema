@@ -20,7 +20,7 @@ public static class MovieCatalogStore
     {
         var catalog = await LoadAsync(path, cancellationToken);
         return catalog.Movies
-            .Where(record => !string.IsNullOrWhiteSpace(record.Url))
+            .Where(record => record.IsLoadable())
             .Select(record => record.ToMovie())
             .ToList();
     }
@@ -96,6 +96,11 @@ public static class MovieCatalogStore
             .Where(movie => !string.IsNullOrWhiteSpace(movie.Slug))
             .ToDictionary(movie => movie.Slug, StringComparer.OrdinalIgnoreCase);
 
+        var existingTmdbIds = existingCatalog.Movies
+            .Where(movie => movie.TmdbId is > 0)
+            .Select(movie => movie.TmdbId!.Value)
+            .ToHashSet();
+
         List<MovieCatalogRecord> merged;
         var added = 0;
 
@@ -125,8 +130,13 @@ public static class MovieCatalogStore
                 if (existingBySlug.ContainsKey(incoming.Slug))
                     continue;
 
+                if (incoming.TmdbId is > 0 && existingTmdbIds.Contains(incoming.TmdbId.Value))
+                    continue;
+
                 merged.Insert(0, incoming);
                 existingBySlug[incoming.Slug] = incoming;
+                if (incoming.TmdbId is > 0)
+                    existingTmdbIds.Add(incoming.TmdbId.Value);
                 added++;
             }
         }
@@ -236,7 +246,10 @@ public static class MovieCatalogStore
             DescriptionFetchedAt = incoming.DescriptionFetchedAt ?? existing.DescriptionFetchedAt,
             Director = incoming.Director,
             Cast = incoming.Cast.ToList(),
-            DirectorCastFetchedAt = incoming.DirectorCastFetchedAt
+            DirectorCastFetchedAt = incoming.DirectorCastFetchedAt,
+            StoredSlug = string.IsNullOrWhiteSpace(incoming.StoredSlug) ? existing.StoredSlug : incoming.StoredSlug,
+            PlaybackSource = incoming.PlaybackSource ?? existing.PlaybackSource,
+            TmdbId = incoming.TmdbId ?? existing.TmdbId
         };
     }
 

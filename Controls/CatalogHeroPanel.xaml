@@ -101,6 +101,18 @@
                     </StackPanel>
                 </Button>
 
+                <Button x:Name="AddToCatalogButton"
+                        Style="{StaticResource HeroSecondaryButtonStyle}"
+                        Click="AddToCatalogButton_Click"
+                        Margin="0,0,10,0"
+                        Visibility="Collapsed"
+                        ToolTip="Add this Netflix title to Movies.json">
+                    <StackPanel Orientation="Horizontal">
+                        <FontAwesome:FontAwesome Icon="Plus" Width="14" Height="14" Margin="0,0,8,0"/>
+                        <TextBlock Text="Add to Catalog" FontWeight="SemiBold"/>
+                    </StackPanel>
+                </Button>
+
                 <Button x:Name="ContinueButton"
                         Style="{StaticResource HeroSecondaryButtonStyle}"
                         Click="ContinueButton_Click"

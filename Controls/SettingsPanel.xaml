@@ -275,6 +275,7 @@
                                     <RowDefinition Height="Auto"/>
                                     <RowDefinition Height="Auto"/>
                                     <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
                                 </Grid.RowDefinitions>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
@@ -311,13 +312,21 @@
 
                                 <Button Grid.Row="3"
                                         Grid.ColumnSpan="2"
+                                        Content="Import Netflix Gaps"
+                                        Click="ImportNetflixGaps_Click"
+                                        Style="{StaticResource HeroPrimaryButtonStyle}"
+                                        HorizontalAlignment="Stretch"
+                                        Margin="0,0,0,8"/>
+
+                                <Button Grid.Row="4"
+                                        Grid.ColumnSpan="2"
                                         Content="Build Smart Search Index"
                                         Click="BuildSearchIndex_Click"
                                         Style="{StaticResource HeroPrimaryButtonStyle}"
                                         HorizontalAlignment="Stretch"
                                         Margin="0,0,0,8"/>
 
-                                <TextBlock Grid.Row="4"
+                                <TextBlock Grid.Row="5"
                                            Grid.ColumnSpan="2"
                                            x:Name="SmartSearchStatusText"
                                            Text="Smart search uses your local e5-small-v2 model to search plots, cast, and director."

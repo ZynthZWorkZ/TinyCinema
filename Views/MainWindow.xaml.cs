@@ -117,6 +117,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             HeroPanel.InfoRequested += InfoButton_Click;
             HeroPanel.UrlRequested += UrlButton_Click;
             HeroPanel.RokuRequested += RokuButton_Click;
+            HeroPanel.AddToCatalogRequested += HeroPanel_AddToCatalogRequested;
 
             ExploreHomePanel.MovieSelected += ExploreHomePanel_MovieSelected;
             WatchedHomePanel.MovieSelected += WatchedHomePanel_MovieSelected;
@@ -635,10 +636,96 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         if (_selectedWhatsOnEntry == null)
             return;
 
+        if (_selectedWhatsOnEntry.IsInCatalog && _selectedWhatsOnEntry.CatalogMovie != null)
+        {
+            OpenPlayer(_selectedWhatsOnEntry.CatalogMovie);
+            return;
+        }
+
         await WhatsOnPlaybackService.PlayAsync(
             this,
             _selectedWhatsOnEntry,
             (movie, source, contentId) => OpenPlayer(movie, initialMovieSource: source, vidSrcContentId: contentId));
+    }
+
+    private async void HeroPanel_AddToCatalogRequested(object? sender, RoutedEventArgs e)
+    {
+        if (_selectedWhatsOnEntry == null)
+            return;
+
+        var apiKey = SettingsWindow.GetTmdbApiKey();
+        if (string.IsNullOrWhiteSpace(apiKey))
+        {
+            MessageBox.Show(
+                "Add your TMDB API key in Settings to import Netflix titles into Movies.json.",
+                "TMDB API Key Required",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
+            return;
+        }
+
+        var catalogPath = SettingsWindow.GetMovieCatalogLocation();
+        var previousCursor = Cursor;
+        Cursor = Cursors.Wait;
+
+        try
+        {
+            var result = await WhatsOnCatalogImporter.ImportEntryAsync(
+                _selectedWhatsOnEntry.Item,
+                catalogPath,
+                apiKey);
+
+            if (result.TmdbNotFound)
+            {
+                MessageBox.Show(
+                    $"Could not find \"{_selectedWhatsOnEntry.Item.Title}\" on TMDB.",
+                    "Import Failed",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+                return;
+            }
+
+            if (result.AlreadyExists)
+            {
+                MessageBox.Show(
+                    $"\"{result.Title}\" is already in your catalog.",
+                    "Already in Catalog",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+                return;
+            }
+
+            if (!result.Added)
+                return;
+
+            SmartSearchCoordinator.QueueRebuildIfStale(catalogPath);
+            await ReloadMoviesAsync();
+            WhatsOnHomePanel.SetLocalCatalog(_allMovies);
+            WhatsOnHomePanel.RefreshCatalogMatches();
+
+            var matchIndex = WhatsOnCatalogMatcher.BuildMatchIndex(_allMovies);
+            var updatedEntry = WhatsOnCatalogMatcher.BuildEntry(_selectedWhatsOnEntry.Item, matchIndex);
+            _selectedWhatsOnEntry.RefreshCatalogState(updatedEntry.IsInCatalog, updatedEntry.CatalogMovie);
+            SelectHeroWhatsOnEntry(_selectedWhatsOnEntry);
+
+            MessageBox.Show(
+                $"Added \"{result.Title}\" to Movies.json.",
+                "Added to Catalog",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(
+                $"Could not add title to catalog:\n{ex.Message}",
+                "Import Error",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+        }
+        finally
+        {
+            Cursor = previousCursor;
+        }
     }
 
     private void IptvHomePanel_ChannelPlayRequested(object? sender, IptvChannel channel)
@@ -1370,6 +1457,13 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     {
         try
         {
+            if (initialMovieSource == null && !movie.IsTvShow)
+            {
+                var playback = CatalogPlaybackHelper.ResolvePlaybackArgs(movie);
+                initialMovieSource = playback.Source;
+                vidSrcContentId ??= playback.VidSrcContentId;
+            }
+
             var playerWindow = new TinyZonePlayerWindow(
                 movie,
                 SettingsWindow.GetSelectedPlayer(),
@@ -2082,6 +2176,9 @@ public class Movie : INotifyPropertyChanged
     public string Director { get; set; } = string.Empty;
     public List<string> Cast { get; set; } = [];
     public CatalogContentType ContentType { get; set; } = CatalogContentType.Movie;
+    public string? CatalogPlaybackSource { get; set; }
+    public int? TmdbId { get; set; }
+    public string? CatalogSlug { get; set; }
     public string ContentTypeLabel => ContentType == CatalogContentType.TvShow ? "TV Show" : "Movie";
     public bool IsTvShow => ContentType == CatalogContentType.TvShow;
     public string DetailsToolTip => ContentType == CatalogContentType.TvShow ? "View TV show details" : "View movie details";

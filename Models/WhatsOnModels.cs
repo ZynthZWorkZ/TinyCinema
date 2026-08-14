@@ -62,9 +62,16 @@ public sealed class WhatsOnMovieEntry : INotifyPropertyChanged
 
     public WhatsOnNetflixItem Item { get; init; } = null!;
 
-    public bool IsInCatalog { get; init; }
+    public bool IsInCatalog { get; set; }
 
-    public Movie? CatalogMovie { get; init; }
+    public Movie? CatalogMovie { get; set; }
+
+    public void RefreshCatalogState(bool isInCatalog, Movie? catalogMovie)
+    {
+        IsInCatalog = isInCatalog;
+        CatalogMovie = catalogMovie;
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsInCatalog)));
+    }
 
     public string PlayHint => IsInCatalog ? "Play from your catalog" : "Play via VidSrc";
 

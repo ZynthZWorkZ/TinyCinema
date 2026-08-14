@@ -19,6 +19,7 @@ public partial class CatalogHeroPanel : UserControl
     public event RoutedEventHandler? InfoRequested;
     public event RoutedEventHandler? UrlRequested;
     public event RoutedEventHandler? RokuRequested;
+    public event RoutedEventHandler? AddToCatalogRequested;
 
     public CatalogHeroPanel()
     {
@@ -62,6 +63,10 @@ public partial class CatalogHeroPanel : UserControl
 
     public void SetWhatsOnMode(bool isWhatsOn, bool inCatalog)
     {
+        AddToCatalogButton.Visibility = isWhatsOn && !inCatalog
+            ? Visibility.Visible
+            : Visibility.Collapsed;
+
         if (!isWhatsOn)
         {
             FavoriteButton.Visibility = Visibility.Visible;
@@ -222,4 +227,5 @@ public partial class CatalogHeroPanel : UserControl
     private void InfoButton_Click(object sender, RoutedEventArgs e) => InfoRequested?.Invoke(this, e);
     private void UrlButton_Click(object sender, RoutedEventArgs e) => UrlRequested?.Invoke(this, e);
     private void RokuButton_Click(object sender, RoutedEventArgs e) => RokuRequested?.Invoke(this, e);
+    private void AddToCatalogButton_Click(object sender, RoutedEventArgs e) => AddToCatalogRequested?.Invoke(this, e);
 }

@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace TinyCinema;
 
 public sealed class MovieCatalogRecord
@@ -26,7 +28,41 @@ public sealed class MovieCatalogRecord
 
     public DateTime? DirectorCastFetchedAt { get; set; }
 
-    public string Slug => TinyZoneHtmlParser.ExtractMovieSlug(Url);
+    [JsonPropertyName("slug")]
+    public string? StoredSlug { get; set; }
+
+    [JsonPropertyName("playbackSource")]
+    public string? PlaybackSource { get; set; }
+
+    [JsonPropertyName("tmdbId")]
+    public int? TmdbId { get; set; }
+
+    [JsonIgnore]
+    public string Slug
+    {
+        get
+        {
+            if (!string.IsNullOrWhiteSpace(StoredSlug))
+                return StoredSlug;
+
+            var fromUrl = TinyZoneHtmlParser.ExtractMovieSlug(Url);
+            if (!string.IsNullOrWhiteSpace(fromUrl))
+                return fromUrl;
+
+            if (TmdbId is > 0)
+                return $"tmdb-{TmdbId}";
+
+            return string.Empty;
+        }
+    }
+
+    public MoviePlayerSource GetPlaybackSource() =>
+        MoviePlayerSourceExtensions.ParseDisplayName(PlaybackSource);
+
+    public bool IsLoadable() =>
+        !string.IsNullOrWhiteSpace(Url) ||
+        TmdbId is > 0 ||
+        GetPlaybackSource() is MoviePlayerSource.MovieLair or MoviePlayerSource.VidSrc;
 
     public static MovieCatalogRecord FromEntry(MovieCatalogEntry entry) => new()
     {
@@ -41,7 +77,10 @@ public sealed class MovieCatalogRecord
         DescriptionFetchedAt = entry.DescriptionFetchedAt,
         Director = entry.Director,
         Cast = entry.Cast.ToList(),
-        DirectorCastFetchedAt = entry.DirectorCastFetchedAt
+        DirectorCastFetchedAt = entry.DirectorCastFetchedAt,
+        StoredSlug = entry.StoredSlug,
+        PlaybackSource = entry.PlaybackSource,
+        TmdbId = entry.TmdbId
     };
 
     public MovieCatalogEntry ToEntry() => new()
@@ -57,7 +96,10 @@ public sealed class MovieCatalogRecord
         DescriptionFetchedAt = DescriptionFetchedAt,
         Director = Director,
         Cast = Cast.ToList(),
-        DirectorCastFetchedAt = DirectorCastFetchedAt
+        DirectorCastFetchedAt = DirectorCastFetchedAt,
+        StoredSlug = StoredSlug,
+        PlaybackSource = PlaybackSource,
+        TmdbId = TmdbId
     };
 
     public Movie ToMovie() => new()
@@ -72,7 +114,10 @@ public sealed class MovieCatalogRecord
         Description = Description,
         Director = Director,
         Cast = Cast.ToList(),
-        ContentType = CatalogContentType.Movie
+        ContentType = CatalogContentType.Movie,
+        CatalogPlaybackSource = PlaybackSource,
+        TmdbId = TmdbId,
+        CatalogSlug = StoredSlug
     };
 
     public static MovieCatalogRecord FromMovie(Movie movie) => new()
@@ -86,6 +131,9 @@ public sealed class MovieCatalogRecord
         Country = movie.Country,
         Description = movie.Description,
         Director = movie.Director,
-        Cast = movie.Cast.ToList()
+        Cast = movie.Cast.ToList(),
+        PlaybackSource = movie.CatalogPlaybackSource,
+        TmdbId = movie.TmdbId,
+        StoredSlug = movie.CatalogSlug
     };
 }

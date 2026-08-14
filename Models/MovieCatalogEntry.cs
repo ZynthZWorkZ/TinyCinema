@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace TinyCinema;
 
 public class MovieCatalogEntry
@@ -26,7 +28,33 @@ public class MovieCatalogEntry
 
     public DateTime? DirectorCastFetchedAt { get; set; }
 
-    public string Slug => TinyZoneHtmlParser.ExtractMovieSlug(Url);
+    [JsonPropertyName("slug")]
+    public string? StoredSlug { get; set; }
+
+    [JsonPropertyName("playbackSource")]
+    public string? PlaybackSource { get; set; }
+
+    [JsonPropertyName("tmdbId")]
+    public int? TmdbId { get; set; }
+
+    [JsonIgnore]
+    public string Slug
+    {
+        get
+        {
+            if (!string.IsNullOrWhiteSpace(StoredSlug))
+                return StoredSlug;
+
+            var fromUrl = TinyZoneHtmlParser.ExtractMovieSlug(Url);
+            if (!string.IsNullOrWhiteSpace(fromUrl))
+                return fromUrl;
+
+            if (TmdbId is > 0)
+                return $"tmdb-{TmdbId}";
+
+            return string.Empty;
+        }
+    }
 
     public MovieCatalogRecord ToRecord() => MovieCatalogRecord.FromEntry(this);
 }

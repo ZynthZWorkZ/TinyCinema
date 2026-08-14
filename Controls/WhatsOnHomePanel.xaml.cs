@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Threading;
@@ -49,7 +50,22 @@ public partial class WhatsOnHomePanel : UserControl
         _scrollDebounceTimer.Tick += ScrollDebounceTimer_Tick;
     }
 
-    public void SetLocalCatalog(IReadOnlyList<Movie> catalog) => _localCatalog = catalog;
+    public void SetLocalCatalog(IReadOnlyList<Movie> catalog)
+    {
+        _localCatalog = catalog;
+        RefreshCatalogMatches();
+    }
+
+    public void RefreshCatalogMatches()
+    {
+        _matchIndex = WhatsOnCatalogMatcher.BuildMatchIndex(_localCatalog);
+
+        foreach (var entry in _displayedMovies)
+        {
+            var matched = WhatsOnCatalogMatcher.BuildEntry(entry.Item, _matchIndex);
+            entry.RefreshCatalogState(matched.IsInCatalog, matched.CatalogMovie);
+        }
+    }
 
     public async Task EnsureLoadedAsync()
     {

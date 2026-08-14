@@ -606,6 +606,22 @@ public partial class SettingsPanel : UserControl, INotifyPropertyChanged
         }
     }
 
+    private void ImportNetflixGaps_Click(object sender, RoutedEventArgs e)
+    {
+        var dialog = new ImportNetflixGapsDialog(MovieCatalogLocation)
+        {
+            Owner = DialogOwner
+        };
+
+        if (dialog.ShowDialog() == true && dialog.CatalogUpdated)
+        {
+            SmartSearchCoordinator.QueueRebuildIfStale(MovieCatalogLocation);
+            UpdateSmartSearchStatus();
+            if (HostWindow != null)
+                _ = HostWindow.ReloadMoviesAsync();
+        }
+    }
+
     private void FetchMovies_Click(object sender, RoutedEventArgs e)
     {
         var dialog = new FetchMoviesDialog(TinyZoneBaseUrl, MovieCatalogLocation)

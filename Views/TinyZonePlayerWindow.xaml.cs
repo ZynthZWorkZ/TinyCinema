@@ -137,6 +137,13 @@ public partial class TinyZonePlayerWindow : Window
                 _startOnInitialMovieSource = true;
                 UpdateMovieSourceUi();
             }
+            else if (_initialMovieSource == MoviePlayerSource.MovieLair)
+            {
+                _currentMovieSource = MoviePlayerSource.MovieLair;
+                MovieSourceComboBox.SelectedIndex = 1;
+                _startOnInitialMovieSource = true;
+                UpdateMovieSourceUi();
+            }
             else
             {
                 MovieSourceComboBox.SelectedIndex = 0;
@@ -267,6 +274,20 @@ public partial class TinyZonePlayerWindow : Window
                     LoadingHintText.Text = "Starting VidSrc player...";
                     StatusText.Text = "Loading VidSrc player...";
                     core.Navigate(embedUrl);
+                    return;
+                }
+            }
+
+            if (_startOnInitialMovieSource && _currentMovieSource == MoviePlayerSource.MovieLair)
+            {
+                _startOnInitialMovieSource = false;
+                var movieLairUrl = !string.IsNullOrWhiteSpace(_pageUrl) &&
+                                   _pageUrl.Contains("movielair.cc/watch-movie", StringComparison.OrdinalIgnoreCase)
+                    ? _pageUrl
+                    : await ResolveMovieLairUrlAsync();
+                if (!string.IsNullOrWhiteSpace(movieLairUrl))
+                {
+                    await LoadMovieLairEmbedAsync(movieLairUrl);
                     return;
                 }
             }
