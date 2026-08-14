@@ -52,6 +52,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Include="Assets\Streaming\**\*" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
     <None Include="Assets\Models\e5-small-v2\**\*" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 

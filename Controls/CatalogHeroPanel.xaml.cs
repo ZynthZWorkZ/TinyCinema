@@ -57,6 +57,29 @@ public partial class CatalogHeroPanel : UserControl
         UpdateWatchedVisual(movie.IsWatched);
         SetContinueState(movie.IsTvShow ? TvShowWatchHistory.TryGet(movie.Url) : null);
         UpdateBackdrop(movie);
+        SetWhatsOnMode(false, false);
+    }
+
+    public void SetWhatsOnMode(bool isWhatsOn, bool inCatalog)
+    {
+        if (!isWhatsOn)
+        {
+            FavoriteButton.Visibility = Visibility.Visible;
+            WatchedButton.Visibility = Visibility.Visible;
+            InfoButton.Visibility = Visibility.Visible;
+            UrlButton.Visibility = Visibility.Visible;
+            RokuButton.Visibility = Visibility.Visible;
+            return;
+        }
+
+        FavoriteButton.Visibility = inCatalog ? Visibility.Visible : Visibility.Collapsed;
+        WatchedButton.Visibility = inCatalog ? Visibility.Visible : Visibility.Collapsed;
+        InfoButton.Visibility = inCatalog ? Visibility.Visible : Visibility.Collapsed;
+        UrlButton.Visibility = inCatalog ? Visibility.Visible : Visibility.Collapsed;
+        RokuButton.Visibility = inCatalog ? Visibility.Visible : Visibility.Collapsed;
+        TrailerButton.Visibility = Visibility.Visible;
+        OpeningCreditsButton.Visibility = Visibility.Collapsed;
+        ContinueButton.Visibility = Visibility.Collapsed;
     }
 
     public void SetDescription(string description)

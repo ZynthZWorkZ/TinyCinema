@@ -81,11 +81,22 @@ public partial class TinyZonePlayerWindow : Window
     private bool _tvReapplyServerAfterLoad;
     private MovieLairProbeSession? _probeSession;
     private bool _probeEnabled;
+    private readonly MoviePlayerSource? _initialMovieSource;
+    private bool _startOnInitialMovieSource;
 
-    public TinyZonePlayerWindow(Movie movie, string selectedPlayer, int? resumeSeason = null, int? resumeEpisode = null)
+    public TinyZonePlayerWindow(
+        Movie movie,
+        string selectedPlayer,
+        int? resumeSeason = null,
+        int? resumeEpisode = null,
+        MoviePlayerSource? initialMovieSource = null,
+        string? vidSrcContentId = null)
     {
         InitializeComponent();
         _selectedPlayer = selectedPlayer;
+        _initialMovieSource = initialMovieSource;
+        if (!string.IsNullOrWhiteSpace(vidSrcContentId))
+            _resolvedVidSrcContentId = vidSrcContentId;
         _movieTitle = movie.Title;
         _movieYear = movie.Year;
         _pageUrl = movie.Url;
@@ -119,7 +130,17 @@ public partial class TinyZonePlayerWindow : Window
             StatusText.Text = "Loading page and listening for stream URLs...";
             MovieSourceComboBox.Visibility = Visibility.Visible;
             _suppressMovieSourceSelection = true;
-            MovieSourceComboBox.SelectedIndex = 0;
+            if (_initialMovieSource == MoviePlayerSource.VidSrc)
+            {
+                _currentMovieSource = MoviePlayerSource.VidSrc;
+                MovieSourceComboBox.SelectedIndex = 2;
+                _startOnInitialMovieSource = true;
+                UpdateMovieSourceUi();
+            }
+            else
+            {
+                MovieSourceComboBox.SelectedIndex = 0;
+            }
             _suppressMovieSourceSelection = false;
         }
 
@@ -231,6 +252,24 @@ public partial class TinyZonePlayerWindow : Window
                     HidePlayerSurface();
             };
             core.NavigationCompleted += async (_, args) => await HandleMovieNavigationCompletedAsync(args);
+
+            if (_startOnInitialMovieSource && _currentMovieSource == MoviePlayerSource.VidSrc)
+            {
+                _startOnInitialMovieSource = false;
+                var embedUrl = !string.IsNullOrWhiteSpace(_resolvedVidSrcContentId)
+                    ? VidSrcEmbedBuilder.BuildMovieEmbedUrl(_resolvedVidSrcContentId)
+                    : await ResolveVidSrcMovieEmbedUrlAsync();
+                if (!string.IsNullOrWhiteSpace(embedUrl))
+                {
+                    _movieLairEmbedPhase = MovieLairEmbedPhase.Showing;
+                    _activePageUrl = embedUrl;
+                    HidePlayerSurface();
+                    LoadingHintText.Text = "Starting VidSrc player...";
+                    StatusText.Text = "Loading VidSrc player...";
+                    core.Navigate(embedUrl);
+                    return;
+                }
+            }
 
             core.Navigate(pageUrl);
         }

@@ -111,6 +111,15 @@
                                 <TextBlock Text="Watched" VerticalAlignment="Center"/>
                             </StackPanel>
                         </Button>
+                        <Button x:Name="NavWhatsOnButton"
+                                Tag="WhatsOn"
+                                Style="{StaticResource SidebarNavButtonStyle}"
+                                Click="NavButton_Click">
+                            <StackPanel Orientation="Horizontal">
+                                <FontAwesome:FontAwesome Icon="Fire" Width="16" Height="16" Margin="0,0,12,0"/>
+                                <TextBlock Text="What's On" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
                         <Button x:Name="NavIptvButton"
                                 Tag="Iptv"
                                 Style="{StaticResource SidebarNavButtonStyle}"
@@ -376,6 +385,12 @@
                                          Visibility="Collapsed"/>
 
                     <local:WatchedHomePanel x:Name="WatchedHomePanel"
+                                            Grid.Row="1"
+                                            VerticalAlignment="Stretch"
+                                            HorizontalAlignment="Stretch"
+                                            Visibility="Collapsed"/>
+
+                    <local:WhatsOnHomePanel x:Name="WhatsOnHomePanel"
                                             Grid.Row="1"
                                             VerticalAlignment="Stretch"
                                             HorizontalAlignment="Stretch"

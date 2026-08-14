@@ -51,6 +51,8 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     private CancellationTokenSource? _heroLoadCts;
     private CancellationTokenSource? _exploreRefreshCts;
     private Movie? _heroSubscribedMovie;
+    private WhatsOnMovieEntry? _selectedWhatsOnEntry;
+    private WhatsOnMovieEntry? _heroWhatsOnEntry;
     private static readonly string FavoritesFile = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
         "TinyCinema",
@@ -120,6 +122,8 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             WatchedHomePanel.MovieSelected += WatchedHomePanel_MovieSelected;
             WatchedHomePanel.WatchedToggleRequested += WatchedHomePanel_WatchedToggleRequested;
             IptvHomePanel.ChannelPlayRequested += IptvHomePanel_ChannelPlayRequested;
+            WhatsOnHomePanel.MovieSelected += WhatsOnHomePanel_MovieSelected;
+            WhatsOnHomePanel.ViewChanged += WhatsOnHomePanel_ViewChanged;
             SettingsPanel.HostWindow = this;
             RandomPickOverlay.PreviewRequested += RandomPickOverlay_PreviewRequested;
 
@@ -379,6 +383,18 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             return;
         }
 
+        if (_currentNav == MainNavSection.WhatsOn)
+        {
+            UpdateContentVisibility();
+            WhatsOnHomePanel.SetLocalCatalog(_allMovies);
+            WhatsOnHomePanel.ApplySearch(_lastSearchText);
+            EmptyGridText.Visibility = Visibility.Collapsed;
+            if (WhatsOnHomePanel.SelectedEntry == null)
+                HeroPanel.ShowEmptyState("Browse streaming catalogs below to see what's new on Netflix and more.");
+            _ = WhatsOnHomePanel.EnsureLoadedAsync();
+            return;
+        }
+
         if (_currentNav == MainNavSection.Settings)
         {
             UpdateContentVisibility();
@@ -479,6 +495,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         StyleNav(NavExploreButton, _currentNav == MainNavSection.Explore);
         StyleNav(NavFavoritesButton, _currentNav == MainNavSection.Favorites);
         StyleNav(NavWatchedButton, _currentNav == MainNavSection.Watched);
+        StyleNav(NavWhatsOnButton, _currentNav == MainNavSection.WhatsOn);
         StyleNav(NavIptvButton, _currentNav == MainNavSection.Iptv);
         StyleNav(NavSettingsButton, _currentNav == MainNavSection.Settings);
 
@@ -488,6 +505,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             MainNavSection.TvShows => "TV Shows",
             MainNavSection.Favorites => "Favorites",
             MainNavSection.Watched => "Watched",
+            MainNavSection.WhatsOn => "What's On",
             MainNavSection.Iptv => "Live TV",
             MainNavSection.Settings => "Settings",
             _ => "For You"
@@ -498,25 +516,27 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     {
         var showExplore = _currentNav == MainNavSection.Explore;
         var showIptv = _currentNav == MainNavSection.Iptv;
+        var showWhatsOn = _currentNav == MainNavSection.WhatsOn;
         var showWatched = _currentNav == MainNavSection.Watched;
         var showSettings = _currentNav == MainNavSection.Settings;
 
         ExploreHomePanel.Visibility = showExplore ? Visibility.Visible : Visibility.Collapsed;
         IptvHomePanel.Visibility = showIptv ? Visibility.Visible : Visibility.Collapsed;
+        WhatsOnHomePanel.Visibility = showWhatsOn ? Visibility.Visible : Visibility.Collapsed;
         WatchedHomePanel.Visibility = showWatched ? Visibility.Visible : Visibility.Collapsed;
         SettingsPanel.Visibility = showSettings ? Visibility.Visible : Visibility.Collapsed;
-        PosterScrollViewer.Visibility = showExplore || showIptv || showWatched || showSettings
+        PosterScrollViewer.Visibility = showExplore || showIptv || showWhatsOn || showWatched || showSettings
             ? Visibility.Collapsed
             : Visibility.Visible;
         HeroPanel.Visibility = showIptv || showSettings ? Visibility.Collapsed : Visibility.Visible;
         SearchFiltersBorder.Visibility = showSettings ? Visibility.Collapsed : Visibility.Visible;
-        ShuffleButton.Visibility = showSettings || showIptv ? Visibility.Collapsed : Visibility.Visible;
-        DiceButton.Visibility = showSettings || showIptv ? Visibility.Collapsed : Visibility.Visible;
+        ShuffleButton.Visibility = showSettings || showIptv || showWhatsOn ? Visibility.Collapsed : Visibility.Visible;
+        DiceButton.Visibility = showSettings || showIptv || showWhatsOn ? Visibility.Collapsed : Visibility.Visible;
         SortButton.Visibility = showSettings ? Visibility.Collapsed : Visibility.Visible;
-        GenreFilter.IsEnabled = !showIptv && !showWatched && !showSettings;
-        CountryFilter.IsEnabled = !showIptv && !showWatched && !showSettings;
+        GenreFilter.IsEnabled = !showIptv && !showWhatsOn && !showWatched && !showSettings;
+        CountryFilter.IsEnabled = !showIptv && !showWhatsOn && !showWatched && !showSettings;
         EmptyGridText.Visibility = Visibility.Collapsed;
-        GridSectionTitle.Visibility = showExplore || showIptv || showWatched || showSettings
+        GridSectionTitle.Visibility = showExplore || showIptv || showWhatsOn || showWatched || showSettings
             ? Visibility.Collapsed
             : Visibility.Visible;
 
@@ -525,6 +545,100 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
         if (!showIptv)
             IptvHomePanel.ShowCategories();
+
+        if (!showWhatsOn)
+        {
+            _selectedWhatsOnEntry = null;
+            _heroWhatsOnEntry = null;
+            WhatsOnHomePanel.ShowServicesView();
+        }
+    }
+
+    private void WhatsOnHomePanel_ViewChanged(object? sender, bool showingNetflix)
+    {
+        if (_currentNav != MainNavSection.WhatsOn)
+            return;
+
+        if (!showingNetflix)
+        {
+            _selectedWhatsOnEntry = null;
+            _heroWhatsOnEntry = null;
+            HeroPanel.ShowEmptyState("Browse streaming catalogs below to see what's new on Netflix and more.");
+            return;
+        }
+
+        if (WhatsOnHomePanel.SelectedEntry == null)
+            HeroPanel.ShowEmptyState("Select a Netflix title to see details");
+    }
+
+    private void WhatsOnHomePanel_MovieSelected(object? sender, WhatsOnMovieEntry entry) =>
+        SelectHeroWhatsOnEntry(entry);
+
+    private void SelectHeroWhatsOnEntry(WhatsOnMovieEntry entry)
+    {
+        _selectedWhatsOnEntry = entry;
+        _heroWhatsOnEntry = entry;
+
+        if (_heroSubscribedMovie != null)
+        {
+            _heroSubscribedMovie.PropertyChanged -= HeroMovie_PropertyChanged;
+            _heroSubscribedMovie = null;
+        }
+
+        entry.PropertyChanged -= WhatsOnEntry_PropertyChanged;
+        entry.PropertyChanged += WhatsOnEntry_PropertyChanged;
+
+        var movie = WhatsOnCatalogMatcher.ToHeroMovie(entry);
+        _heroSubscribedMovie = entry.IsInCatalog ? movie : null;
+        if (_heroSubscribedMovie != null)
+            _heroSubscribedMovie.PropertyChanged += HeroMovie_PropertyChanged;
+
+        HeroPanel.SetMovie(movie);
+        HeroPanel.SetWhatsOnMode(true, entry.IsInCatalog);
+
+        if (!string.IsNullOrWhiteSpace(entry.Item.Description))
+        {
+            HeroPanel.SetDescription(entry.Item.Description);
+        }
+        else if (entry.IsInCatalog)
+        {
+            _ = LoadHeroDetailsAsync(movie, movie);
+        }
+        else
+        {
+            HeroPanel.SetDescription(string.Empty);
+        }
+    }
+
+    private void WhatsOnEntry_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (sender is not WhatsOnMovieEntry entry || !ReferenceEquals(entry, _heroWhatsOnEntry))
+            return;
+
+        if (e.PropertyName != nameof(WhatsOnMovieEntry.PosterImage) || entry.PosterImage == null)
+            return;
+
+        if (entry.IsInCatalog)
+        {
+            HeroPanel.SetMovie(entry.CatalogMovie);
+            HeroPanel.SetWhatsOnMode(true, true);
+            return;
+        }
+
+        var movie = WhatsOnCatalogMatcher.ToHeroMovie(entry);
+        HeroPanel.SetMovie(movie);
+        HeroPanel.SetWhatsOnMode(true, false);
+    }
+
+    private async Task PlaySelectedWhatsOnEntryAsync()
+    {
+        if (_selectedWhatsOnEntry == null)
+            return;
+
+        await WhatsOnPlaybackService.PlayAsync(
+            this,
+            _selectedWhatsOnEntry,
+            (movie, source, contentId) => OpenPlayer(movie, initialMovieSource: source, vidSrcContentId: contentId));
     }
 
     private void IptvHomePanel_ChannelPlayRequested(object? sender, IptvChannel channel)
@@ -623,6 +737,9 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
     private void SelectHeroMovie(Movie movie)
     {
+        _selectedWhatsOnEntry = null;
+        _heroWhatsOnEntry = null;
+
         if (_heroSubscribedMovie != null)
         {
             _heroSubscribedMovie.PropertyChanged -= HeroMovie_PropertyChanged;
@@ -665,7 +782,9 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             ? ExploreHomePanel.SelectedMovie ?? HeroPanel.CurrentMovie
             : _currentNav == MainNavSection.Watched
                 ? WatchedHomePanel.SelectedMovie ?? HeroPanel.CurrentMovie
-                : MoviesListView.SelectedItem as Movie ?? HeroPanel.CurrentMovie;
+                : _currentNav == MainNavSection.WhatsOn
+                    ? HeroPanel.CurrentMovie
+                    : MoviesListView.SelectedItem as Movie ?? HeroPanel.CurrentMovie;
 
 
     private bool IsMatch(Movie movie, string[] searchTerms)
@@ -960,7 +1079,9 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             ? ExploreHomePanel.SelectedMovie == movie
             : _currentNav == MainNavSection.Watched
                 ? WatchedHomePanel.SelectedMovie == movie
-                : MoviesListView.SelectedItem == movie;
+                : _currentNav == MainNavSection.WhatsOn
+                    ? HeroPanel.CurrentMovie == movie
+                    : MoviesListView.SelectedItem == movie;
 
     private async Task LoadHeroDetailsAsync(Movie movie, Movie? selectionCheck = null)
     {
@@ -1206,8 +1327,14 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     }
 
 
-    private void PlayButton_Click(object sender, RoutedEventArgs e)
+    private async void PlayButton_Click(object sender, RoutedEventArgs e)
     {
+        if (_currentNav == MainNavSection.WhatsOn)
+        {
+            await PlaySelectedWhatsOnEntryAsync();
+            return;
+        }
+
         if (GetSelectedMovie() is not Movie selectedMovie)
             return;
 
@@ -1234,11 +1361,22 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             _ = RefreshExploreAsync();
     }
 
-    private void OpenPlayer(Movie movie, int? resumeSeason = null, int? resumeEpisode = null)
+    private void OpenPlayer(
+        Movie movie,
+        int? resumeSeason = null,
+        int? resumeEpisode = null,
+        MoviePlayerSource? initialMovieSource = null,
+        string? vidSrcContentId = null)
     {
         try
         {
-            var playerWindow = new TinyZonePlayerWindow(movie, SettingsWindow.GetSelectedPlayer(), resumeSeason, resumeEpisode)
+            var playerWindow = new TinyZonePlayerWindow(
+                movie,
+                SettingsWindow.GetSelectedPlayer(),
+                resumeSeason,
+                resumeEpisode,
+                initialMovieSource,
+                vidSrcContentId)
             {
                 Owner = this
             };
@@ -1393,7 +1531,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
     private async void DiceButton_Click(object sender, RoutedEventArgs e)
     {
-        if (_currentNav is MainNavSection.Settings or MainNavSection.Iptv)
+        if (_currentNav is MainNavSection.Settings or MainNavSection.Iptv or MainNavSection.WhatsOn)
             return;
 
         var candidates = RandomCatalogPicker.GetCandidates(_currentNav, _allMovies);

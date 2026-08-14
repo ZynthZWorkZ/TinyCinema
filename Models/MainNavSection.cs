@@ -7,6 +7,7 @@ public enum MainNavSection
     Explore,
     Favorites,
     Watched,
+    WhatsOn,
     Iptv,
     Settings
 }
