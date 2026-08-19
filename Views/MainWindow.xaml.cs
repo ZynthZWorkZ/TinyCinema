@@ -1617,7 +1617,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     private void RokuButton_Click(object sender, RoutedEventArgs e)
     {
         MessageBox.Show(
-            "Roku sideload is available from the player.\n\n1. Play a movie\n2. Wait for an HLS stream in the Live URLs panel\n3. Click the TV icon on that stream",
+            "Roku sideload is available from the player.\n\n1. Play a movie or TV show\n2. Wait for an HLS stream in the Live URLs panel\n3. Click the TV icon — TinyCinema will build, upload, and launch the channel on your Roku automatically",
             "Roku Sideload",
             MessageBoxButton.OK,
             MessageBoxImage.Information);

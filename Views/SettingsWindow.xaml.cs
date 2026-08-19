@@ -157,6 +157,9 @@ public static class SettingsWindow
         if (string.IsNullOrWhiteSpace(username))
             username = "rokudev";
 
+        if (string.IsNullOrWhiteSpace(password))
+            password = "rokudev";
+
         return (ip, username, password);
     }
 

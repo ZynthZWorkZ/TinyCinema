@@ -1729,7 +1729,7 @@ public partial class TinyZonePlayerWindow : Window
         if (string.IsNullOrWhiteSpace(url))
             return;
 
-        var (rokuIp, _, _) = SettingsWindow.GetRokuCredentials();
+        var (rokuIp, rokuUsername, rokuPassword) = SettingsWindow.GetRokuCredentials();
         if (string.IsNullOrWhiteSpace(rokuIp))
         {
             MessageBox.Show(
@@ -1743,7 +1743,8 @@ public partial class TinyZonePlayerWindow : Window
         if (sender is Button button)
             button.IsEnabled = false;
 
-        StatusText.Text = "Building Roku channel zip and poster images...";
+        var progress = new Progress<RokuSideloadProgress>(report => StatusText.Text = report.Message);
+        StatusText.Text = "Building Roku channel package...";
 
         try
         {
@@ -1751,11 +1752,41 @@ public partial class TinyZonePlayerWindow : Window
                 ? $"{_movieTitle} - {_currentTvEpisode.DisplayLabel}"
                 : _movieTitle;
 
-            var result = await RokuSideloadService.SideloadAsync(rokuTitle, url, rokuIp, _posterImageUrl);
+            var result = await RokuSideloadService.SideloadAsync(
+                rokuTitle,
+                url,
+                rokuIp,
+                _posterImageUrl,
+                rokuUsername,
+                rokuPassword,
+                progress);
 
             if (result.Success)
             {
-                StatusText.Text = "Zip created. Upload it in your browser.";
+                StatusText.Text = result.InstalledOnRoku
+                    ? result.LaunchedOnRoku
+                        ? "Channel installed and relaunched on Roku."
+                        : "Channel installed on Roku."
+                    : result.UsedManualFallback
+                        ? "Automatic sideload failed. Manual upload opened."
+                        : result.Message;
+
+                if (result.UsedManualFallback)
+                {
+                    MessageBox.Show(
+                        result.DisplayText,
+                        "Roku Sideload",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Warning);
+                }
+                else if (result.InstalledOnRoku && !result.LaunchedOnRoku)
+                {
+                    MessageBox.Show(
+                        result.DisplayText,
+                        "Roku Sideload",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Information);
+                }
             }
             else
             {

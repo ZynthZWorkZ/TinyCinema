@@ -135,4 +135,5 @@ Open **Settings** from the sidebar to configure the app. Changes save automatica
 
 ### Roku Sideload
 
-- **IP Address / Username / Password** — Credentials for sideloading the TinyCinema channel to a Roku in Developer Mode.
+- **IP Address / Username / Password** — Credentials for sideloading the TinyCinema channel to a Roku in Developer Mode (defaults: `rokudev` / `rokudev`).
+- From the player, click the TV icon on an HLS stream to build, upload, install, and launch the channel automatically. If automatic upload fails, TinyCinema falls back to opening the zip and Roku installer page for manual upload.
